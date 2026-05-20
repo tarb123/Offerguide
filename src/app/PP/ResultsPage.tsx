@@ -249,40 +249,40 @@ if (miBlock) {
 }
 
 
-      // ✅ PDF-only: force MBTI + Learning Styles to 2 columns (even on mobile)
-      if (prefRow) {
-        prefRow.style.display = "grid";
-        prefRow.style.gridTemplateColumns = "1.5fr 1fr";
-        prefRow.style.columnGap = "18px";
-        prefRow.style.rowGap = "0px";
-        prefRow.style.alignItems = "start";
-      }
+  // ✅ PDF-only: force MBTI + Learning Styles to 2 columns (even on mobile)
+  if (prefRow) {
+    prefRow.style.display = "grid";
+    prefRow.style.gridTemplateColumns = "1.5fr 1fr";
+    prefRow.style.columnGap = "18px";
+    prefRow.style.rowGap = "0px";
+    prefRow.style.alignItems = "start";
+    }
 
-      // ✅ avoid left crop in PDF (desktop has lg:-ml-4)
-      if (mbtiPref) mbtiPref.style.marginLeft = "0";
-      if (lsPref) lsPref.style.marginLeft = "0";
+    // ✅ avoid left crop in PDF (desktop has lg:-ml-4)
+    if (mbtiPref) mbtiPref.style.marginLeft = "0";
+    if (lsPref) lsPref.style.marginLeft = "0";
 
-      // ✅ make LearningStyle chart fit nicely in PDF column
-      if (lsChartWrap) lsChartWrap.style.height = "250px";
+    // ✅ make LearningStyle chart fit nicely in PDF column
+    if (lsChartWrap) lsChartWrap.style.height = "250px";
 
-      // ✅ force charts resize cleanly
-      window.dispatchEvent(new Event("resize"));
-      await waitTwoFrames();
-      await new Promise((r) => setTimeout(r, 250));
+    // ✅ force charts resize cleanly
+    window.dispatchEvent(new Event("resize"));
+    await waitTwoFrames();
+    await new Promise((r) => setTimeout(r, 250));
 
-      // ✅ collect pages IN ORDER (1,2,3...)
-      const pages = Array.from(
-        container.querySelectorAll<HTMLElement>("[data-pdf-page]")
-      ).sort((a, b) => Number(a.dataset.pdfPage || "0") - Number(b.dataset.pdfPage || "0"));
+    // ✅ collect pages IN ORDER (1,2,3...)
+    const pages = Array.from(
+      container.querySelectorAll<HTMLElement>("[data-pdf-page]")
+    ).sort((a, b) => Number(a.dataset.pdfPage || "0") - Number(b.dataset.pdfPage || "0"));
 
-      if (pages.length === 0) return;
+    if (pages.length === 0) return;
 
-      const pdf = new jsPDF("p", "mm", "a4");
+    const pdf = new jsPDF("p", "mm", "a4");
 
-      for (let i = 0; i < pages.length; i++) {
-        const canvas = await captureElement(pages[i]);
-        addCanvasToPdf(pdf, canvas, i !== 0);
-      }
+    for (let i = 0; i < pages.length; i++) {
+      const canvas = await captureElement(pages[i]);
+      addCanvasToPdf(pdf, canvas, i !== 0);
+    }
 
       pdf.save("CIR.pdf");
     } finally {
@@ -294,36 +294,36 @@ if (miBlock) {
       container.style.top = prev.top;
       container.style.background = prev.background;
 
-      if (chartsRow && prevCharts) {
-        chartsRow.style.display = prevCharts.display;
-        (chartsRow.style as any).gridTemplateColumns = prevCharts.gridTemplateColumns;
-        (chartsRow.style as any).columnGap = prevCharts.columnGap;
-        (chartsRow.style as any).rowGap = prevCharts.rowGap;
-        (chartsRow.style as any).alignItems = prevCharts.alignItems;
-        (chartsRow.style as any).justifyItems = prevCharts.justifyItems;
-      }
+    if (chartsRow && prevCharts) {
+      chartsRow.style.display = prevCharts.display;
+      (chartsRow.style as any).gridTemplateColumns = prevCharts.gridTemplateColumns;
+      (chartsRow.style as any).columnGap = prevCharts.columnGap;
+      (chartsRow.style as any).rowGap = prevCharts.rowGap;
+      (chartsRow.style as any).alignItems = prevCharts.alignItems;
+      (chartsRow.style as any).justifyItems = prevCharts.justifyItems;
+    }
 
-      if (miBlock && prevMi) {
-        (miBlock.style as any).gridColumn = prevMi.gridColumn;
-        miBlock.style.width = prevMi.width;
-        miBlock.style.maxWidth = prevMi.maxWidth;
-        miBlock.style.margin = prevMi.margin;
-      }
+    if (miBlock && prevMi) {
+    (miBlock.style as any).gridColumn = prevMi.gridColumn;
+    miBlock.style.width = prevMi.width;
+    miBlock.style.maxWidth = prevMi.maxWidth;
+    miBlock.style.margin = prevMi.margin;
+    }
 
-      if (prefRow && prevPrefRow) {
-        prefRow.style.display = prevPrefRow.display;
-        prefRow.style.gridTemplateColumns = prevPrefRow.gridTemplateColumns;
-        prefRow.style.columnGap = prevPrefRow.columnGap;
-        prefRow.style.rowGap = prevPrefRow.rowGap;
-        prefRow.style.alignItems = prevPrefRow.alignItems;
-      }
+    if (prefRow && prevPrefRow) {
+    prefRow.style.display = prevPrefRow.display;
+    prefRow.style.gridTemplateColumns = prevPrefRow.gridTemplateColumns;
+    prefRow.style.columnGap = prevPrefRow.columnGap;
+    prefRow.style.rowGap = prevPrefRow.rowGap;
+    prefRow.style.alignItems = prevPrefRow.alignItems;
+    }
 
-      if (mbtiPref && prevMbtiPref) mbtiPref.style.marginLeft = prevMbtiPref.marginLeft;
-      if (lsPref && prevLsPref) lsPref.style.marginLeft = prevLsPref.marginLeft;
-      if (lsChartWrap && prevLsChart) lsChartWrap.style.height = prevLsChart.height;
+    if (mbtiPref && prevMbtiPref) mbtiPref.style.marginLeft = prevMbtiPref.marginLeft;
+    if (lsPref && prevLsPref) lsPref.style.marginLeft = prevLsPref.marginLeft;
+    if (lsChartWrap && prevLsChart) lsChartWrap.style.height = prevLsChart.height;
 
-      window.dispatchEvent(new Event("resize"));
-      setIsExporting(false);
+    window.dispatchEvent(new Event("resize"));
+    setIsExporting(false);
     }
   };
 
@@ -506,20 +506,20 @@ if (miBlock) {
   const discChartData = { labels: discLabels, data: discData };
 
   return (
-    <div>
+    <div className="m-10">
       {/* Download button (outside capture so it won’t appear in PDF) */}
-      <div className="mt-7 mb-4 flex justify-center sm:justify-start">
-        <div className="sm:sticky sm:top-6 sm:z-50">
-          <div className="group relative inline-block px-8 py-2">
-            <button
+      <div className="mt-24 mb-4 flex justify-center sm:justify-start">
+         
+      </div>
+                                        <button
               type="button"
               onClick={downloadPDF}
               disabled={isExporting}
               className="
                 relative inline-flex items-center justify-center gap-2
-                rounded-2xl px-4 py-2 text-sm font-semibold
+                 px-4 py-2 mt-2 -mb-2 -ml-1 text-sm font-semibold
                 text-indigo-600
-                bg-gradient-to-b from-indigo-500/20 via-violet-500/20 to-pink-500/20
+                bg-tranparent from-indigo-500/20 via-violet-500/20 to-pink-500/20
                 border-0 outline-none ring-0
                 shadow-[0_8px_30px_rgba(2,6,23,0.08)]
                 backdrop-blur-md
@@ -539,18 +539,16 @@ if (miBlock) {
                 "
                 aria-hidden="true"
               />
-              <Download className="relative h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+              <Download className="relative h-4 w-4 transition-transform duration-300 group-hover:scale-110 " />
               <span className="relative whitespace-nowrap">
-                {isExporting ? "Generating PDF..." : "Download CIR"}
+                {isExporting ? "Generating PDF..." : "Download"}
               </span>
             </button>
-          </div>
-        </div>
-      </div>
-
       <div id="results-container" className="w-full overflow-x-hidden px-3 sm:px-0">
 
-        <div data-pdf-page="1" className="bg-white">
+        <div data-pdf-page="1">
+
+
           <h1 className="text-2xl">
             5<span style={{ color: "Red" }}>E </span>Report (C<span style={{ color: "Red" }}>!</span>R)
           </h1>
@@ -561,6 +559,7 @@ if (miBlock) {
             </h1>
           )}
           {candidateEmail && <h1 className="font-semibold text-lg">Email: {candidateEmail}</h1>}
+
 
           <CareerMatchProfile matches={careerMatches} />
 
@@ -649,9 +648,42 @@ className="flex flex-col items-center -gap-6 lg:flex-row lg:items-start lg:justi
           </div>
         </div>
 
-        <div data-pdf-page="3" className="bg-white mt-6">
+        {/* <div data-pdf-page="3" className="bg-white mt-6">
           <CareerLockingReadinessPage candidateName={candidateName} careerMatches={careerMatches} skillScores={skillScores} traitScores={traitScores}/>
-        </div>
+        </div> */}
+                    <button
+              type="button"
+              onClick={downloadPDF}
+              disabled={isExporting}
+              className="
+                relative inline-flex items-center justify-center gap-2
+                 px-4 py-2 mt-2 -mb-2 ml-64 text-sm font-semibold
+                text-indigo-600
+                bg-gradient-to-b from-indigo-500/20 via-violet-500/20 to-pink-500/20
+                border-0 outline-none ring-0
+                shadow-[0_8px_30px_rgba(2,6,23,0.08)]
+                backdrop-blur-md
+                transition-all duration-300
+                hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(2,6,23,0.14)]
+                active:translate-y-0
+                disabled:cursor-not-allowed disabled:opacity-60
+                focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60
+              "
+            >
+              <span
+                className="
+                  pointer-events-none absolute inset-0 rounded-2xl
+                  bg-gradient from-indigo-500/20 via-violet-500/20 to-pink-500/20
+                  opacity-0 blur-md transition-opacity duration-300
+                  group-hover:opacity-100
+                "
+                aria-hidden="true"
+              />
+              <Download className="relative h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+              <span className="relative whitespace-nowrap">
+                {isExporting ? "Generating PDF..." : "Download CIR"}
+              </span>
+            </button>
       </div>
     </div>
 );};

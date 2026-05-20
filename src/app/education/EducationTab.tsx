@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import "@fortawesome/fontawesome-free/css/all.min.css"
 type Proficiency = "Beginner" | "Intermediate" | "Advanced";
 type SkillType = "Technical" | "Soft";
 
@@ -155,8 +156,8 @@ const MOCK_FIELDS: CareerField[] = [
  { id: "supply_chain_management", name: "Supply Chain Management", shortDesc: "Procurement, logistics, inventory, production" },
  { id: "it", name: "IT", shortDesc: "Software, systems, data, networks" },
  { id: "product_innovation", name: "Product & Innovation", shortDesc: "Product strategy, roadmap, innovation" },
-{ id: "program_delivery_management", name: "Program & Delivery Management", shortDesc: "Projects, PMO, portfolio delivery" },
-{ id: "operations_process_excellence", name: "Operations & Process Excellence", shortDesc: "Business analysis, process improvement, governance" },
+ { id: "program_delivery_management", name: "Program & Delivery Management", shortDesc: "Projects, PMO, portfolio delivery" },
+ { id: "operations_process_excellence", name: "Operations & Process Excellence", shortDesc: "Business analysis, process improvement, governance" },
  { id: "engineering", name: "Engineering", shortDesc: "Civil, mechanical, electrical" },
  { id: "medical", name: "Medical", shortDesc: "Clinical and healthcare roles" },
  { id: "education", name: "Education", shortDesc: "Teaching, training, curriculum" },
@@ -1373,92 +1374,92 @@ const DEFAULT_USER_SKILLS: UserSkill[] = [
 /** ---------------- Career Jobs Webpage UI ---------------- */
 
 const FIELD_META: Record<
- string,
- {
-  logo: string;
-  color: string;
-  accent: string;
-  totalJobs: number;
- }
+  string,
+  {
+    icon: string;
+    color: string;
+    accent: string;
+    totalJobs: number;
+  }
 > = {
- hr: {
-  logo: "👥",
-  color: "bg-blue-600 text-white",
-  accent: "bg-blue-600",
-  totalJobs: 28,
- },
- finance: {
-  logo: "💼",
-  color: "bg-emerald-600 text-white",
-  accent: "bg-emerald-600",
-  totalJobs: 34,
- },
- sales: {
-  logo: "📈",
-  color: "bg-orange-500 text-white",
-  accent: "bg-orange-500",
-  totalJobs: 18,
- },
- marketing: {
-  logo: "📣",
-  color: "bg-pink-600 text-white",
-  accent: "bg-pink-600",
-  totalJobs: 22,
- },
- customer_relation: {
-  logo: "🎧",
-  color: "bg-cyan-600 text-white",
-  accent: "bg-cyan-600",
-  totalJobs: 16,
- },
- supply_chain_management: {
-  logo: "🚚",
-  color: "bg-amber-500 text-white",
-  accent: "bg-amber-500",
-  totalJobs: 26,
- },
- it: {
-  logo: "💻",
-  color: "bg-indigo-600 text-white",
-  accent: "bg-indigo-600",
-  totalJobs: 35,
- },
- product_innovation: {
-  logo: "💡",
-  color: "bg-violet-600 text-white",
-  accent: "bg-violet-600",
-  totalJobs: 12,
- },
- program_delivery_management: {
-  logo: "📋",
-  color: "bg-[#e8edf5] text-slate-700",
-  accent: "bg-slate-700",
-  totalJobs: 14,
- },
- operations_process_excellence: {
-  logo: "⚙️",
-  color: "bg-teal-600 text-white",
-  accent: "bg-teal-600",
-  totalJobs: 13,
- },
- engineering: {
-  logo: "🏗️",
-  color: "bg-yellow-500 text-white",
-  accent: "bg-yellow-500",
-  totalJobs: 20,
- },
- medical: {
-  logo: "⚕️",
-  color: "bg-rose-600 text-white",
-  accent: "bg-rose-600",
-  totalJobs: 19,
- },
- education: {
-  logo: "🎓",
-  color: "bg-sky-600 text-white",
-  accent: "bg-sky-600",
-  totalJobs: 15,
- },
+  hr: {
+    icon: "fa-solid fa-users",
+    color: "bg-blue-600 text-white",
+    accent: "bg-blue-600",
+    totalJobs: 28,
+  },
+  finance: {
+    icon: "fa-solid fa-briefcase",
+    color: "bg-emerald-600 text-white",
+    accent: "bg-emerald-600",
+    totalJobs: 34,
+  },
+  sales: {
+    icon: "fa-solid fa-chart-line",
+    color: "bg-orange-500 text-white",
+    accent: "bg-orange-500",
+    totalJobs: 18,
+  },
+  marketing: {
+    icon: "fa-solid fa-bullhorn",
+    color: "bg-pink-600 text-white",
+    accent: "bg-pink-600",
+    totalJobs: 22,
+  },
+  customer_relation: {
+    icon: "fa-solid fa-headset",
+    color: "bg-cyan-600 text-white",
+    accent: "bg-cyan-600",
+    totalJobs: 16,
+  },
+  supply_chain_management: {
+    icon: "fa-solid fa-truck-fast",
+    color: "bg-amber-500 text-white",
+    accent: "bg-amber-500",
+    totalJobs: 26,
+  },
+  it: {
+    icon: "fa-solid fa-laptop-code",
+    color: "bg-indigo-600 text-white",
+    accent: "bg-indigo-600",
+    totalJobs: 35,
+  },
+  product_innovation: {
+    icon: "fa-solid fa-lightbulb",
+    color: "bg-violet-600 text-white",
+    accent: "bg-violet-600",
+    totalJobs: 12,
+  },
+  program_delivery_management: {
+    icon: "fa-solid fa-list-check",
+    color: "bg-slate-700 text-white",
+    accent: "bg-slate-700",
+    totalJobs: 14,
+  },
+  operations_process_excellence: {
+    icon: "fa-solid fa-gears",
+    color: "bg-teal-600 text-white",
+    accent: "bg-teal-600",
+    totalJobs: 13,
+  },
+  engineering: {
+    icon: "fa-solid fa-helmet-safety",
+    color: "bg-yellow-500 text-white",
+    accent: "bg-yellow-500",
+    totalJobs: 20,
+  },
+  medical: {
+    icon: "fa-solid fa-user-doctor",
+    color: "bg-rose-600 text-white",
+    accent: "bg-rose-600",
+    totalJobs: 19,
+  },
+  education: {
+    icon: "fa-solid fa-graduation-cap",
+    color: "bg-sky-600 text-white",
+    accent: "bg-sky-600",
+    totalJobs: 15,
+  },
 };
 
 const DEPARTMENT_OPTIONS: Record<string, Array<{ id: string; name: string }>> = {
@@ -1494,18 +1495,20 @@ function getDepartmentContent(fieldId: string | null, departmentId: string | nul
 }
 
 function FieldLogo({ fieldId }: { fieldId: string }) {
- const meta = FIELD_META[fieldId] ?? {
-  logo: "▣",
-  color: "bg-[#e8edf5] text-slate-700",
-  accent: "bg-slate-600",
-  totalJobs: 10,
- };
+  const meta = FIELD_META[fieldId] ?? {
+    icon: "fa-solid fa-layer-group",
+    color: "bg-slate-700 text-white",
+    accent: "bg-slate-700",
+    totalJobs: 10,
+  };
 
- return (
-  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-lg ${meta.color}`}>
-   {meta.logo}
-  </span>
- );
+  return (
+    <span
+      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm ${meta.color}`}
+    >
+      <i className={meta.icon} aria-hidden="true" />
+    </span>
+  );
 }
 
 function StatBox({
@@ -1791,21 +1794,20 @@ export default function EducationTab() {
 
    <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
     <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-     <aside className="space-y-3">
-      <div className="bg-white p-3 shadow-sm">
+     <aside className="space-y-1 w-72">
        <SearchInput
         value={search}
         onChange={setSearch}
         placeholder={activeField ? "Search roles..." : "Search career fields..."}
-       />
-      </div>
-
-      <div className="bg-white shadow-sm">
-       <div className=" bg-white/10 px-4 py-3">
+      />
+ 
+      <div className="bg-white shadow-sm w-72">
+       <div className=" bg-white/10 px-4 py-3 ">
         <p className="text-sm font-semibold text-slate-900">Career Fields</p>
        </div>
 
-       <div className="max-h-[620px] divide-y divide-slate-100/70 overflow-y-auto">
+       <div className="max-h-[620px]  
+        overflow-y-auto">
         {fields.map((field) => {
          const isActive = field.id === activeFieldId;
          const meta = FIELD_META[field.id] ?? {
@@ -1829,11 +1831,9 @@ export default function EducationTab() {
             isActive ? "bg-[#17457d] text-white" : "hover:bg-[#f5f8fc]"
            }`}
           >
-           <span className={`flex h-8 w-8 items-center justify-center rounded-md text-base ${isActive ? "bg-white/15 text-white" : meta.color}`}>
-            {meta.logo}
-           </span>
+
            <span className="min-w-0 flex-1">
-            <span className={`block truncate text-sm font-semibold ${isActive ? "text-white" : "text-slate-800"}`}>
+            <span className={`block truncate text-xs ${isActive ? "text-white" : "text-slate-800"}`}>
              {field.name}
             </span>
             <span className={`block text-xs ${isActive ? "text-blue-100" : "text-slate-500"}`}>
@@ -1847,10 +1847,10 @@ export default function EducationTab() {
       </div>
      </aside>
 
-     <div className="space-y-4">
+     <div className="space-y-5">
       {!activeField && !selectedRole ? (
        <>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-3">
          {filteredFields.map((field) => {
           const meta = FIELD_META[field.id] ?? {
            logo: "▣",
@@ -1883,12 +1883,12 @@ export default function EducationTab() {
              {field.shortDesc}
             </p>
 
-            <div className="mt-4 flex items-center justify-between bg-[#f3f6fa] px-3 py-2">
+            {/* <div className="mt-4 flex items-center justify-between bg-[#f3f6fa] px-3 py-2">
              <span className="text-xs text-slate-500">Available jobs</span>
              <span className="text-sm font-medium text-slate-800">
               {meta.totalJobs}
              </span>
-            </div>
+            </div> */}
            </button>
           );
          })}

@@ -129,7 +129,7 @@ async function handleSignup(body: AuthRequestBody) {
   const normalizedEmail = String(email).trim().toLowerCase();
 
   const [existing] = await db.execute<ExistingUserRow[]>(
-    "SELECT email FROM userinfo WHERE email = ?",
+    "SELECT email FROM SanjeedaUsers WHERE email = ?",
     [normalizedEmail]
   );
 
@@ -141,7 +141,7 @@ async function handleSignup(body: AuthRequestBody) {
   }
 
   const [result] = await db.execute<ResultSetHeader>(
-    "INSERT INTO userinfo (name, email, password) VALUES (?, ?, ?)",
+    "INSERT INTO SanjeedaUsers (name, email, password) VALUES (?, ?, ?)",
     [normalizedName, normalizedEmail, password]
   );
 
@@ -178,7 +178,7 @@ async function handleLogin(body: AuthRequestBody) {
   const normalizedEmail = String(email).trim().toLowerCase();
 
   const [rows] = await db.execute<UserRow[]>(
-    "SELECT * FROM userinfo WHERE email = ?",
+    "SELECT * FROM SanjeedaUsers WHERE email = ?",
     [normalizedEmail]
   );
 
@@ -247,7 +247,7 @@ async function handleGoogleLogin(body: AuthRequestBody) {
   const googleId = payload.sub;
 
   const [rows] = await db.execute<UserRow[]>(
-    "SELECT * FROM userinfo WHERE email = ?",
+    "SELECT * FROM SanjeedaUsers WHERE email = ?",
     [email]
   );
 
@@ -263,13 +263,13 @@ async function handleGoogleLogin(body: AuthRequestBody) {
 
     if (!existingUser.google_id && googleId) {
       await db.execute(
-        "UPDATE userinfo SET google_id = ? WHERE email = ?",
+        "UPDATE SanjeedaUsers SET google_id = ? WHERE email = ?",
         [googleId, email]
       );
     }
   } else {
     const [result] = await db.execute<ResultSetHeader>(
-      "INSERT INTO userinfo (name, email, google_id) VALUES (?, ?, ?)",
+      "INSERT INTO SanjeedaUsers (name, email, google_id) VALUES (?, ?, ?)",
       [name, email, googleId]
     );
 
@@ -324,7 +324,7 @@ async function handleSendCode(body: AuthRequestBody) {
   }
 
   const [rows] = await db.execute<ExistingUserRow[]>(
-    "SELECT email FROM userinfo WHERE email = ?",
+    "SELECT email FROM SanjeedaUsers WHERE email = ?",
     [normalizedEmail]
   );
 
@@ -382,7 +382,7 @@ async function handleSendCode(body: AuthRequestBody) {
   });
 
   await db.execute(
-    "UPDATE userinfo SET reset_code = ?, reset_code_expiry = ? WHERE email = ?",
+    "UPDATE SanjeedaUsers SET reset_code = ?, reset_code_expiry = ? WHERE email = ?",
     [code, expiry, normalizedEmail]
   );
 
@@ -405,7 +405,7 @@ async function handleVerifyCode(body: AuthRequestBody) {
   const normalizedEmail = String(email).trim().toLowerCase();
 
   const [rows] = await db.execute<ResetCodeRow[]>(
-    "SELECT reset_code_expiry FROM userinfo WHERE email = ? AND reset_code = ?",
+    "SELECT reset_code_expiry FROM SanjeedaUsers WHERE email = ? AND reset_code = ?",
     [normalizedEmail, code]
   );
 
@@ -424,7 +424,7 @@ async function handleVerifyCode(body: AuthRequestBody) {
   }
 
   await db.execute(
-    "UPDATE userinfo SET password = ?, reset_code = NULL, reset_code_expiry = NULL WHERE email = ?",
+    "UPDATE SanjeedaUsers SET password = ?, reset_code = NULL, reset_code_expiry = NULL WHERE email = ?",
     [password, normalizedEmail]
   );
 

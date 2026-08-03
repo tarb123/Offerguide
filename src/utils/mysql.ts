@@ -2,7 +2,7 @@ import mysql from "mysql2/promise";
 
 // ─── Environment-aware DB bridge ────────────────────────────────────────────
 // LOCAL / DEV  → writes to your LOCAL MySQL (127.0.0.1) via DB_*      vars.
-// PRODUCTION   → writes to your Railway  MySQL          via DB_PROD_* vars.
+// PRODUCTION   → writes to your cloud  MySQL            via DB_PROD_* vars.
 //
 // The same code automatically picks the right database, so test signups stay
 // in your local DB and only real, live signups reach the production DB.
@@ -18,6 +18,10 @@ const isProduction =
   (process.env.NODE_ENV === "production" &&
     process.env.VERCEL_ENV !== "preview");
 
+// Managed cloud MySQL (TiDB Cloud, Aiven, PlanetScale, etc.) require TLS.
+// Enabled for production by default; set DB_PROD_SSL=false to opt out.
+const useProdSsl = process.env.DB_PROD_SSL !== "false";
+
 const config = isProduction
   ? {
       host: process.env.DB_PROD_HOST,
@@ -25,6 +29,9 @@ const config = isProduction
       password: process.env.DB_PROD_PASS,
       database: process.env.DB_PROD_NAME,
       port: Number(process.env.DB_PROD_PORT) || 3306,
+      ...(useProdSsl
+        ? { ssl: { minVersion: "TLSv1.2", rejectUnauthorized: true } }
+        : {}),
     }
   : {
       host: process.env.DB_HOST,

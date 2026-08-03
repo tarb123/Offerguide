@@ -34,7 +34,7 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="bg-blue-950 text-white">
+    <footer className="bg-blue-950 dark:bg-darkBlue text-white">
       {/* Newsletter Section */}
       <section className="border-b border-white/10 bg-gradient-to-r from-Red via-rose-500 to-Blue">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
@@ -75,7 +75,7 @@ const Footer = () => {
         <div className="grid gap-10 md:grid-cols-2 xl:grid-cols-4">
           {/* Brand */}
           <div>
-            <Link href="www.sanjeeda.io" className="inline-block">
+            <Link href="/" className="inline-block">
               <Image
                 src="/sanjeeda logo2.png"
                 alt="Sanjeeda logo"

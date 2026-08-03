@@ -40,7 +40,7 @@ const BlogCard = () => {
       /> */}
 
       {/* Dark overlay */}
-      <div className="absolute inset-0 bg-blue-950" />
+      <div className="absolute inset-0 bg-blue-950 dark:bg-darkBlue" />
 
       {/* Soft gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/50" />

@@ -39,7 +39,7 @@
     "src/app/PP/QuestionBlock copy",
     "src/app/M/page.tsx",
     ".next/dev/types/**/*.ts"
-, "src/app/api/login/route.js"  ],
+, "src/app/api/login/route.ts"  ],
   "exclude": [
     "node_modules"
   ]

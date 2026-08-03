@@ -10,7 +10,7 @@ const AboutCard = () => {
       /> */}
 
       {/* Foreground Content */}
-      <div className="relative z-10 py-14 bg-blue-950">
+      <div className="relative z-10 py-14 bg-blue-950 dark:bg-darkBlue">
         <section>
           
           {/* Video Section */}

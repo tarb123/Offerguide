@@ -102,10 +102,10 @@ export default function MentorAuthPage() {
     <main className="min-h-screen bg-[#07111f] p-4 text-slate-900">
       <div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-6xl overflow-hidden rounded-[2rem] bg-white dark:bg-[#0b1230] shadow-2xl lg:grid-cols-2">
         <aside className="hidden bg-[#0b2f5b] p-12 text-white lg:block">
+          
           <h1 className="mt-12 text-2xl font-black">PGP Mentor Portal</h1>
           <p className="mt-4 max-w-md text-sm text-blue-100">
-            Mentor access for candidate attendance, feedback, training progress
-            and evaluation records.
+            Mentor access for candidate attendance, feedback, training progress and evaluation records.
           </p>
 
           <div className="mt-10 space-y-4 text-sm">

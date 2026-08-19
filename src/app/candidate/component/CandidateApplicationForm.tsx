@@ -1,407 +1,504 @@
 "use client";
 
-import React, { useState } from "react";
-import { useEffect } from "react";
-import {
-  User,
-  Users,
-  GraduationCap,
-  Briefcase,
-  Laptop,
-  FileText,
-  CheckCircle,
-} from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Check, ChevronLeft, ChevronRight, Send } from "lucide-react";
+import DocumentUploader from "@/app/candidate/component/DocumentUploader";
 
-type Tab =
-  | "basic"
-  | "guardian"
-  | "education"
-  | "job"
-  | "resources"
-  | "documents"
-  | "agreement";
+type FormState = {
+  email: string;
+  fullName: string;
+  guardianName: string;
+  gender: string;
+  nationality: string;
+  cnic: string;
+  dob: string;
+  address: string;
+  contactNumber: string;
+  qualification: string;
+  recentJobTitleYear: string;
+  expectations: string;
+  laptopAvailable: string;
+  internetConnection: string;
+  confirmation: boolean;
+  termsAgreement: boolean;
+};
 
-export default function CandidateDashboardPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("basic");
-  const [message, setMessage] = useState("");
-  const [form, setForm] = useState(() => {
-  if (typeof window !== "undefined") {
-    const savedCandidate = localStorage.getItem("candidateUser");
+const EMPTY: FormState = {
+  email: "",
+  fullName: "",
+  guardianName: "",
+  gender: "",
+  nationality: "",
+  cnic: "",
+  dob: "",
+  address: "",
+  contactNumber: "",
+  qualification: "",
+  recentJobTitleYear: "",
+  expectations: "",
+  laptopAvailable: "",
+  internetConnection: "",
+  confirmation: false,
+  termsAgreement: false,
+};
 
-    if (savedCandidate) {
-      const candidate = JSON.parse(savedCandidate);
+const STEPS: {
+  key: string;
+  label: string;
+  required: (keyof FormState)[];
+}[] = [
+  { key: "basic", label: "Basic Info", required: ["gender", "nationality", "cnic", "dob", "contactNumber", "address"] },
+  { key: "guardian", label: "Guardian", required: ["guardianName"] },
+  { key: "education", label: "Education", required: ["qualification"] },
+  { key: "job", label: "Experience", required: ["recentJobTitleYear", "expectations"] },
+  { key: "resources", label: "Resources", required: ["laptopAvailable", "internetConnection"] },
+  { key: "documents", label: "Documents", required: [] },
+  { key: "agreement", label: "Agreement", required: ["confirmation", "termsAgreement"] },
+];
 
-      return {
-        email: candidate.email || "",
-        fullName: candidate.fullName || "",
-        guardianName: "",
-        gender: "",
-        nationality: "",
-        cnic: "",
-        dob: "",
-        address: "",
-        contactNumber: "",
-        qualification: "",
-        recentJobTitleYear: "",
-        expectations: "",
-        laptopAvailable: "",
-        internetConnection: "",
-        confirmation: false,
-        termsAgreement: false,
-      };
-    }
-  }
+function isFilled(value: FormState[keyof FormState]) {
+  if (typeof value === "boolean") return value;
+  return String(value || "").trim() !== "";
+}
 
-  return {
-    email: "",
-    fullName: "",
-    guardianName: "",
-    gender: "",
-    nationality: "",
-    cnic: "",
-    dob: "",
-    address: "",
-    contactNumber: "",
-    qualification: "",
-    recentJobTitleYear: "",
-    expectations: "",
-    laptopAvailable: "",
-    internetConnection: "",
-    confirmation: false,
-    termsAgreement: false,
-  };
-});
-  
-  useEffect(() => {
-  async function loadApplication() {
-    const savedUser = localStorage.getItem("candidateUser");
-
-    if (!savedUser) return;
-
-    const user = JSON.parse(savedUser);
-
-    try {
-      const response = await fetch(
-        `/api/pgp-candidate/application/${encodeURIComponent(user.email)}`
-      );
-
-      const data = await response.json();
-
-      if (data.exists) {
-        setForm({
-          ...data.application,
-        });
-      } else {
-        setForm((prev) => ({
-          ...prev,
-          email: user.email,
-          fullName: user.fullName,
-        }));
+export default function CandidateApplicationForm() {
+  const [step, setStep] = useState(0);
+  const [completed, setCompleted] = useState<Set<number>>(new Set());
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [form, setForm] = useState<FormState>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("candidateUser");
+      if (saved) {
+        const c = JSON.parse(saved);
+        return { ...EMPTY, email: c.email || "", fullName: c.fullName || "" };
       }
-    } catch (err) {
-      console.error(err);
     }
-  }
+    return EMPTY;
+  });
 
-  loadApplication();
-}, []);
+  useEffect(() => {
+    async function load() {
+      const saved = localStorage.getItem("candidateUser");
+      if (!saved) return;
+      const user = JSON.parse(saved);
+      try {
+        const res = await fetch(
+          `/api/pgp-candidate/application/${encodeURIComponent(user.email)}`
+        );
+        const data = await res.json();
+        const next: FormState = data.exists
+          ? { ...EMPTY, ...data.application }
+          : { ...EMPTY, email: user.email, fullName: user.fullName };
+        setForm(next);
+        // Mark steps already satisfied as complete.
+        const done = new Set<number>();
+        STEPS.forEach((s, i) => {
+          if (s.required.every((f) => isFilled(next[f]))) done.add(i);
+        });
+        setCompleted(done);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    void load();
+  }, []);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
     const { name, value, type } = e.target;
-
     if (type === "checkbox") {
-      const checked = (e.target as HTMLInputElement).checked;
-      setForm({ ...form, [name]: checked });
+      setForm({ ...form, [name]: (e.target as HTMLInputElement).checked });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+  }
+
+  function missingOnStep(i: number) {
+    return STEPS[i].required.filter((f) => !isFilled(form[f]));
+  }
+
+  function goNext() {
+    if (missingOnStep(step).length > 0) {
+      setMessage({ text: "Please complete all required fields on this step before continuing.", ok: false });
       return;
     }
-
-    setForm({ ...form, [name]: value });
+    setCompleted((prev) => new Set(prev).add(step));
+    setMessage(null);
+    setStep((s) => Math.min(s + 1, STEPS.length - 1));
   }
 
-async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault();
-
-  if (!form.confirmation || !form.termsAgreement) {
-    setMessage("Please confirm information and accept terms.");
-    return;
+  function goBack() {
+    setMessage(null);
+    setStep((s) => Math.max(s - 1, 0));
   }
 
-  const response = await fetch("/api/pgp-candidate/application", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(form),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    setMessage(data.message || "Application save failed.");
-    return;
+  function goTo(i: number) {
+    // Allow jumping back to any reached/completed step.
+    if (i <= step || completed.has(i)) {
+      setMessage(null);
+      setStep(i);
+    }
   }
 
-  setMessage(data.message);
-  setForm((prev) => ({
-  ...prev,
-}));
-}
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.confirmation || !form.termsAgreement) {
+      setMessage({ text: "Please confirm your information and accept the terms.", ok: false });
+      return;
+    }
+    try {
+      const res = await fetch("/api/pgp-candidate/application", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage({ text: data.message || "Application save failed.", ok: false });
+        return;
+      }
+      setCompleted((prev) => new Set(prev).add(6));
+      setMessage({ text: data.message || "Application submitted successfully.", ok: true });
+    } catch {
+      setMessage({ text: "Could not submit. Please try again.", ok: false });
+    }
+  }
+
+  const isLast = step === STEPS.length - 1;
+
   return (
-    <main className="min-h-screen bg-slate-100 dark:bg-transparent">
-      <div className="min-h-screen">
+    <div className="mx-auto mt-4 max-w-4xl border border-slate-200 dark:border-white/10 
+    bg-white dark:bg-white/5 shadow-sm">
+      {/* Header */}
+      <div className="border-b   border-slate-200 dark:border-white/10 px-5 py-6">
+        <h2 className="text-base font-black text-slate-900 dark:text-white">
+          PGP Application Form
+        </h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Complete all {STEPS.length} steps carefully. Fields marked required must be
+          filled to continue.
+        </p>
+      </div>
 
-        <section className="p-3 sm:p-5 lg:p-8">
-          <div className="mb-3 overflow-x-auto p-2 shadow-sm">
-            <div className="flex w-max min-w-full gap-2">
-              <TopTab icon={<User size={16} />} label="Basic Info" active={activeTab === "basic"} onClick={() => setActiveTab("basic")} />
-              <TopTab icon={<Users size={16} />} label="Guardian" active={activeTab === "guardian"} onClick={() => setActiveTab("guardian")} />
-              <TopTab icon={<GraduationCap size={16} />} label="Education" active={activeTab === "education"} onClick={() => setActiveTab("education")} />
-              <TopTab icon={<Briefcase size={16} />} label="Job" active={activeTab === "job"} onClick={() => setActiveTab("job")} />
-              <TopTab icon={<Laptop size={16} />} label="Resources" active={activeTab === "resources"} onClick={() => setActiveTab("resources")} />
-              <TopTab icon={<FileText size={16} />} label="Documents" active={activeTab === "documents"} onClick={() => setActiveTab("documents")} />
-              <TopTab icon={<CheckCircle size={16} />} label="Agreement" active={activeTab === "agreement"} onClick={() => setActiveTab("agreement")} />
+      {/* Stepper */}
+      <div className="border-b border-slate-200 dark:border-white/10 px-4 py-4 sm:px-6">
+        <ol className="flex items-start">
+          {STEPS.map((s, i) => {
+            const done = completed.has(i);
+            const current = i === step;
+            const clickable = i <= step || done;
+            return (
+              <li
+                key={s.key}
+                className="relative flex flex-1 flex-col items-center"
+              >
+                {i > 0 && (
+                  <span
+                    className={`absolute right-1/2 top-4 h-[2px] w-full ${
+                      completed.has(i - 1) ? "bg-emerald-500" : "bg-zinc-200 dark:bg-white/15"
+                    }`}
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => goTo(i)}
+                  disabled={!clickable}
+                  className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full text-xs font-black transition ${
+                    done
+                      ? "bg-emerald-600 text-white"
+                      : current
+                      ? "bg-zinc-500 text-white ring-4 ring-zinc-200 dark:ring-white/10"
+                      : "bg-zinc-100 dark:bg-white/10 text-zinc-400"
+                  } ${clickable ? "cursor-pointer" : "cursor-not-allowed"}`}
+                >
+                  {done ? <Check size={15} /> : i + 1}
+                </button>
+                <span
+                  className={`mt-1.5 max-w-[70px] truncate text-center text-[9px] font-bold uppercase tracking-wide sm:text-[10px] ${
+                    current
+                      ? "text-slate-900 dark:text-white"
+                      : done
+                      ? "text-emerald-600"
+                      : "text-slate-400"
+                  }`}
+                >
+                  {s.label}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+
+      {/* Body */}
+      <form onSubmit={handleSubmit}>
+        <div className="min-h-[280px] px-5 py-5 sm:px-6">
+          {step === 0 && (
+            <Section title="Basic Information">
+              <Field label="Email" name="email" value={form.email} onChange={handleChange} readOnly />
+              <Field label="Full Name" name="fullName" value={form.fullName} onChange={handleChange} readOnly />
+              <SelectField label="Gender" name="gender" value={form.gender} onChange={handleChange} options={["Male", "Female", "Other"]} required />
+              <Field label="Nationality" name="nationality" value={form.nationality} onChange={handleChange} required />
+              <Field label="CNIC" name="cnic" value={form.cnic} onChange={handleChange} required />
+              <Field label="Date of Birth" name="dob" type="date" value={form.dob} onChange={handleChange} required />
+              <Field label="Contact Number" name="contactNumber" value={form.contactNumber} onChange={handleChange} required />
+              <TextareaField label="Full Address" name="address" value={form.address} onChange={handleChange} required />
+            </Section>
+          )}
+
+          {step === 1 && (
+            <Section title="Guardian Information">
+              <TextareaField
+                label="Father / Mother / Spouse / Guardian Name"
+                name="guardianName"
+                value={form.guardianName}
+                onChange={handleChange}
+                required
+              />
+            </Section>
+          )}
+
+          {step === 2 && (
+            <Section title="Education">
+              <SelectField
+                label="Highest Qualification"
+                name="qualification"
+                value={form.qualification}
+                onChange={handleChange}
+                options={["Matric", "Intermediate", "Bachelor's", "Master's", "PhD", "Other"]}
+                required
+              />
+            </Section>
+          )}
+
+          {step === 3 && (
+            <Section title="Job / Internship Experience">
+              <Field
+                label="Recent Job / Internship Title and Year"
+                name="recentJobTitleYear"
+                value={form.recentJobTitleYear}
+                onChange={handleChange}
+                required
+              />
+              <TextareaField
+                label="What are your expectations from this program?"
+                name="expectations"
+                value={form.expectations}
+                onChange={handleChange}
+                required
+              />
+            </Section>
+          )}
+
+          {step === 4 && (
+            <Section title="Resource Availability">
+              <SelectField
+                label="Do you have your own Laptop / PC at home?"
+                name="laptopAvailable"
+                value={form.laptopAvailable}
+                onChange={handleChange}
+                options={["Yes", "No", "Sometimes", "Shared with Others", "Other"]}
+                required
+              />
+              <SelectField
+                label="Do you have an active Internet Connection at home?"
+                name="internetConnection"
+                value={form.internetConnection}
+                onChange={handleChange}
+                options={["Yes", "No", "Yes but unstable", "Other"]}
+                required
+              />
+            </Section>
+          )}
+
+          {step === 5 && (
+            <div>
+              <h3 className="mb-1 text-sm font-black uppercase tracking-wide text-[#0b2f5b] dark:text-sky-300">
+                Document Uploads
+              </h3>
+              <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
+                Optional but recommended. Files are saved instantly and visible to
+                management.
+              </p>
+              <DocumentUploader />
             </div>
-          </div>
+          )}
 
-<form onSubmit={handleSubmit} className="w-full rounded-xl bg-white dark:bg-white/5 dark:text-slate-100 p-4 shadow-sm sm:p-6 lg:w-3/4">
-{activeTab === "basic" && (
-    <FormSection title="">
-    <Input label="Email" name="email" value={form.email} onChange={handleChange} readOnly />
-    <Input label="Full Name" name="fullName" value={form.fullName} onChange={handleChange} readOnly />
-    <Select label="Gender" name="gender" value={form.gender} onChange={handleChange} options={["Male", "Female", "Other"]} />
-    <Input label="Nationality" name="nationality" value={form.nationality} onChange={handleChange}/>
-    <Input label="CNIC" name="cnic" value={form.cnic} onChange={handleChange} />
-    <Input label="Date of Birth" name="dob" type="date" value={form.dob} onChange={handleChange} />
-    <Input label="Contact Number" name="contactNumber" value={form.contactNumber} onChange={handleChange} />
-    <Textarea label="Full Address" name="address" value={form.address} onChange={handleChange} />
-    </FormSection>
-  )}
+          {step === 6 && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-black uppercase tracking-wide text-[#0b2f5b] dark:text-sky-300">
+                Confirmation &amp; Agreement
+              </h3>
 
-            {activeTab === "guardian" && (
-              <FormSection title="Guardian Information">
-                <Input
-                  label="Father / Mother / Spouse / Guardian Name"
-                  name="guardianName"
-                  value={form.guardianName}
-                  onChange={handleChange}
-                />
-              </FormSection>
-            )}
-
-            {activeTab === "education" && (
-              <FormSection title="Education Information">
-                <Select
-                  label="Qualification"
-                  name="qualification"
-                  value={form.qualification}
-                  onChange={handleChange}
-                  options={["Matric", "Intermediate", "Bachelor's", "Master's", "PhD", "Other"]}
-                />
-              </FormSection>
-            )}
-
-            {activeTab === "job" && (
-              <FormSection title="Job / Internship Information">
-                <Input
-                  label="Recent Job / Internship Title and Year"
-                  name="recentJobTitleYear"
-                  value={form.recentJobTitleYear}
-                  onChange={handleChange}
-                />
-
-                <Textarea
-                  label="What are your expectations with this program?"
-                  name="expectations"
-                  value={form.expectations}
-                  onChange={handleChange}
-                />
-              </FormSection>
-            )}
-
-            {activeTab === "resources" && (
-              <FormSection title="Resource Availability">
-                <Select
-                  label="Do you have your own Laptop / PC available at home?"
-                  name="laptopAvailable"
-                  value={form.laptopAvailable}
-                  onChange={handleChange}
-                  options={["Yes", "No", "Sometimes", "Shared with Others", "Other"]}
-                />
-
-                <Select
-                  label="Do you have an active Internet Connection at home?"
-                  name="internetConnection"
-                  value={form.internetConnection}
-                  onChange={handleChange}
-                  options={["Yes", "No", "Yes but unstable", "Other"]}
-                />
-              </FormSection>
-            )}
-
-            {activeTab === "documents" && (
-              <FormSection title="Document Uploads">
-                <FileInput label="Updated CV" />
-                <FileInput label="Internship / Job Experience Certificates" />
-                <FileInput label="Copy of CNIC" />
-                <FileInput label="Other Relevant Documents" />
-              </FormSection>
-            )}
-
-            {activeTab === "agreement" && (
-              <FormSection title="Confirmation & Agreement">
-                <Checkbox
+              <label className="flex items-start gap-3 border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3">
+                <input
+                  type="checkbox"
                   name="confirmation"
                   checked={form.confirmation}
                   onChange={handleChange}
-                  label="I acknowledge and confirm that all information provided is correct."
+                  className="mt-0.5"
                 />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  I acknowledge and confirm that all information provided is correct.
+                </span>
+              </label>
 
-                <div className=" bg-slate-50 dark:bg-white/5 p-4 text-sm text-slate-600 dark:text-slate-300">
-                  <p className="font-bold text-slate-900 dark:text-white">Terms & Agreement</p>
-                  <p className="mt-2 text-xs">
-                    I understand and agree to maintain respectful behavior throughout the program.
-                    Misconduct or violation of rules may result in removal from the program.
-                    Registration fees are non-refundable under any circumstances.
-                  </p>
-                </div>
+              <div className="border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 text-xs text-slate-600 dark:text-slate-300">
+                <p className="font-bold text-slate-900 dark:text-white">Terms &amp; Agreement</p>
+                <p className="mt-1">
+                  I understand and agree to maintain respectful behaviour throughout the
+                  program. Misconduct or violation of rules may result in removal.
+                  Registration fees are non-refundable under any circumstances.
+                </p>
+              </div>
 
-                <Checkbox
+              <label className="flex items-start gap-3 border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3">
+                <input
+                  type="checkbox"
                   name="termsAgreement"
                   checked={form.termsAgreement}
                   onChange={handleChange}
-                  label="Yes, I agree to these terms."
+                  className="mt-0.5"
                 />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Yes, I agree to these terms.
+                </span>
+              </label>
+            </div>
+          )}
+        </div>
 
-                <button
-                  type="submit"
-                  className=" rounded-2xl bg-blue-900 py-3.5 text-sm font-black text-white hover:bg-blue-950"
-                >
-                  Submit Application
-                </button>
-              </FormSection>
-            )}
+        {/* Message */}
+        {message && (
+          <div
+            className={`mx-5 mb-2 border px-3 py-2 text-xs font-bold sm:mx-6 ${
+              message.ok
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-rose-200 bg-rose-50 text-rose-700"
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
 
-            {message && (
-              <div className="mt-5 rounded-2xl bg-blue-50 p-4 text-sm font-semibold text-blue-900">
-                {message}
-              </div>
-            )}
-          </form>
-          
-        </section>
-      </div>
-    </main>
+        {/* Footer nav */}
+        <div className="flex items-center justify-between gap-3 border-t border-slate-200 dark:border-white/10 px-5 py-3 sm:px-6">
+          <button
+            type="button"
+            onClick={goBack}
+            disabled={step === 0}
+            className="inline-flex items-center gap-1.5 border border-slate-300 dark:border-white/15 px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-40"
+          >
+            <ChevronLeft size={15} />
+            Back
+          </button>
+
+          <span className="text-[11px] font-semibold text-slate-400">
+            Step {step + 1} of {STEPS.length}
+          </span>
+
+          {isLast ? (
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1.5 bg-emerald-600 px-5 py-2 text-xs font-black text-white transition hover:bg-emerald-700"
+            >
+              <Send size={14} />
+              Submit Application
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={goNext}
+              className="inline-flex items-center gap-1.5 bg-[#0b2f5b] px-5 py-2 text-xs font-black text-white transition hover:bg-blue-950"
+            >
+              Next
+              <ChevronRight size={15} />
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
   );
 }
 
-function TopTab({
-  icon,
-  label,
-  active,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2.5 text-[11px] font-bold transition sm:px-4 sm:py-3 sm:text-xs ${
-  active
-    ? "bg-blue-900 text-white shadow"
-    : "bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-white/10 hover:text-blue-900 dark:hover:text-white"
-}`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
+/* ------------------------------- Fields ---------------------------------- */
 
-function FormSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="mb-5 text-xl font-black text-slate-900 dark:text-white">{title}</h3>
+      <h3 className="mb-4 text-sm font-black uppercase tracking-wide text-[#0b2f5b] dark:text-sky-300">
+        {title}
+      </h3>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{children}</div>
     </div>
   );
 }
 
-function Input({
+const LABEL =
+  "mb-1 block text-[12px] font-bold  text-slate-500 dark:text-slate-300";
+const CONTROL =
+  "w-full rounded-md border border-slate-300 dark:border-white/15 bg-white dark:bg-white/5 px-3 py-2 text-sm font-medium text-slate-900 dark:text-white outline-none transition focus:border-[#0b2f5b] focus:ring-2 focus:ring-blue-100 dark:focus:ring-white/10 read-only:bg-slate-100 read-only:text-slate-500";
+
+function Field({
   label,
   name,
   value,
   onChange,
   type = "text",
   readOnly = false,
+  required = false,
 }: {
   label: string;
   name: string;
   value: string;
   type?: string;
   readOnly?: boolean;
+  required?: boolean;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400 dark:text-slate-300">
-        {label}
+      <span className={LABEL}>
+        {label} {required && <span className="text-rose-500">*</span>}
       </span>
-
       <input
-        required
-        readOnly={readOnly}
         name={name}
         type={type}
         value={value}
+        readOnly={readOnly}
         onChange={onChange}
-        className="w-full border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3 py-2.5 sm:px-4 text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-blue-800 focus:bg-white dark:focus:bg-white/10 focus:ring-4 focus:ring-blue-100"
+        className={CONTROL}
       />
     </label>
   );
 }
 
-function Select({
+function SelectField({
   label,
   name,
   value,
   options,
   onChange,
+  required = false,
 }: {
   label: string;
   name: string;
   value: string;
   options: string[];
+  required?: boolean;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400 dark:text-slate-300">
-        {label}
+      <span className={LABEL}>
+        {label} {required && <span className="text-rose-500">*</span>}
       </span>
-
-      <select
-        required
-        name={name}
-        value={value}
-        onChange={onChange}
-        className="w-full border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3 py-2.5 sm:px-4 text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-blue-800 focus:bg-white dark:focus:bg-white/10"
-      >
+      <select name={name} value={value} onChange={onChange} className={`${CONTROL} cursor-pointer`}>
         <option value="">Select option</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
           </option>
         ))}
       </select>
@@ -409,67 +506,31 @@ function Select({
   );
 }
 
-function Textarea({
+function TextareaField({
   label,
   name,
   value,
   onChange,
+  required = false,
 }: {
   label: string;
   name: string;
   value: string;
+  required?: boolean;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
 }) {
   return (
     <label className="block md:col-span-2">
-      <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400 dark:text-slate-300">
-        {label}
+      <span className={LABEL}>
+        {label} {required && <span className="text-rose-500">*</span>}
       </span>
-
       <textarea
-        required name={name} value={value} onChange={onChange}
-        rows={4}
-        className="w-full border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 px-3 py-2.5 sm:px-4 text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-blue-800 focus:bg-white dark:focus:bg-white/10"
+        name={name}
+        value={value}
+        onChange={onChange}
+        rows={3}
+        className={`${CONTROL} resize-y`}
       />
-    </label>
-  );
-}
-
-function FileInput({ label }: { label: string }) {
-  return (
-    <label className="block md:col-span-2">
-      <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400 dark:text-slate-300">
-        {label}
-      </span>
-
-      <input
-        type="file"
-        multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-        className="w-full rounded border border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-sm"
-      />
-
-      <p className="mt-1 text-xs text-slate-400">
-        Upload up to 5 files. Max 10 MB per file.
-      </p>
-    </label>
-  );
-}
-
-function Checkbox({
-  name,
-  checked,
-  label,
-  onChange,
-}: {
-  name: string;
-  checked: boolean;
-  label: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) {
-  return (
-    <label className="flex items-start gap-3 bg-slate-50 dark:bg-white/5 p-4 md:col-span-2">
-      <input required type="checkbox" name={name} checked={checked} onChange={onChange} className="mt-1"/>
-      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
     </label>
   );
 }

@@ -39,12 +39,20 @@
     --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    /* semantic extras (FRS): amber = warning/negative, green/teal = positive.
-       Placeholder, not yet wired into tailwind.config.ts. */
-    --warning: 33 100% 50%;
+    /* Semantic extras (FRS): amber = warning/negative, green/teal = positive.
+       Sprint 6: now mapped in tailwind.config.ts as `warning` / `success`.
+       The light-mode amber is darkened from the prototype's #ff8a00 — that hue at
+       50% lightness only reaches ~2.2:1 against white, so it fails as text or as a
+       border on a light surface. SCR-005 needs amber to read as a *signal* on
+       "Risky" and "Yes", not as decoration. The dark theme keeps the brighter
+       prototype hue, which has plenty of contrast on navy.
+       The `-subtle` pair backs tinted chip/card fills where solid amber would shout. */
+    --warning: 28 92% 36%;
     --warning-foreground: 0 0% 100%;
-    --success: 168 84% 33%;
+    --warning-subtle: 33 100% 96%;
+    --success: 168 84% 28%;
     --success-foreground: 0 0% 100%;
+    --success-subtle: 168 70% 95%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
     --ring: 240 5.9% 10%;
@@ -71,8 +79,10 @@
     --destructive-foreground: 0 0% 100%;
     --warning: 33 100% 50%;           /* prototype amber #ff8a00 */
     --warning-foreground: 0 0% 100%;
+    --warning-subtle: 33 60% 16%;
     --success: 179 100% 33%;          /* teal, positive signals */
     --success-foreground: 0 0% 100%;
+    --success-subtle: 179 50% 14%;
     --border: 231 30% 24%;
     --input: 231 30% 24%;
     --ring: 214 91% 55%;
@@ -216,6 +226,49 @@ h2 {
 
 .circle-indicator-position[data-position] {
   left: calc(var(--indicator-position) * 1%);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.services-swiper .swiper-pagination {
+  bottom: 0 !important;
+}
+
+.services-swiper .swiper-pagination-bullet {
+  width: 7px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.38);
+  opacity: 1;
+  transition: width 220ms ease, background-color 220ms ease;
+}
+
+.services-swiper .swiper-pagination-bullet-active {
+  width: 28px;
+  border-radius: 999px;
+  background: #ff5c68;
+}
+
+.service-prev.swiper-button-disabled,
+.service-next.swiper-button-disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 @media screen and (max-width: 768px) {

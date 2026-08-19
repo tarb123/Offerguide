@@ -48,38 +48,48 @@ datasource db {
 // SCR-001 — Candidate Profile (reusable across sessions, filled once)
 // ---------------------------------------------------------------------------
 model CandidateProfile {
-  id                       Int      @id @default(autoincrement())
-  userInfoId               Int?     @unique @map("userinfo_id") // FK to existing userinfo.id, not Prisma-managed. Null until the guest registers.
-  guestToken               String?  @unique @map("guest_token") // signed opaque UUID, stored in an httpOnly cookie. Set for guests; cleared (or left, harmlessly) once claimed by a real account.
+  id         Int     @id @default(autoincrement())
+  userInfoId Int?    @unique @map("userinfo_id") // FK to existing userinfo.id, not Prisma-managed. Null until the guest registers.
+  guestToken String? @unique @map("guest_token") // signed opaque UUID, stored in an httpOnly cookie. Set for guests; cleared (or left, harmlessly) once claimed by a real account.
 
   // Professional Information
-  careerStage              String   @map("career_stage") // Required. Student/Entry Level/Mid-Level/Senior/Leadership/Executive/Other
-  careerStageOtherText     String?  @map("career_stage_other_text") // shown only when careerStage = Other, max 50 chars
-  careerSwitcher           String?  @map("career_switcher")
-  targetFunctionalDomain   String?  @map("target_functional_domain") // conditional on careerSwitcher
+  careerStage            String  @map("career_stage") // Required. Student/Entry Level/Mid-Level/Senior/Leadership/Executive/Other
+  careerStageOtherText   String? @map("career_stage_other_text") // shown only when careerStage = Other, max 50 chars
+  careerSwitcher         String? @map("career_switcher")
+  targetFunctionalDomain String? @map("target_functional_domain") // conditional on careerSwitcher
 
   // Location Information
-  currentCountry           String?  @map("current_country")
-  currentCity              String?  @map("current_city")
+  currentCountry String? @map("current_country")
+  currentCity    String? @map("current_city")
 
   // Location & Work Preferences
-  preferredWorkArrangement String   @map("preferred_work_arrangement") // Required. On-site/Hybrid/Remote/No preference
-  preferredWorkLocation    String?  @map("preferred_work_location")
-  preferredCountry         String?  @map("preferred_country") // conditional
-  preferredLocationText    String?  @map("preferred_location_text") // conditional, free text
+  preferredWorkArrangement String  @map("preferred_work_arrangement") // Required. On-site/Hybrid/Remote/No preference
+  preferredWorkLocation    String? @map("preferred_work_location")
+  preferredCountry         String? @map("preferred_country") // conditional
+  preferredLocationText    String? @map("preferred_location_text") // conditional, free text
+  willingToRelocate        String? @default("Not sure") @map("willing_to_relocate") // Yes/No/Not sure. Adjusts the location-mismatch penalty in the stability score.
 
   // Working Conditions (all optional — meaningless for students/unemployed)
-  currentWorkArrangement       String?  @default("On-site") @map("current_work_arrangement")
-  employmentType                String?  @map("employment_type")
-  employmentStatus               String?  @map("employment_status")
-  currentBaseSalary               Decimal? @map("current_base_salary") @db.Decimal(14, 2)
-  currentCurrency                  String?  @map("current_currency")
-  payFrequency                      String?  @map("pay_frequency")
-  workingHoursPerWeek                Int?     @map("working_hours_per_week")
-  averageDailyCommuteMinutes          Int?     @map("average_daily_commute_minutes") // hidden when currentWorkArrangement = Remote
+  currentWorkArrangement     String?  @default("On-site") @map("current_work_arrangement")
+  currentEmployer            String?  @map("current_employer") // report context only, not scored
+  currentJobTitle            String?  @map("current_job_title") // report context only, not scored
+  employmentType             String?  @map("employment_type")
+  employmentStatus           String?  @map("employment_status")
+  currentBaseSalary          Decimal? @map("current_base_salary") @db.Decimal(14, 2)
+  currentCurrency            String?  @map("current_currency")
+  payFrequency               String?  @map("pay_frequency")
+  workingHoursPerWeek        Int?     @map("working_hours_per_week")
+  averageDailyCommuteMinutes Int?     @map("average_daily_commute_minutes") // hidden when currentWorkArrangement = Remote
 
   // Benefits baseline
   currentBenefits Json? @map("current_benefits") // multi-select chips, array of strings
+
+  // Career Satisfaction — 5-point numeric scale (1-5), anchor labels, no star metaphor.
+  // Shown only when employmentStatus is Employed or Self-Employed. Low satisfaction
+  // amplifies the corresponding category's scoring signal.
+  overallJobSatisfaction      Int? @map("overall_job_satisfaction")
+  careerGrowthSatisfaction    Int? @map("career_growth_satisfaction")
+  workLifeBalanceSatisfaction Int? @map("work_life_balance_satisfaction")
 
   // Consent — candidate-level, set once, not per evaluation session.
   // Shape: { shareAnonymous: boolean, selections: { [toggleId]: boolean } }
@@ -100,8 +110,8 @@ model CandidateProfile {
 // SCR-002 — Evaluation Setup (session-level, applies to all offers in session)
 // ---------------------------------------------------------------------------
 model EvaluationSession {
-  id                 Int    @id @default(autoincrement())
-  candidateProfileId Int    @map("candidate_profile_id")
+  id                 Int @id @default(autoincrement())
+  candidateProfileId Int @map("candidate_profile_id")
 
   evaluationType              String  @default("New job offer") @map("evaluation_type") // New job offer/Promotion offer/Internal transfer/Counteroffer
   evaluationOfferCount        String  @map("evaluation_offer_count") // "One offer" / "Multiple offers"
@@ -125,19 +135,28 @@ model EvaluationSession {
 // SCR-003 — Offer Details (one row per offer; a session can have multiple)
 // ---------------------------------------------------------------------------
 model Offer {
-  id                  Int    @id @default(autoincrement())
-  evaluationSessionId Int    @map("evaluation_session_id")
+  id                  Int @id @default(autoincrement())
+  evaluationSessionId Int @map("evaluation_session_id")
 
-  label                 String? @map("label") // "Offer A" / "Offer B" for multi-offer sessions
-  companyName           String? @map("company_name")
-  roleTitle             String? @map("role_title")
-  offerCountry          String? @map("offer_country")
-  offerCity             String? @map("offer_city")
-  offerWorkArrangement  String  @map("offer_work_arrangement") // Required. On-site/Hybrid/Remote/Other. Compared vs preferredWorkArrangement.
-  offerEmploymentType   String  @map("offer_employment_type") // Required. Full-time/Part-time/Contract/Temporary/Internship/Freelance/Other
-  offerContractDuration String? @map("offer_contract_duration") // conditional: Contract or Temporary employment type
-  offerProbation         String? @default("Not clear") @map("offer_probation") // No probation/1 month/3 months/6 months/Not clear/Other. Stability signal — was missing from earlier schema drafts despite being fully specified in the SCR-003 FRS.
-  reportingLevel        String? @map("reporting_level")
+  label                 String?   @map("label") // "Offer A" / "Offer B" for multi-offer sessions
+  companyName           String?   @map("company_name")
+  roleTitle             String?   @map("role_title")
+  offerFunctionalDomain String?   @map("offer_functional_domain") // SCR-003 field — was missing from the Sprint 3 schema draft despite being in the FRS/OpenAPI field inventory.
+  offerReceivedDate     DateTime? @map("offer_received_date") @db.Date // SCR-003 field — same gap as offerFunctionalDomain above.
+  offerCountry          String?   @map("offer_country")
+  offerCity             String?   @map("offer_city")
+  offerWorkArrangement  String    @map("offer_work_arrangement") // Required. On-site/Hybrid/Remote/Other. Compared vs preferredWorkArrangement.
+  offerEmploymentType   String    @map("offer_employment_type") // Required. Full-time/Part-time/Contract/Temporary/Internship/Freelance/Other
+  offerContractDuration String?   @map("offer_contract_duration") // conditional: Contract or Temporary employment type
+  offerProbation        String?   @default("Not clear") @map("offer_probation") // No probation/1 month/3 months/6 months/Not clear/Other. Stability signal — was missing from earlier schema drafts despite being fully specified in the SCR-003 FRS.
+  reportingLevel        String?   @map("reporting_level")
+
+  // Free text captured when the paired enum above is set to "Other". validateEnumField
+  // already *requires* this text on an "Other" selection; before Sprint 6 there was
+  // nowhere to put it, so it validated and was then silently dropped.
+  offerContractDurationOtherText String? @map("offer_contract_duration_other_text") @db.VarChar(50)
+  offerProbationOtherText        String? @map("offer_probation_other_text") @db.VarChar(50)
+  reportingLevelOtherText        String? @map("reporting_level_other_text") @db.VarChar(100)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -188,6 +207,9 @@ model OfferCompensation {
   offerReviewCycle       String?  @map("offer_review_cycle") // hidden if Contract/Temporary
   offerNegotiationRoom   String?  @default("Not sure") @map("offer_negotiation_room")
 
+  // Free text for offerReviewCycle = "Other" — see the note on Offer's *OtherText columns.
+  offerReviewCycleOtherText String? @map("offer_review_cycle_other_text") @db.VarChar(50)
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -222,8 +244,22 @@ model OfferBenefitsSecurity {
   // "used in stability score") — "Security" here is the FRS's screen-section
   // label, not a real scoring category; there is no such category in the
   // 7-category taxonomy.
-  offerJobSecurity        String? @map("offer_job_security")
-  offerRestrictiveClause  String? @map("offer_restrictive_clause")
+  offerJobSecurity       String? @map("offer_job_security")
+  offerRestrictiveClause String? @map("offer_restrictive_clause")
+
+  // Free text for the 9 Benefits fields that offer "Other" (FRS cap: 100 chars each).
+  // offerEducationReimbursement, offerJobSecurity and offerRestrictiveClause are
+  // deliberately absent — none of them has an "Other" value in the FRS or the
+  // OgQuestions seed. See the note on Offer's *OtherText columns.
+  offerHealthCoverageOtherText     String? @map("offer_health_coverage_other_text") @db.VarChar(100)
+  offerLifeInsuranceOtherText      String? @map("offer_life_insurance_other_text") @db.VarChar(100)
+  offerRetirementBenefitsOtherText String? @map("offer_retirement_benefits_other_text") @db.VarChar(100)
+  offerSickLeaveOtherText          String? @map("offer_sick_leave_other_text") @db.VarChar(100)
+  offerParentalLeaveOtherText      String? @map("offer_parental_leave_other_text") @db.VarChar(100)
+  offerDeviceSupportOtherText      String? @map("offer_device_support_other_text") @db.VarChar(100)
+  offerMealSupportOtherText        String? @map("offer_meal_support_other_text") @db.VarChar(100)
+  offerWellnessBenefitsOtherText   String? @map("offer_wellness_benefits_other_text") @db.VarChar(100)
+  offerVisaSupportOtherText        String? @map("offer_visa_support_other_text") @db.VarChar(100)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -241,12 +277,12 @@ model OfferWorkLife {
   offerId Int @unique @map("offer_id")
 
   // Daily Reality
-  offerWorkingHours       Int?    @map("offer_working_hours")
-  offerWeekendWork        String? @default("Not clear") @map("offer_weekend_work")
-  offerTravelRequirement  String? @map("offer_travel_requirement")
-  offerHybridDays         String? @default("Not applicable") @map("offer_hybrid_days")
-  offerCommuteMinutes     Int?    @map("offer_commute_minutes") // conditional, hidden if Remote
-  offerTimeFlexibility    String? @map("offer_time_flexibility")
+  offerWorkingHours      Int?    @map("offer_working_hours")
+  offerWeekendWork       String? @default("Not clear") @map("offer_weekend_work")
+  offerTravelRequirement String? @map("offer_travel_requirement")
+  offerHybridDays        String? @default("Not applicable") @map("offer_hybrid_days")
+  offerCommuteMinutes    Int?    @map("offer_commute_minutes") // conditional, hidden if Remote
+  offerTimeFlexibility   String? @map("offer_time_flexibility")
 
   // Flexibility & Fit
   offerWfhSupport             String? @map("offer_wfh_support") // conditional, hidden if Remote
@@ -278,14 +314,14 @@ model OfferGrowth {
   offerSkillPotential  Int?    @default(3) @map("offer_skill_potential") // 1-5
 
   // Career Progression
-  offerGoalMatch          Int?    @default(3) @map("offer_goal_match") // 1-5, "most important growth signal"
-  offerPromotionPath      String? @map("offer_promotion_path")
-  offerMentorship         String? @map("offer_mentorship")
-  offerStrongLeaders      String? @map("offer_strong_leaders")
-  offerInternalMobility   String? @default("Not clear") @map("offer_internal_mobility") // Yes/Somewhat/No/Not clear
-  offerRoleScope          String? @default("Not clear") @map("offer_role_scope") // Narrow/Balanced/High ownership/Not clear
-  offerPromotionTimeline  String? @map("offer_promotion_timeline")
-  offerGrowthImportance   Int?    @default(3) @map("offer_growth_importance") // 1-5
+  offerGoalMatch         Int?    @default(3) @map("offer_goal_match") // 1-5, "most important growth signal"
+  offerPromotionPath     String? @map("offer_promotion_path")
+  offerMentorship        String? @map("offer_mentorship")
+  offerStrongLeaders     String? @map("offer_strong_leaders")
+  offerInternalMobility  String? @default("Not clear") @map("offer_internal_mobility") // Yes/Somewhat/No/Not clear
+  offerRoleScope         String? @default("Not clear") @map("offer_role_scope") // Narrow/Balanced/High ownership/Not clear
+  offerPromotionTimeline String? @map("offer_promotion_timeline")
+  offerGrowthImportance  Int?    @default(3) @map("offer_growth_importance") // 1-5
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -310,19 +346,19 @@ model OfferCulture {
   offerManagerImpression String? @map("offer_manager_impression")
   offerTeamCultureFit    Int?    @default(3) @map("offer_team_culture_fit")
   offerRedFlags          Json?   @map("offer_red_flags") // multi-select array; each entry generates a SCR-010 watch-out
-  offerNotes             String? @db.Text @map("offer_notes") // not scored — private notes
+  offerNotes             String? @map("offer_notes") @db.Text // not scored — private notes
 
   // Company Culture
-  offerValuesAlignment          Int?    @default(3) @map("offer_values_alignment") // 1-5. Culture only — its own FRS card does not reference Purpose.
-  offerInclusionConfidence      String? @map("offer_inclusion_confidence")
-  offerWorkPressure             String? @map("offer_work_pressure")
-  offerCompanyReputation        String? @map("offer_company_reputation") // Tightened to focus on market reputation/organizational stability — feeds Stability, not Culture (see offerEmployerTreatmentSignal below for the Culture-facing question)
-  offerLeadershipStability      String? @map("offer_leadership_stability") // Tightened to focus on actual turnover/reorganizations — feeds Stability (see offerLeadershipStyle below for the Culture-facing question)
-  offerEmployerTreatmentSignal  String? @map("offer_employer_treatment_signal") // NEW — Positive/Mixed/Negative/Not clear. Culture-facing counterpart to offerCompanyReputation: "how this company treats its employees day-to-day."
-  offerLeadershipStyle          String? @map("offer_leadership_style") // NEW — Approachable/Mixed/Distant/Not clear. Culture-facing counterpart to offerLeadershipStability: day-to-day approachability, not turnover.
-  offerPsychSafety              String? @map("offer_psych_safety")
-  offerPurposeSense             Int?    @default(3) @map("offer_purpose_sense") // 1-5. Assigned to Purpose category (not Culture) — its FRS card's "Culture" label was the UI-section grouping, not the final scoring category.
-  offerCultureImportance        Int?    @default(3) @map("offer_culture_importance") // 1-5
+  offerValuesAlignment         Int?    @default(3) @map("offer_values_alignment") // 1-5. Culture only — its own FRS card does not reference Purpose.
+  offerInclusionConfidence     String? @map("offer_inclusion_confidence")
+  offerWorkPressure            String? @map("offer_work_pressure")
+  offerCompanyReputation       String? @map("offer_company_reputation") // Tightened to focus on market reputation/organizational stability — feeds Stability, not Culture (see offerEmployerTreatmentSignal below for the Culture-facing question)
+  offerLeadershipStability     String? @map("offer_leadership_stability") // Tightened to focus on actual turnover/reorganizations — feeds Stability (see offerLeadershipStyle below for the Culture-facing question)
+  offerEmployerTreatmentSignal String? @map("offer_employer_treatment_signal") // NEW — Positive/Mixed/Negative/Not clear. Culture-facing counterpart to offerCompanyReputation: "how this company treats its employees day-to-day."
+  offerLeadershipStyle         String? @map("offer_leadership_style") // NEW — Approachable/Mixed/Distant/Not clear. Culture-facing counterpart to offerLeadershipStability: day-to-day approachability, not turnover.
+  offerPsychSafety             String? @map("offer_psych_safety")
+  offerPurposeSense            Int?    @default(3) @map("offer_purpose_sense") // 1-5. Assigned to Purpose category (not Culture) — its FRS card's "Culture" label was the UI-section grouping, not the final scoring category.
+  offerCultureImportance       Int?    @default(3) @map("offer_culture_importance") // 1-5
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -339,17 +375,29 @@ model OfferScore {
   id      Int @id @default(autoincrement())
   offerId Int @unique @map("offer_id")
 
-  salaryScore          Int    @map("salary_score") // dedicated percentile formula, not generic averaging
-  benefitsScore        Int    @map("benefits_score")
-  stabilityScore       Int    @map("stability_score")
-  worklifeScore        Int    @map("worklife_score")
-  growthScore          Int    @map("growth_score")
-  cultureScore         Int    @map("culture_score")
-  purposeScore         Int    @map("purpose_score")
-  overallScore         Int    @map("overall_score") // weighted average of the 7 above
-  recommendationLabel  String @map("recommendation_label") // derived from 85/72/58 thresholds
+  salaryScore         Int    @map("salary_score") // dedicated percentile formula, not generic averaging
+  benefitsScore       Int    @map("benefits_score")
+  stabilityScore      Int    @map("stability_score")
+  worklifeScore       Int    @map("worklife_score")
+  growthScore         Int    @map("growth_score")
+  cultureScore        Int    @map("culture_score")
+  purposeScore        Int    @map("purpose_score")
+  overallScore        Int    @map("overall_score") // weighted average of the 7 above
+  recommendationLabel String @map("recommendation_label") // derived from 85/72/58 thresholds
 
   scoreBreakdown Json @map("score_breakdown") // per-field sub-scores (Option A design)
+
+  // SCR-010 guidance panels, derived server-side by deriveGuidance() per that
+  // FRS §6.3-6.5. Persisted rather than recomputed on read so the results screen
+  // shows exactly what was produced by the config version stamped below — and so
+  // the frontend never needs a threshold comparison of its own (Sprint 7 §5).
+  //
+  // No @default: MySQL rejects a literal DEFAULT on a JSON column. Every write
+  // path goes through deriveGuidance(), which always returns all three keys, and
+  // the migration backfills pre-existing rows with empty arrays.
+  strengths Json @map("strengths") // [{ category, score }] — max 4
+  watchOuts Json @map("watch_outs") // string[] — max 5
+  nextSteps Json @map("next_steps") // string[] — max 4
 
   // Traceability — which config produced this result, so admin tuning never silently
   // rewrites a candidate's past results.

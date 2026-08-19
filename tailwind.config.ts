@@ -88,6 +88,20 @@ const config: Config = {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
         },
+        // Semantic signal tokens. Defined in globals.css since Sprint 2 but never
+        // mapped here, so `bg-warning` / `text-warning` didn't resolve. SCR-005
+        // needs amber on "Risky" (job security) and "Yes" (restrictive clause);
+        // without this mapping that becomes a hardcoded hex.
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
+          subtle: 'hsl(var(--warning-subtle))',
+        },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
+          subtle: 'hsl(var(--success-subtle))',
+        },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',

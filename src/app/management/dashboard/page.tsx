@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   LayoutDashboard,
   Users,
-  FileText,
   GraduationCap,
   UserCog,
   LogOut,
@@ -12,24 +11,36 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
+  Activity,
+  CalendarCheck,
+  ClipboardList,
 } from "lucide-react";
 import CandidatesData from "../component/CandidatesData";
 import MentorsData from "../component/MentorsData";
 import ProgramsData from "../component/ProgramsData";
 import DashboardOverview from "../component/DashboardOverview";
+import MonitoringData from "../component/MonitoringData";
+import AttendanceData from "../component/AttendanceData";
+import EnrollmentsData from "../component/EnrollmentsData";
 
 type Page =
   | "dashboard"
   | "candidates"
   | "applications"
   | "programs"
-  | "mentors";
+  | "mentors"
+  | "enrollments"
+  | "monitoring"
+  | "attendance";
 
 const NAV: { key: Page; label: string; icon: React.ReactNode }[] = [
   { key: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
   { key: "mentors", label: "Mentors", icon: <UserCog size={18} /> },
   { key: "candidates", label: "Candidates", icon: <Users size={18} /> },
   { key: "programs", label: "Programs", icon: <GraduationCap size={18} /> },
+  { key: "enrollments", label: "Enrollments", icon: <ClipboardList size={18} /> },
+  { key: "attendance", label: "Attendance", icon: <CalendarCheck size={18} /> },
+  { key: "monitoring", label: "Monitoring", icon: <Activity size={18} /> },
 ];
 
 export default function ManagementDashboardPage() {
@@ -53,8 +64,8 @@ export default function ManagementDashboardPage() {
   return (
     <main className="min-h-screen bg-slate-100 dark:bg-darkBlue">
       <div className="flex min-h-screen">
-        <aside
-          className={`hidden min-w-0 shrink-0 mt-20 overflow-hidden bg-zinc-300 dark:bg-[#0b1230] lg:block ${
+        <aside className={`hidden min-w-0 shrink-0 mt-20 overflow-hidden 
+            bg-zinc-300 dark:bg-[#0b1230] lg:block ${
             collapsed ? "w-16" : "w-52"
           }`}
         >
@@ -108,6 +119,9 @@ export default function ManagementDashboardPage() {
           {activePage === "candidates" && <CandidatesData />}
           {activePage === "mentors" && <MentorsData />}
           {activePage === "programs" && <ProgramsData />}
+          {activePage === "enrollments" && <EnrollmentsData />}
+          {activePage === "attendance" && <AttendanceData />}
+          {activePage === "monitoring" && <MonitoringData />}
         </section>
       </div>
     </main>

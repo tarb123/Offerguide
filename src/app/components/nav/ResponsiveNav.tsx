@@ -1,9 +1,9 @@
-import Header from './Header'
+import ModernHeader from './ModernHeader'
 
 const ResponsiveNav = () => {
   return (
     <div>
-      <Header />
+      <ModernHeader />
     </div>
   )
 }

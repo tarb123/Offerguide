@@ -1,14 +1,7 @@
-import Hero from '../Home/Hero'
-import Habout from './Habout'
-// import AboutCard from '@/app/aboutus/AboutCard'
-// import Awrapper from '@/app/aboutus/Awrapper'
+import ModernHomepage from './ModernHomepage'
 
 const Home = () => {
   return (
-    <div>
-      <Hero/>
-      <Habout/>
-      {/* <Awrapper /> */}
-    </div>
+    <ModernHomepage />
 )}
 export default Home

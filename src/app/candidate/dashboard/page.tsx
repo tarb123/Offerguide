@@ -1,8 +1,9 @@
 "use client";
 
 import CandidateApplicationForm from "@/app/candidate/component/CandidateApplicationForm";
+import CandidateAttendance from "@/app/candidate/component/CandidateAttendance";
+import CandidatePrograms from "@/app/candidate/component/CandidatePrograms";
 import {
-  LayoutDashboard,
   FileText,
   User,
   LogOut,
@@ -10,12 +11,15 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
+  CalendarCheck,
+  GraduationCap,
 } from "lucide-react";
 import { useState } from "react";
 
 const NAV: { label: string; icon: React.ReactNode }[] = [
-  { label: "Dashboard", icon: <LayoutDashboard size={18} /> },
   { label: "Application Form", icon: <FileText size={18} /> },
+  { label: "Programs", icon: <GraduationCap size={18} /> },
+  { label: "Attendance", icon: <CalendarCheck size={18} /> },
   { label: "Profile", icon: <User size={18} /> },
 ];
 
@@ -96,14 +100,28 @@ export default function CandidateDashboardPage() {
 
           <div className="mb-3">
             <h2 className="text-xl font-black text-slate-900 dark:text-white">
-              Candidate Dashboard
+              {active === "Attendance"
+                ? "My Attendance"
+                : active === "Programs"
+                ? "Programs"
+                : "Candidate Dashboard"}
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Complete your PGP application form.
+              {active === "Attendance"
+                ? "Your weekly attendance record for the assigned program."
+                : active === "Programs"
+                ? "Browse programs offered by management and join one."
+                : "Complete your PGP application form."}
             </p>
           </div>
 
-          <CandidateApplicationForm />
+          {active === "Attendance" ? (
+            <CandidateAttendance />
+          ) : active === "Programs" ? (
+            <CandidatePrograms />
+          ) : (
+            <CandidateApplicationForm />
+          )}
         </section>
       </div>
     </main>

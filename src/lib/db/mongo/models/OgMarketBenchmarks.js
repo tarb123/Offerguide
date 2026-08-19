@@ -21,6 +21,11 @@ const OgMarketBenchmarksSchema = new Schema(
     p75: { type: Number, required: true },
     sampleSize: { type: Number, default: 0 },
     effectiveFrom: { type: Date, default: Date.now },
+    // Sprint 8: every admin-editable collection soft-deletes rather than
+    // hard-deletes, so a benchmark row that produced a past Salary score is
+    // still there to explain it. This collection was the only one missing the
+    // flag the other five already had.
+    active: { type: Boolean, default: true },
   },
   { timestamps: true, collection: "og_market_benchmarks" }
 );

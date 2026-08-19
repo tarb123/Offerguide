@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import dbConnect from "@/utils/dbConnect";
+import CandidateApplication from "@/models/CandidateApplication";
 
 const CandidateUserSchema = new mongoose.Schema(
   {
@@ -16,36 +17,9 @@ const CandidateUserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const CandidateApplicationSchema = new mongoose.Schema(
-  {
-    candidateId: String,
-    email: { type: String, lowercase: true },
-    fullName: String,
-    gender: String,
-    nationality: String,
-    cnic: String,
-    dob: String,
-    contactNumber: String,
-    address: String,
-    guardianName: String,
-    qualification: String,
-    recentJobTitleYear: String,
-    expectations: String,
-    laptopAvailable: String,
-    internetConnection: String,
-    confirmation: Boolean,
-    termsAgreement: Boolean,
-  },
-  { timestamps: true }
-);
-
 const CandidateUser =
   mongoose.models.CandidateUser ||
   mongoose.model("CandidateUser", CandidateUserSchema);
-
-const CandidateApplication =
-  mongoose.models.CandidateApplication ||
-  mongoose.model("CandidateApplication", CandidateApplicationSchema);
 
 export async function GET() {
   try {
@@ -78,6 +52,8 @@ export async function GET() {
         laptopAvailable: application?.laptopAvailable || "",
         internetConnection: application?.internetConnection || "",
         confirmation: application?.confirmation || false,
+        assignedProgramId: application?.assignedProgramId || "",
+        assignedProgramName: application?.assignedProgramName || "",
         createdAt: application?.createdAt || user.createdAt,
       };
     });
@@ -124,6 +100,8 @@ export async function PATCH(request: Request) {
           laptopAvailable: body.laptopAvailable || "",
           internetConnection: body.internetConnection || "",
           confirmation: body.confirmation || false,
+          assignedProgramId: body.assignedProgramId || "",
+          assignedProgramName: body.assignedProgramName || "",
         },
       },
       { new: true, upsert: true }

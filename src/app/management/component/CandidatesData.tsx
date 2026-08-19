@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import CandidateDocumentsView from "./CandidateDocumentsView";
 
 type ViewMode = "candidates" | "submitted" | "pending";
 
@@ -45,8 +46,12 @@ type Candidate = {
   laptopAvailable: string;
   internetConnection: string;
   confirmation: boolean;
+  assignedProgramId: string;
+  assignedProgramName: string;
   createdAt: string;
 };
+
+type ProgramOption = { programId: string; programName: string };
 
 export default function CandidatesData() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -56,6 +61,7 @@ export default function CandidatesData() {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [programs, setPrograms] = useState<ProgramOption[]>([]);
 
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -73,7 +79,32 @@ export default function CandidatesData() {
 
   useEffect(() => {
     loadCandidates();
+
+    fetch("/api/pgp-management/programs-pgp")
+      .then((r) => r.json())
+      .then((d) =>
+        setPrograms(
+          (d.programs || []).map((p: ProgramOption) => ({
+            programId: p.programId,
+            programName: p.programName,
+          }))
+        )
+      )
+      .catch((error) => console.error("Programs load error:", error));
   }, []);
+
+  function assignProgram(programId: string) {
+    const program = programs.find((p) => p.programId === programId);
+    setEditData((prev) =>
+      prev
+        ? {
+            ...prev,
+            assignedProgramId: programId,
+            assignedProgramName: program?.programName || "",
+          }
+        : prev
+    );
+  }
 
   const submittedCount = candidates.filter(
     (c) => c.applicationStatus === "Submitted"
@@ -278,6 +309,8 @@ export default function CandidatesData() {
           editing={editing}
           message={message}
           printRef={printRef}
+          programs={programs}
+          onAssignProgram={assignProgram}
           onClose={closeDrawer}
           onStartEdit={startEdit}
           onCancelEdit={cancelEdit}
@@ -298,6 +331,8 @@ function CandidateDrawer({
   editing,
   message,
   printRef,
+  programs,
+  onAssignProgram,
   onClose,
   onStartEdit,
   onCancelEdit,
@@ -310,6 +345,8 @@ function CandidateDrawer({
   editing: boolean;
   message: string;
   printRef: React.RefObject<HTMLDivElement | null>;
+  programs: ProgramOption[];
+  onAssignProgram: (programId: string) => void;
   onClose: () => void;
   onStartEdit: () => void;
   onCancelEdit: () => void;
@@ -322,7 +359,7 @@ function CandidateDrawer({
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       <aside className="relative flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
-        <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-[#0b2f5b] px-4 py-3 text-white">
+        <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-[#535b65] px-4 py-3 text-white">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="truncate text-base font-black">
@@ -330,7 +367,7 @@ function CandidateDrawer({
               </h2>
               <StatusPill status={selected.applicationStatus} dark />
             </div>
-            <p className="truncate text-[11px] text-blue-100">{selected.email}</p>
+            <p className="truncate text-[11px] text-zinc-100">{selected.email}</p>
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
@@ -371,7 +408,12 @@ function CandidateDrawer({
         <div className="flex-1 overflow-y-auto">
           <div ref={printRef} className="bg-white p-4 text-black">
             {editing && editData ? (
-              <EditForm data={editData} onChange={onChange} />
+              <EditForm
+                data={editData}
+                onChange={onChange}
+                programs={programs}
+                onAssignProgram={onAssignProgram}
+              />
             ) : (
               <ReadView candidate={selected} />
             )}
@@ -387,6 +429,15 @@ function CandidateDrawer({
 function ReadView({ candidate }: { candidate: Candidate }) {
   return (
     <div className="space-y-4">
+      <Section title="Enrollment">
+        <Field
+          icon={<GraduationCap size={13} />}
+          label="Assigned Program"
+          value={candidate.assignedProgramName}
+          wide
+        />
+      </Section>
+
       <Section title="Basic Information">
         <Field icon={<User size={13} />} label="Full Name" value={candidate.fullName} />
         <Field icon={<Mail size={13} />} label="Email" value={candidate.email} />
@@ -442,6 +493,13 @@ function ReadView({ candidate }: { candidate: Candidate }) {
         />
         <Field icon={<CreditCard size={13} />} label="Candidate ID" value={candidate.candidateId} wide />
       </Section>
+
+      <div>
+        <h3 className="mb-2 border-b border-slate-200 pb-1 text-[10px] font-black uppercase tracking-wider text-[#0b2f5b]">
+          Documents
+        </h3>
+        <CandidateDocumentsView email={candidate.email} />
+      </div>
     </div>
   );
 }
@@ -475,13 +533,13 @@ function Field({
   wide?: boolean;
 }) {
   return (
-    <div className={`flex gap-2 ${wide ? "col-span-2" : ""}`}>
+    <div className={`flex gap-2 -mt-1 ${wide ? "col-span-2" : ""}`}>
       <span className="mt-0.5 shrink-0 text-slate-400">{icon}</span>
       <div className="min-w-0">
-        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+        <p className="text-[9px] font-semibold uppercase tracking-wider text-blue-600">
           {label}
         </p>
-        <p className="break-words text-xs font-semibold text-slate-800">
+        <p className="text-xs text-slate-800">
           {value || <span className="font-normal text-slate-300">—</span>}
         </p>
       </div>
@@ -494,12 +552,37 @@ function Field({
 function EditForm({
   data,
   onChange,
+  programs,
+  onAssignProgram,
 }: {
   data: Candidate;
   onChange: (name: keyof Candidate, value: string | boolean) => void;
+  programs: ProgramOption[];
+  onAssignProgram: (programId: string) => void;
 }) {
   return (
     <div className="space-y-4">
+      <Section title="Enrollment">
+        <label className="col-span-2 block">
+          <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-black">Assigned Program</span>
+          <select
+            value={data.assignedProgramId || ""}
+            onChange={(e) => onAssignProgram(e.target.value)}
+            className={`${FIELD} cursor-pointer`}
+          >
+            <option value="">Not assigned</option>
+            {programs.map((p) => (
+              <option key={p.programId} value={p.programId}>
+                {p.programName}
+              </option>
+            ))}
+          </select>
+          <span className="mt-1 block text-[10px] text-slate-600">
+            Assigning a program enrolls this candidate under that program&apos;s mentor.
+          </span>
+        </label>
+      </Section>
+
       <Section title="Basic Information">
         <ReadField label="Full Name" value={data.fullName} />
         <ReadField label="Email" value={data.email} />
@@ -584,10 +667,10 @@ function EditForm({
 function ReadField({ label, value }: { label: string; value?: string }) {
   return (
     <div>
-      <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-slate-400">
+      <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-black">
         {label}
       </p>
-      <div className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-500">
+      <div className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs text-black">
         {value || "—"}
       </div>
     </div>
@@ -612,7 +695,7 @@ function InputField({
 }) {
   return (
     <label className={`block ${wide ? "col-span-2" : ""}`}>
-      <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">
+      <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-black">
         {label}
       </span>
       <input
@@ -638,7 +721,7 @@ function SelectField({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-400">
+      <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-black">
         {label}
       </span>
       <select

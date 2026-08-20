@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   Check,
@@ -91,27 +92,41 @@ export default function ModernHomepage() {
         </div>
       </section>
 
-      <section className="bg-[#0b163f] py-20 text-white sm:py-24 lg:py-28">
-        <div className="mx-auto grid max-w-[1400px] items-center gap-12 px-5 sm:px-8 lg:grid-cols-[.9fr_1.1fr] lg:gap-20 lg:px-12">
+      <section className="relative overflow-hidden bg-[#4183d4] py-20 text-white transition-colors sm:py-24 lg:py-28 
+      dark:bg-[#1c87b5] dark:text-white">
+        {/* Red + white blurred circle decorations */}
+        
+      <div className="pointer-events-none absolute inset-0 opacity-70">
+        <div className="absolute -left-28 top-10 h-72 w-72 rounded-full bg-[#ff0015] blur-5xl" />
+        <div className="absolute -right-44 bottom-6 h-80 w-80 rounded-full bg-[#ffffff] blur-5xl" />
+      </div>
+      {/* AI logo circle */}
+      <div className="pointer-events-none absolute left-6 top-10 flex h-20 w-20 items-center justify-center rounded-full bg-[#e83444] shadow-[0_0_32px_rgba(232,52,68,0.5)] sm:left-10 sm:h-24 sm:w-24">
+        <Image
+          src="/sanjeeda-logo.png"
+          alt="Sanjeeda AI"
+          width={56}
+          height={56}
+          className="h-12 w-12 object-contain brightness-0 invert sm:h-14 sm:w-14"
+        />
+      </div>
+
+        <div className="relative mx-auto grid max-w-[1400px] items-center gap-12 px-5 sm:px-8 lg:grid-cols-[.9fr_1.1fr] lg:gap-20 lg:px-12">
+
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#ff707a] sm:text-sm">
-              Why Sanjeeda
-            </p>
+
             <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
               Career advice should lead to action.
             </h2>
-            <p className="mt-5 text-base leading-8 text-white/65 sm:text-lg">
-              We combine self-knowledge, practical tools and real human context.
-              The result is guidance you can use—not another report that sits in
-              your inbox.
-            </p>
-            <ul className="mt-8 space-y-4">
+  
+            <ul className="mt-7 space-y-2">
               {[
                 "Personalized to your strengths and situation",
                 "Practical tools for real career decisions",
                 "Guidance that grows with your goals",
               ].map((item) => (
-                <li key={item} className="flex items-start gap-3 text-sm font-bold text-white/85 sm:text-base">
+                <li key={item} className="flex items-start gap-2 text-xs font-sans
+                  text-white sm:text-base dark:text-white/85">
                   <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#e83444]">
                     <Check size={14} strokeWidth={3} />
                   </span>
@@ -119,18 +134,12 @@ export default function ModernHomepage() {
                 </li>
               ))}
             </ul>
-            <Link
-              href="/about-us"
-              className="mt-9 inline-flex items-center gap-2 text-sm font-black text-white transition hover:text-[#ff707a]"
-            >
-              Meet the thinking behind Sanjeeda
-              <ArrowRight size={18} />
-            </Link>
+           
           </div>
 
           <div className="relative">
             <div className="absolute -inset-4 rounded-[36px] bg-gradient-to-br from-[#1746b5]/50 to-[#e83444]/35 blur-2xl" />
-            <div className="relative overflow-hidden rounded-[30px] border border-white/15 bg-black/20 p-2 shadow-2xl">
+            <div className="relative overflow-hidden rounded-[30px] border border-black/10 bg-black/5 p-2 shadow-2xl dark:border-white/15 dark:bg-black/20">
               <video
                 src="/Video1.mp4"
                 controls
@@ -144,6 +153,7 @@ export default function ModernHomepage() {
           </div>
         </div>
       </section>
+      
     </main>
   );
 }

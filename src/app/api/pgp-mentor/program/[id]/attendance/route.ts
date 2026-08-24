@@ -3,138 +3,349 @@ import mongoose from "mongoose";
 import dbConnect from "@/utils/dbConnect";
 import CandidateApplication from "@/models/CandidateApplication";
 
-const ProgramSchema = new mongoose.Schema(
-  { programName: String, weeklySchedule: Array },
-  { timestamps: true }
+interface WeeklyScheduleItem {
+  week?: string;
+}
+
+interface PGPProgramType {
+  programName?: string;
+  weeklySchedule?: WeeklyScheduleItem[];
+}
+
+interface AttendanceType {
+  programId?: string;
+  programName?: string;
+  candidateEmail?: string;
+  candidateName?: string;
+  week?: string;
+  status?: string;
+  markedById?: string;
+  markedByName?: string;
+}
+
+const WeeklyScheduleSchema =
+  new mongoose.Schema<WeeklyScheduleItem>(
+    {
+      week: {
+        type: String,
+        default: "",
+      },
+    },
+    {
+      _id: false,
+      strict: false,
+    }
+  );
+
+const ProgramSchema = new mongoose.Schema<PGPProgramType>(
+  {
+    programName: {
+      type: String,
+      default: "",
+    },
+
+    weeklySchedule: {
+      type: [WeeklyScheduleSchema],
+      default: [],
+    },
+  },
+  {
+    timestamps: true,
+  }
 );
 
-const AttendanceSchema = new mongoose.Schema(
+const AttendanceSchema = new mongoose.Schema<AttendanceType>(
   {
     programId: String,
     programName: String,
-    candidateEmail: { type: String, lowercase: true },
+
+    candidateEmail: {
+      type: String,
+      lowercase: true,
+    },
+
     candidateName: String,
     week: String,
-    status: String, // Present | Absent | Late | Excused
+    status: String,
+
     markedById: String,
     markedByName: String,
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
+
 AttendanceSchema.index(
-  { programId: 1, candidateEmail: 1, week: 1 },
-  { unique: true }
+  {
+    programId: 1,
+    candidateEmail: 1,
+    week: 1,
+  },
+  {
+    unique: true,
+  }
 );
 
 const PGPProgram =
-  mongoose.models.PGPProgram || mongoose.model("PGPProgram", ProgramSchema);
+  (mongoose.models.PGPProgram as
+    | mongoose.Model<PGPProgramType>
+    | undefined) ??
+  mongoose.model<PGPProgramType>(
+    "PGPProgram",
+    ProgramSchema
+  );
+
 const Attendance =
-  mongoose.models.Attendance || mongoose.model("Attendance", AttendanceSchema);
+  (mongoose.models.Attendance as
+    | mongoose.Model<AttendanceType>
+    | undefined) ??
+  mongoose.model<AttendanceType>(
+    "Attendance",
+    AttendanceSchema
+  );
 
 function weekNo(value: string) {
-  const m = /(\d+)/.exec(value || "");
-  return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
+  const match = /(\d+)/.exec(value || "");
+
+  return match
+    ? Number(match[1])
+    : Number.MAX_SAFE_INTEGER;
 }
 
 export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  _request: Request,
+  {
+    params,
+  }: {
+    params: Promise<{ id: string }>;
+  }
 ) {
   try {
     await dbConnect();
+
     const { id } = await params;
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ message: "Invalid program id." }, { status: 400 });
+      return NextResponse.json(
+        {
+          message: "Invalid program id.",
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
-    const program = await PGPProgram.findById(id).lean();
+    const program = await PGPProgram.findById(id)
+      .lean()
+      .exec();
+
     if (!program) {
-      return NextResponse.json({ message: "Program not found." }, { status: 404 });
+      return NextResponse.json(
+        {
+          message: "Program not found.",
+        },
+        {
+          status: 404,
+        }
+      );
     }
 
     const weeks = Array.from(
       new Set(
-        (program.weeklySchedule || [])
-          .map((w: { week?: string }) => w.week)
-          .filter(Boolean)
+        (program.weeklySchedule ?? [])
+          .map((item) => item.week)
+          .filter(
+            (week): week is string =>
+              Boolean(week)
+          )
       )
-    ).sort((a, b) => weekNo(a as string) - weekNo(b as string)) as string[];
+    ).sort(
+      (a, b) =>
+        weekNo(a) - weekNo(b)
+    );
 
-    const students = await CandidateApplication.find({ assignedProgramId: id })
-      .select("fullName email")
-      .sort({ fullName: 1 })
-      .lean();
+    const students =
+      await CandidateApplication.find({
+        assignedProgramId: id,
+      })
+        .select("fullName email")
+        .sort({
+          fullName: 1,
+        })
+        .lean();
 
-    const records = await Attendance.find({ programId: id })
-      .select("candidateEmail week status")
+    const records = await Attendance.find({
+      programId: id,
+    })
+      .select(
+        "candidateEmail week status"
+      )
       .lean();
 
     return NextResponse.json({
       weeks,
-      students: students.map((s) => ({
-        fullName: s.fullName || "",
-        email: s.email || "",
+
+      students: students.map((student) => ({
+        fullName:
+          student.fullName || "",
+
+        email:
+          student.email || "",
       })),
-      records: records.map((r) => ({
-        candidateEmail: r.candidateEmail || "",
-        week: r.week || "",
-        status: r.status || "",
+
+      records: records.map((record) => ({
+        candidateEmail:
+          record.candidateEmail || "",
+
+        week:
+          record.week || "",
+
+        status:
+          record.status || "",
       })),
     });
   } catch (error) {
-    console.error("Attendance GET Error:", error);
+    console.error(
+      "Attendance GET Error:",
+      error
+    );
+
     return NextResponse.json(
-      { message: "Failed to load attendance." },
-      { status: 500 }
+      {
+        message:
+          "Failed to load attendance.",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  {
+    params,
+  }: {
+    params: Promise<{ id: string }>;
+  }
 ) {
   try {
     await dbConnect();
+
     const { id } = await params;
-    const body = await request.json();
 
-    const candidateEmail = String(body.candidateEmail || "").toLowerCase();
-    const week = String(body.week || "");
-    const status = String(body.status || "");
-
-    if (!candidateEmail || !week) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
-        { message: "Candidate and week are required." },
-        { status: 400 }
+        {
+          message: "Invalid program id.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    const program = await PGPProgram.findById(id).select("programName").lean();
+    const body = await request.json();
+
+    const candidateEmail = String(
+      body.candidateEmail || ""
+    )
+      .trim()
+      .toLowerCase();
+
+    const week = String(
+      body.week || ""
+    ).trim();
+
+    const status = String(
+      body.status || ""
+    ).trim();
+
+    if (!candidateEmail || !week) {
+      return NextResponse.json(
+        {
+          message:
+            "Candidate and week are required.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const program =
+      await PGPProgram.findById(id)
+        .select("programName")
+        .lean()
+        .exec();
+
+    if (!program) {
+      return NextResponse.json(
+        {
+          message: "Program not found.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    const programName =
+      program.programName || "";
 
     await Attendance.findOneAndUpdate(
-      { programId: id, candidateEmail, week },
+      {
+        programId: id,
+        candidateEmail,
+        week,
+      },
       {
         $set: {
           programId: id,
-          programName: program?.programName || "",
+          programName,
+
           candidateEmail,
-          candidateName: body.candidateName || "",
+
+          candidateName:
+            body.candidateName || "",
+
           week,
           status,
-          markedById: body.markedById || "",
-          markedByName: body.markedByName || "",
+
+          markedById:
+            body.markedById || "",
+
+          markedByName:
+            body.markedByName || "",
         },
       },
-      { upsert: true, new: true }
+      {
+        upsert: true,
+        new: true,
+        runValidators: true,
+      }
     );
 
-    return NextResponse.json({ message: "Attendance saved." });
+    return NextResponse.json({
+      message: "Attendance saved.",
+    });
   } catch (error) {
-    console.error("Attendance POST Error:", error);
+    console.error(
+      "Attendance POST Error:",
+      error
+    );
+
     return NextResponse.json(
-      { message: "Failed to save attendance." },
-      { status: 500 }
+      {
+        message:
+          "Failed to save attendance.",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }

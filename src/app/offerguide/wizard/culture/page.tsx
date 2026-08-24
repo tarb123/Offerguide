@@ -26,6 +26,7 @@ import {
   SCR008_WARNING_VALUES,
   WORK_PRESSURE,
 } from '../../_constants/scr008';
+
 import * as api from '../../_state/api';
 import { useWizardContext } from '../../_state/useWizardContext';
 import { useDraftAutosave } from '../../_state/useDraftAutosave';
@@ -72,57 +73,120 @@ const EMPTY_FORM: CultureForm = {
 };
 
 /**
- * SCR-008 — Culture & Manager. 14 fields (see scr008.ts on why 14, not the
- * FRS's stated 12), all optional, two sections.
- *
- * This screen introduces the HelpIcon standard: `helpIcon` is set on every
- * Field, and each tooltip renders that field's own FRS Help Text — the same
- * string already passed as `helpText`, so the two can never drift apart.
+ * SCR-008 — Culture & Manager.
+ * All fields are optional and divided into two sections:
+ * Manager and Culture.
  */
 export default function CulturePage() {
-  const { sessionId, offerId, resolving, navigateWithContext } = useWizardContext();
-  const { scheduleSave, saveNow } = useDraftAutosave(SCREEN.id);
+  const {
+    sessionId,
+    offerId,
+    resolving,
+    navigateWithContext,
+  } = useWizardContext();
 
-  const [form, setForm] = React.useState<CultureForm>(EMPTY_FORM);
-  const [loading, setLoading] = React.useState(true);
-  const [submitting, setSubmitting] = React.useState(false);
+  const {
+    scheduleSave,
+    saveNow,
+  } = useDraftAutosave(SCREEN.id);
+
+  const [form, setForm] =
+    React.useState<CultureForm>(EMPTY_FORM);
+
+  const [loading, setLoading] =
+    React.useState(true);
+
+  const [submitting, setSubmitting] =
+    React.useState(false);
 
   React.useEffect(() => {
     if (resolving) return;
+
     let cancelled = false;
 
     async function load() {
       if (!sessionId || !offerId) {
-        navigateWithContext(getScreen('SCR-003').href, { session: sessionId ?? undefined });
+        navigateWithContext(
+          getScreen('SCR-003').href,
+          {
+            session: sessionId ?? undefined,
+          },
+        );
+
         return;
       }
 
-      const offer = await api.getOffer(offerId).catch(() => null);
+      const offer = await api
+        .getOffer(offerId)
+        .catch(() => null);
+
       if (cancelled) return;
 
-      const c = (offer as { culture?: api.OfferCulture | null } | null)?.culture;
+      const c = (
+        offer as {
+          culture?: api.OfferCulture | null;
+        } | null
+      )?.culture;
+
       if (c) {
         setForm((prev) => ({
           ...prev,
-          offerManagerImpression: c.offerManagerImpression || prev.offerManagerImpression,
-          offerTeamCultureFit: c.offerTeamCultureFit ?? prev.offerTeamCultureFit,
-          offerRedFlags: Array.isArray(c.offerRedFlags) ? c.offerRedFlags : [],
-          offerNotes: c.offerNotes ?? '',
-          offerValuesAlignment: c.offerValuesAlignment ?? prev.offerValuesAlignment,
+
+          offerManagerImpression:
+            c.offerManagerImpression ||
+            prev.offerManagerImpression,
+
+          offerTeamCultureFit:
+            c.offerTeamCultureFit ??
+            prev.offerTeamCultureFit,
+
+          offerRedFlags:
+            Array.isArray(c.offerRedFlags)
+              ? c.offerRedFlags
+              : [],
+
+          offerNotes:
+            c.offerNotes ?? '',
+
+          offerValuesAlignment:
+            c.offerValuesAlignment ??
+            prev.offerValuesAlignment,
+
           offerInclusionConfidence:
-            c.offerInclusionConfidence || prev.offerInclusionConfidence,
-          offerWorkPressure: c.offerWorkPressure || prev.offerWorkPressure,
+            c.offerInclusionConfidence ||
+            prev.offerInclusionConfidence,
+
+          offerWorkPressure:
+            c.offerWorkPressure ||
+            prev.offerWorkPressure,
+
           offerCompanyReputation:
-            c.offerCompanyReputation || prev.offerCompanyReputation,
+            c.offerCompanyReputation ||
+            prev.offerCompanyReputation,
+
           offerLeadershipStability:
-            c.offerLeadershipStability || prev.offerLeadershipStability,
+            c.offerLeadershipStability ||
+            prev.offerLeadershipStability,
+
           offerEmployerTreatmentSignal:
-            c.offerEmployerTreatmentSignal || prev.offerEmployerTreatmentSignal,
-          offerLeadershipStyle: c.offerLeadershipStyle || prev.offerLeadershipStyle,
-          offerPsychSafety: c.offerPsychSafety || prev.offerPsychSafety,
-          offerPurposeSense: c.offerPurposeSense ?? prev.offerPurposeSense,
+            c.offerEmployerTreatmentSignal ||
+            prev.offerEmployerTreatmentSignal,
+
+          offerLeadershipStyle:
+            c.offerLeadershipStyle ||
+            prev.offerLeadershipStyle,
+
+          offerPsychSafety:
+            c.offerPsychSafety ||
+            prev.offerPsychSafety,
+
+          offerPurposeSense:
+            c.offerPurposeSense ??
+            prev.offerPurposeSense,
+
           offerCultureImportance:
-            c.offerCultureImportance ?? prev.offerCultureImportance,
+            c.offerCultureImportance ??
+            prev.offerCultureImportance,
         }));
       }
 
@@ -130,62 +194,114 @@ export default function CulturePage() {
     }
 
     load();
+
     return () => {
       cancelled = true;
     };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolving, sessionId, offerId]);
 
   const set = React.useCallback(
-    <K extends keyof CultureForm>(key: K, value: CultureForm[K]) => {
-      setForm((prev) => ({ ...prev, [key]: value }));
+    <K extends keyof CultureForm>(
+      key: K,
+      value: CultureForm[K],
+    ) => {
+      setForm((prev) => ({
+        ...prev,
+        [key]: value,
+      }));
     },
     [],
   );
 
-  const onBlur = React.useCallback(() => scheduleSave(form), [scheduleSave, form]);
+  const onBlur = React.useCallback(
+    () => scheduleSave(form),
+    [scheduleSave, form],
+  );
 
   React.useEffect(() => {
     if (loading) return;
+
     scheduleSave(form);
   }, [form, loading, scheduleSave]);
 
   async function handleNext() {
     if (!offerId) return;
+
     setSubmitting(true);
+
     try {
       const payload: Record<string, unknown> = {
-        offerManagerImpression: form.offerManagerImpression,
-        offerTeamCultureFit: form.offerTeamCultureFit,
-        offerRedFlags: form.offerRedFlags,
-        // Private and explicitly unscored — stored verbatim, never contributed
-        // to community patterns even when culture-signal consent is On.
-        offerNotes: form.offerNotes || null,
-        offerValuesAlignment: form.offerValuesAlignment,
-        offerInclusionConfidence: form.offerInclusionConfidence,
-        offerWorkPressure: form.offerWorkPressure,
-        offerCompanyReputation: form.offerCompanyReputation,
-        offerLeadershipStability: form.offerLeadershipStability,
-        offerEmployerTreatmentSignal: form.offerEmployerTreatmentSignal,
-        offerLeadershipStyle: form.offerLeadershipStyle,
-        offerPsychSafety: form.offerPsychSafety,
-        offerPurposeSense: form.offerPurposeSense,
-        offerCultureImportance: form.offerCultureImportance,
+        offerManagerImpression:
+          form.offerManagerImpression,
+
+        offerTeamCultureFit:
+          form.offerTeamCultureFit,
+
+        offerRedFlags:
+          form.offerRedFlags,
+
+        offerNotes:
+          form.offerNotes || null,
+
+        offerValuesAlignment:
+          form.offerValuesAlignment,
+
+        offerInclusionConfidence:
+          form.offerInclusionConfidence,
+
+        offerWorkPressure:
+          form.offerWorkPressure,
+
+        offerCompanyReputation:
+          form.offerCompanyReputation,
+
+        offerLeadershipStability:
+          form.offerLeadershipStability,
+
+        offerEmployerTreatmentSignal:
+          form.offerEmployerTreatmentSignal,
+
+        offerLeadershipStyle:
+          form.offerLeadershipStyle,
+
+        offerPsychSafety:
+          form.offerPsychSafety,
+
+        offerPurposeSense:
+          form.offerPurposeSense,
+
+        offerCultureImportance:
+          form.offerCultureImportance,
       };
 
-      if (form.offerCompanyReputation === 'Other') {
-        payload.offerCompanyReputationOtherText = form.offerCompanyReputationOtherText;
+      if (
+        form.offerCompanyReputation === 'Other'
+      ) {
+        payload.offerCompanyReputationOtherText =
+          form.offerCompanyReputationOtherText;
       }
 
-      await api.updateOfferCulture(offerId, payload);
+      await api.updateOfferCulture(
+        offerId,
+        payload,
+      );
+
       await saveNow(form);
-      navigateWithContext(getScreen('SCR-009').href, {
-        session: sessionId ?? undefined,
-        offer: offerId,
-      });
+
+      navigateWithContext(
+        getScreen('SCR-009').href,
+        {
+          session: sessionId ?? undefined,
+          offer: offerId,
+        },
+      );
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Could not save culture details.',
+        error instanceof Error
+          ? error.message
+          : 'Could not save culture details.',
       );
     } finally {
       setSubmitting(false);
@@ -195,7 +311,9 @@ export default function CulturePage() {
   if (resolving || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">
+          Loading…
+        </p>
       </div>
     );
   }
@@ -205,228 +323,386 @@ export default function CulturePage() {
       screen={SCREEN}
       introPurpose={C.purpose}
       introRequirementNote={C.requirementNote}
-      sections={[
-        { label: C.sections.manager, shortLabel: 'Manager' },
-        { label: C.sections.culture, shortLabel: 'Culture' },
-      ]}
-      activeSectionIndex={0}
-      sectionHeading={`${SCREEN.title} — 2 sections`}
       onBack={() =>
-        navigateWithContext(getScreen('SCR-007').href, {
-          session: sessionId ?? undefined,
-          offer: offerId ?? undefined,
-        })
+        navigateWithContext(
+          getScreen('SCR-007').href,
+          {
+            session: sessionId ?? undefined,
+            offer: offerId ?? undefined,
+          },
+        )
       }
       onNext={handleNext}
       isSubmitting={submitting}
     >
-      <FieldSection index={1} title={C.sections.manager} meta="4 fields">
+      <FieldSection
+        index={1}
+        title={C.sections.manager}
+        meta="4 fields"
+      >
         <Field
           label={C.labels.managerImpression}
           helpText={C.helpText.managerImpression}
-          helpIcon
         >
           <RadioCards
             name={C.labels.managerImpression}
             options={MANAGER_IMPRESSION}
             value={form.offerManagerImpression}
-            onChange={(v) => set('offerManagerImpression', v)}
-            warningValues={SCR008_WARNING_VALUES.managerImpression}
+            onChange={(v) =>
+              set('offerManagerImpression', v)
+            }
+            warningValues={
+              SCR008_WARNING_VALUES.managerImpression
+            }
           />
         </Field>
 
         <Field
           label={C.labels.teamCultureFit}
           helpText={C.helpText.teamCultureFit}
-          helpIcon
         >
           <RatingCards
             name={C.labels.teamCultureFit}
             value={form.offerTeamCultureFit}
-            onChange={(v) => set('offerTeamCultureFit', v)}
-            lowAnchor={CULTURE_ANCHORS.teamCultureFit.low}
-            highAnchor={CULTURE_ANCHORS.teamCultureFit.high}
+            onChange={(v) =>
+              set('offerTeamCultureFit', v)
+            }
+            lowAnchor={
+              CULTURE_ANCHORS.teamCultureFit.low
+            }
+            highAnchor={
+              CULTURE_ANCHORS.teamCultureFit.high
+            }
           />
         </Field>
 
-        {/* Amber chips — each selection penalises the culture score, and the
-            hint below says so outright per the FRS. */}
         <Field
           label={C.labels.redFlags}
           helpText={C.helpText.redFlags}
-          helpIcon
           fullWidth
         >
           <Chips
             name={C.labels.redFlags}
             options={RED_FLAGS}
             value={form.offerRedFlags}
-            onChange={(v) => set('offerRedFlags', v)}
+            onChange={(v) =>
+              set('offerRedFlags', v)
+            }
             tone="warning"
-            otherText={form.offerRedFlagsOtherText}
-            onOtherTextChange={(t) => set('offerRedFlagsOtherText', t)}
-            otherMaxLength={SCR008_LIMITS.otherTextMax}
+            otherText={
+              form.offerRedFlagsOtherText
+            }
+            onOtherTextChange={(t) =>
+              set(
+                'offerRedFlagsOtherText',
+                t,
+              )
+            }
+            otherMaxLength={
+              SCR008_LIMITS.otherTextMax
+            }
           />
+
           <p className="mt-1 text-[11px] font-medium text-warning">
             {C.redFlagsHint}
           </p>
         </Field>
 
-        <Field label={C.labels.notes} helpText={C.helpText.notes} helpIcon fullWidth>
+        <Field
+          label={C.labels.notes}
+          helpText={C.helpText.notes}
+          fullWidth
+        >
           <TextArea
             value={form.offerNotes}
-            onChange={(v) => set('offerNotes', v)}
+            onChange={(v) =>
+              set('offerNotes', v)
+            }
             onBlur={onBlur}
-            maxLength={SCR008_LIMITS.notesMax}
+            maxLength={
+              SCR008_LIMITS.notesMax
+            }
             placeholder="Anything you want to remember about this offer…"
           />
+
           <p className="mt-1 text-[11px] italic text-muted-foreground">
             {C.notesNotScoredLabel}
           </p>
         </Field>
       </FieldSection>
 
-      <FieldSection index={2} title={C.sections.culture} meta="10 fields">
+      <FieldSection
+        index={2}
+        title={C.sections.culture}
+        meta="10 fields"
+      >
         <Field
           label={C.labels.valuesAlignment}
-          helpText={C.helpText.valuesAlignment}
-          helpIcon
+          helpText={
+            C.helpText.valuesAlignment
+          }
         >
           <RatingCards
             name={C.labels.valuesAlignment}
             value={form.offerValuesAlignment}
-            onChange={(v) => set('offerValuesAlignment', v)}
-            lowAnchor={CULTURE_ANCHORS.valuesAlignment.low}
-            highAnchor={CULTURE_ANCHORS.valuesAlignment.high}
+            onChange={(v) =>
+              set('offerValuesAlignment', v)
+            }
+            lowAnchor={
+              CULTURE_ANCHORS
+                .valuesAlignment.low
+            }
+            highAnchor={
+              CULTURE_ANCHORS
+                .valuesAlignment.high
+            }
           />
         </Field>
 
         <Field
-          label={C.labels.inclusionConfidence}
-          helpText={C.helpText.inclusionConfidence}
-          helpIcon
+          label={
+            C.labels.inclusionConfidence
+          }
+          helpText={
+            C.helpText.inclusionConfidence
+          }
         >
           <RadioCards
-            name={C.labels.inclusionConfidence}
+            name={
+              C.labels.inclusionConfidence
+            }
             options={INCLUSION_CONFIDENCE}
-            value={form.offerInclusionConfidence}
-            onChange={(v) => set('offerInclusionConfidence', v)}
-            warningValues={SCR008_WARNING_VALUES.inclusionConfidence}
+            value={
+              form.offerInclusionConfidence
+            }
+            onChange={(v) =>
+              set(
+                'offerInclusionConfidence',
+                v,
+              )
+            }
+            warningValues={
+              SCR008_WARNING_VALUES
+                .inclusionConfidence
+            }
           />
         </Field>
 
         <Field
           label={C.labels.workPressure}
           helpText={C.helpText.workPressure}
-          helpIcon
         >
           <RadioCards
             name={C.labels.workPressure}
             options={WORK_PRESSURE}
             value={form.offerWorkPressure}
-            onChange={(v) => set('offerWorkPressure', v)}
-            warningValues={SCR008_WARNING_VALUES.workPressure}
+            onChange={(v) =>
+              set('offerWorkPressure', v)
+            }
+            warningValues={
+              SCR008_WARNING_VALUES
+                .workPressure
+            }
           />
         </Field>
 
         <Field
-          label={C.labels.companyReputation}
-          helpText={C.helpText.companyReputation}
-          helpIcon
+          label={
+            C.labels.companyReputation
+          }
+          helpText={
+            C.helpText.companyReputation
+          }
         >
           <RadioCards
-            name={C.labels.companyReputation}
+            name={
+              C.labels.companyReputation
+            }
             options={COMPANY_REPUTATION}
-            value={form.offerCompanyReputation}
-            onChange={(v) => set('offerCompanyReputation', v)}
-            warningValues={SCR008_WARNING_VALUES.companyReputation}
-            otherText={form.offerCompanyReputationOtherText}
-            onOtherTextChange={(t) => set('offerCompanyReputationOtherText', t)}
-            otherMaxLength={SCR008_LIMITS.otherTextMax}
+            value={
+              form.offerCompanyReputation
+            }
+            onChange={(v) =>
+              set(
+                'offerCompanyReputation',
+                v,
+              )
+            }
+            warningValues={
+              SCR008_WARNING_VALUES
+                .companyReputation
+            }
+            otherText={
+              form.offerCompanyReputationOtherText
+            }
+            onOtherTextChange={(t) =>
+              set(
+                'offerCompanyReputationOtherText',
+                t,
+              )
+            }
+            otherMaxLength={
+              SCR008_LIMITS.otherTextMax
+            }
           />
         </Field>
 
         <Field
-          label={C.labels.leadershipStability}
-          helpText={C.helpText.leadershipStability}
-          helpIcon
+          label={
+            C.labels.leadershipStability
+          }
+          helpText={
+            C.helpText.leadershipStability
+          }
         >
           <RadioCards
-            name={C.labels.leadershipStability}
+            name={
+              C.labels.leadershipStability
+            }
             options={LEADERSHIP_STABILITY}
-            value={form.offerLeadershipStability}
-            onChange={(v) => set('offerLeadershipStability', v)}
-            warningValues={SCR008_WARNING_VALUES.leadershipStability}
+            value={
+              form.offerLeadershipStability
+            }
+            onChange={(v) =>
+              set(
+                'offerLeadershipStability',
+                v,
+              )
+            }
+            warningValues={
+              SCR008_WARNING_VALUES
+                .leadershipStability
+            }
           />
         </Field>
 
         <Field
-          label={C.labels.employerTreatmentSignal}
-          helpText={C.helpText.employerTreatmentSignal}
-          helpIcon
+          label={
+            C.labels.employerTreatmentSignal
+          }
+          helpText={
+            C.helpText
+              .employerTreatmentSignal
+          }
         >
           <RadioCards
-            name={C.labels.employerTreatmentSignal}
-            options={EMPLOYER_TREATMENT_SIGNAL}
-            value={form.offerEmployerTreatmentSignal}
-            onChange={(v) => set('offerEmployerTreatmentSignal', v)}
-            warningValues={SCR008_WARNING_VALUES.employerTreatmentSignal}
+            name={
+              C.labels.employerTreatmentSignal
+            }
+            options={
+              EMPLOYER_TREATMENT_SIGNAL
+            }
+            value={
+              form.offerEmployerTreatmentSignal
+            }
+            onChange={(v) =>
+              set(
+                'offerEmployerTreatmentSignal',
+                v,
+              )
+            }
+            warningValues={
+              SCR008_WARNING_VALUES
+                .employerTreatmentSignal
+            }
           />
         </Field>
 
         <Field
           label={C.labels.leadershipStyle}
-          helpText={C.helpText.leadershipStyle}
-          helpIcon
+          helpText={
+            C.helpText.leadershipStyle
+          }
         >
           <RadioCards
             name={C.labels.leadershipStyle}
             options={LEADERSHIP_STYLE}
-            value={form.offerLeadershipStyle}
-            onChange={(v) => set('offerLeadershipStyle', v)}
-            warningValues={SCR008_WARNING_VALUES.leadershipStyle}
+            value={
+              form.offerLeadershipStyle
+            }
+            onChange={(v) =>
+              set(
+                'offerLeadershipStyle',
+                v,
+              )
+            }
+            warningValues={
+              SCR008_WARNING_VALUES
+                .leadershipStyle
+            }
           />
         </Field>
 
         <Field
           label={C.labels.psychSafety}
           helpText={C.helpText.psychSafety}
-          helpIcon
         >
           <RadioCards
             name={C.labels.psychSafety}
             options={PSYCH_SAFETY}
             value={form.offerPsychSafety}
-            onChange={(v) => set('offerPsychSafety', v)}
-            warningValues={SCR008_WARNING_VALUES.psychSafety}
+            onChange={(v) =>
+              set('offerPsychSafety', v)
+            }
+            warningValues={
+              SCR008_WARNING_VALUES
+                .psychSafety
+            }
           />
         </Field>
 
         <Field
           label={C.labels.purposeSense}
-          helpText={C.helpText.purposeSense}
-          helpIcon
+          helpText={
+            C.helpText.purposeSense
+          }
         >
           <RatingCards
             name={C.labels.purposeSense}
             value={form.offerPurposeSense}
-            onChange={(v) => set('offerPurposeSense', v)}
-            lowAnchor={CULTURE_ANCHORS.purposeSense.low}
-            highAnchor={CULTURE_ANCHORS.purposeSense.high}
+            onChange={(v) =>
+              set('offerPurposeSense', v)
+            }
+            lowAnchor={
+              CULTURE_ANCHORS
+                .purposeSense.low
+            }
+            highAnchor={
+              CULTURE_ANCHORS
+                .purposeSense.high
+            }
           />
         </Field>
 
         <Field
-          label={C.labels.cultureImportance}
-          helpText={C.helpText.cultureImportance}
-          helpIcon
+          label={
+            C.labels.cultureImportance
+          }
+          helpText={
+            C.helpText.cultureImportance
+          }
         >
           <RatingCards
-            name={C.labels.cultureImportance}
-            value={form.offerCultureImportance}
-            onChange={(v) => set('offerCultureImportance', v)}
-            lowAnchor={CULTURE_ANCHORS.cultureImportance.low}
-            highAnchor={CULTURE_ANCHORS.cultureImportance.high}
+            name={
+              C.labels.cultureImportance
+            }
+            value={
+              form.offerCultureImportance
+            }
+            onChange={(v) =>
+              set(
+                'offerCultureImportance',
+                v,
+              )
+            }
+            lowAnchor={
+              CULTURE_ANCHORS
+                .cultureImportance.low
+            }
+            highAnchor={
+              CULTURE_ANCHORS
+                .cultureImportance.high
+            }
           />
         </Field>
       </FieldSection>

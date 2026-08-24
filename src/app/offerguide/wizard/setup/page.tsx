@@ -7,6 +7,7 @@ import WizardShell from '../../_components/WizardShell';
 import { BinaryRadioCards } from '../../_components/fields/RadioCards';
 import RadioCards from '../../_components/fields/RadioCards';
 import Chips from '../../_components/fields/Chips';
+import HelpIcon from '@/components/shared/HelpIcon';
 
 import { getScreen } from '../../_constants/screens';
 import {
@@ -173,6 +174,7 @@ export default function EvaluationSetupPage() {
         <div>
           <label className="mb-1.5 flex items-center text-xs font-medium">
             {C.labels.evaluationOfferCount}
+            <HelpIcon text={C.helpText.evaluationOfferCount} label={C.labels.evaluationOfferCount} />
             <span className="ml-1.5 text-xs font-semibold text-destructive">
               required
             </span>
@@ -184,14 +186,12 @@ export default function EvaluationSetupPage() {
             onChange={setOfferCount}
             disabled={isLocked}
           />
-          <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-            {C.helpText.evaluationOfferCount}
-          </p>
         </div>
 
         <div>
           <label className="mb-1.5 flex items-center text-xs font-medium">
             {C.labels.evaluationType}
+            <HelpIcon text={C.helpText.evaluationType} label={C.labels.evaluationType} />
             <span className="ml-1.5 text-xs font-semibold text-destructive">
               required
             </span>
@@ -205,14 +205,12 @@ export default function EvaluationSetupPage() {
             withDot
             gridCols={2}
           />
-          <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-            {C.helpText.evaluationType}
-          </p>
         </div>
 
         <div>
           <label className="mb-1.5 flex items-center text-xs font-medium">
             {C.labels.evaluationPriorities}
+            <HelpIcon text={C.helpText.evaluationPriorities} label={C.labels.evaluationPriorities} />
             <span className="ml-1.5 text-xs font-semibold text-destructive">
               required
             </span>
@@ -229,9 +227,6 @@ export default function EvaluationSetupPage() {
             onOtherTextChange={setOtherText}
             otherMaxLength={SCR002_LIMITS.priorityOtherTextMax}
           />
-          <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-            {C.helpText.evaluationPriorities}
-          </p>
           {showErrors && priorities.length < SCR002_LIMITS.minPriorities && (
             <p className="mt-1 text-xs text-destructive">
               Select at least one priority to continue.

@@ -9,18 +9,17 @@ const serviceLinks = [
   { label: "Professional Growth Program", href: "/pgp-access" },
 ];
 
-const companyLinks = [
-  { label: "About Sanjeeda", href: "/about-us" },
-  { label: "Career insights", href: "/Blogs/" },
-  { label: "OfferGuide", href: "/offerguide" },
-  { label: "Log in", href: "/auth" },
-];
+// const companyLinks = [
+
+//   { label: "OfferGuide", href: "/offerguide" },
+ 
+// ];
 
 export default function ModernFooter() {
   return (
     <footer className="bg-[#060c29] text-white">
       <div className="mx-auto max-w-[1400px] px-5 pb-9 pt-16 sm:px-8 lg:px-12 lg:pt-20">
-        <div className="mb-16 overflow-hidden rounded-[30px] bg-gradient-to-r from-[#1746b5] to-[#e83444] p-7 sm:p-10 lg:flex lg:items-center lg:justify-between lg:px-12">
+        {/* <div className="mb-4 overflow-hidden rounded-[30px] bg-gradient-to-r from-[#1746b5] to-[#e83444]  p-7 sm:p-10 lg:flex lg:items-center lg:justify-between lg:px-12">
           <div className="max-w-2xl">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-white/65">
               Your next move starts here
@@ -36,9 +35,9 @@ export default function ModernFooter() {
             Talk to our team
             <ArrowUpRight size={18} />
           </a>
-        </div>
+        </div> */}
 
-        <div className="grid gap-12 border-b border-white/10 pb-14 md:grid-cols-2 lg:grid-cols-[1.3fr_.7fr_.7fr_1fr]">
+        <div className="-mb-4 grid gap-4 border-b border-white/10 pb-5 md:grid-cols-1 lg:grid-cols-[1.3fr_.7fr_.7fr_1fr]">
           <div>
             <Link href="/" className="inline-block" aria-label="Sanjeeda home">
               <Image
@@ -49,7 +48,7 @@ export default function ModernFooter() {
                 className="h-auto w-48"
               />
             </Link>
-            <p className="mt-5 max-w-sm text-sm leading-7 text-white/55">
+            <p className="-mt-20 max-w-sm text-sm leading-6 text-white/55 px-4">
               Smart career tools and human guidance for people serious about
               understanding themselves, building their edge and choosing better.
             </p>
@@ -76,7 +75,7 @@ export default function ModernFooter() {
             <h3 className="text-sm font-black uppercase tracking-[0.16em] text-white/40">
               Services
             </h3>
-            <ul className="mt-5 space-y-3.5">
+            <ul className="mt-1 space-y-3.5">
               {serviceLinks.map((link) => (
                 <li key={link.label}>
                   <Link
@@ -90,7 +89,7 @@ export default function ModernFooter() {
             </ul>
           </div>
 
-          <div>
+          {/* <div>
             <h3 className="text-sm font-black uppercase tracking-[0.16em] text-white/40">
               Explore
             </h3>
@@ -106,13 +105,13 @@ export default function ModernFooter() {
                 </li>
               ))}
             </ul>
-          </div>
+          </div> */}
 
           <div>
             <h3 className="text-sm font-black uppercase tracking-[0.16em] text-white/40">
               Get in touch
             </h3>
-            <ul className="mt-5 space-y-4 text-sm leading-6 text-white/65">
+            <ul className="mt-2 space-y-4 text-sm leading-6 text-white/65">
               <li className="flex gap-3">
                 <MapPin size={18} className="mt-0.5 shrink-0 text-[#ff5c68]" />
                 <span>B-65, Block 2, Gulshan-e-Iqbal, Karachi, Pakistan</span>
@@ -136,7 +135,7 @@ export default function ModernFooter() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 pt-7 text-xs font-medium text-white/35 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 -pt-5 text-xs font-medium text-white/35   sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} Sanjeeda.io. All rights reserved.</p>
           <p>Career development for people serious about progress.</p>
         </div>

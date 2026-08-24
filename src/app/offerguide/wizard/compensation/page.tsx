@@ -300,19 +300,11 @@ export default function CompensationPage() {
   }
 
   return (
-    <WizardShell
-      screen={SCREEN}
-      introPurpose={C.purpose}
-      introRequirementNote={C.requirementNote}
-      sections={[
-        { label: C.sections.base, shortLabel: 'Base' },
-        { label: C.sections.variable, shortLabel: 'Variable' },
-        { label: C.sections.allowances, shortLabel: 'Allowances' },
-        { label: C.sections.quality, shortLabel: 'Quality' },
-      ]}
-      activeSectionIndex={0}
-      sectionHeading={`${SCREEN.title} — 4 sections`}
-      stickySlot={
+<WizardShell
+  screen={SCREEN}
+  introPurpose={C.purpose}
+  introRequirementNote={C.requirementNote}
+  stickySlot={
         <CompensationBar
           inputs={{
             baseSalary: form.offerBaseSalary,

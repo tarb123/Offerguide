@@ -1,25 +1,47 @@
-'use client';
+ 'use client';
+
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 import WizardShell from '../../_components/WizardShell';
-import Field, { FieldSection,FieldSubSection,} from '../../_components/fields/Field';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import RadioCards, { BinaryRadioCards, RatingCards,} from '../../_components/fields/RadioCards';
+import Field, {
+  FieldSection,
+  FieldSubSection,
+} from '../../_components/fields/Field';
+import RadioCards, {
+  RatingCards,
+} from '../../_components/fields/RadioCards';
 import Chips from '../../_components/fields/Chips';
 import Combobox from '../../_components/fields/Combobox';
-import { NumericInput, PairedRow, Select, TextInput,} from '../../_components/fields/Inputs';
+import {
+  NumericInput,
+  PairedRow,
+  Select,
+  TextInput,
+} from '../../_components/fields/Inputs';
 import ConsentCard from '../../_components/ConsentCard';
 
 import { getScreen } from '../../_constants/screens';
 import { CURRENCY_OPTIONS } from '../../_constants/currencies';
 import {
-  CAREER_STAGES, CURRENT_BENEFITS, CURRENT_WORK_ARRANGEMENTS,
-  EMPLOYED_STATUSES, EMPLOYMENT_STATUSES, EMPLOYMENT_TYPES,
-  PAY_FREQUENCIES, PREFERRED_WORK_ARRANGEMENTS, PREFERRED_WORK_LOCATIONS, SATISFACTION_ANCHORS,
-  SCR001_COPY, SCR001_DEFAULTS, SCR001_LIMITS, WILLING_TO_RELOCATE, YES_NO,
+  CAREER_STAGES,
+  CURRENT_BENEFITS,
+  CURRENT_WORK_ARRANGEMENTS,
+  EMPLOYED_STATUSES,
+  EMPLOYMENT_STATUSES,
+  EMPLOYMENT_TYPES,
+  PAY_FREQUENCIES,
+  PREFERRED_WORK_ARRANGEMENTS,
+  PREFERRED_WORK_LOCATIONS,
+  SATISFACTION_ANCHORS,
+  SCR001_COPY,
+  SCR001_DEFAULTS,
+  SCR001_LIMITS,
+  WILLING_TO_RELOCATE,
+  YES_NO,
 } from '../../_constants/scr001';
+
 import * as api from '../../_state/api';
 import { useReferenceData } from '../../_state/useReferenceData';
 import { useDraftAutosave } from '../../_state/useDraftAutosave';
@@ -77,119 +99,231 @@ const EMPTY_FORM: ProfileForm = {
   currentBenefits: [],
   currentWorkArrangement: SCR001_DEFAULTS.currentWorkArrangement,
   workingHoursPerWeek: SCR001_DEFAULTS.workingHoursPerWeek,
-  averageDailyCommuteMinutes: SCR001_DEFAULTS.averageDailyCommuteMinutes,
+  averageDailyCommuteMinutes:
+    SCR001_DEFAULTS.averageDailyCommuteMinutes,
   overallJobSatisfaction: null,
   careerGrowthSatisfaction: null,
   workLifeBalanceSatisfaction: null,
 };
 
 /**
- * SCR-001 — Candidate Profile. 24 fields, 2 required.
+ * SCR-001 — Candidate Profile.
  *
- * Structure is two groups with a section mini-stepper: 1 Personal Career Profile
- * (professional · location · preferences), 2 Current Employment (employment ·
- * compensation · benefits · working conditions · satisfaction).
+ * Two required fields:
+ * 1. Career stage
+ * 2. Preferred work arrangement
  *
- * The profile is reusable across sessions — filled once, reloaded on return — so
- * this screen always reads any existing profile before rendering, then overlays
- * anything newer from the wizard draft.
+ * The profile is reused across evaluation sessions.
  */
 export default function CandidateProfilePage() {
   const router = useRouter();
-  const [form, setForm] = React.useState<ProfileForm>(EMPTY_FORM);
-  const [loading, setLoading] = React.useState(true);
-  const [submitting, setSubmitting] = React.useState(false);
-  const [showErrors, setShowErrors] = React.useState(false);
 
-  // Consent is candidate-level and saved through its own route.
-  const [consentToggles, setConsentToggles] = React.useState<api.ConsentToggle[]>([]);
-  const [shareAnonymous, setShareAnonymous] = React.useState(false);
-  const [selections, setSelections] = React.useState<Record<string, boolean>>({});
+  const [form, setForm] =
+    React.useState<ProfileForm>(EMPTY_FORM);
 
-  const { countries, cities, functionalDomains, loadingCountries } =
-    useReferenceData(form.currentCountry);
+  const [loading, setLoading] =
+    React.useState(true);
 
-  const { scheduleSave, saveNow } = useDraftAutosave(SCREEN.id);
+  const [submitting, setSubmitting] =
+    React.useState(false);
 
-  /* ---------------------------------------------------------------- loading */
+  const [showErrors, setShowErrors] =
+    React.useState(false);
+
+  const [consentToggles, setConsentToggles] =
+    React.useState<api.ConsentToggle[]>([]);
+
+  const [shareAnonymous, setShareAnonymous] =
+    React.useState(false);
+
+  const [selections, setSelections] =
+    React.useState<Record<string, boolean>>({});
+
+  const {
+    countries,
+    cities,
+    functionalDomains,
+    loadingCountries,
+  } = useReferenceData(form.currentCountry);
+
+  const {
+    scheduleSave,
+    saveNow,
+  } = useDraftAutosave(SCREEN.id);
 
   React.useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const [profile, draft, toggles] = await Promise.all([
-        api.getCandidateProfile().catch(() => null),
-        api.getWizardDraft().catch(() => null),
-        api.getConsentToggles().catch(() => []),
-      ]);
+      const [profile, draft, toggles] =
+        await Promise.all([
+          api
+            .getCandidateProfile()
+            .catch(() => null),
+
+          api
+            .getWizardDraft()
+            .catch(() => null),
+
+          api
+            .getConsentToggles()
+            .catch(() => []),
+        ]);
+
       if (cancelled) return;
 
-      setConsentToggles(toggles ?? []);
+      setConsentToggles(
+        toggles ?? [],
+      );
 
       if (profile) {
         setForm((prev) => ({
           ...prev,
-          careerStage: profile.careerStage ?? null,
-          careerStageOtherText: profile.careerStageOtherText ?? '',
-          careerSwitcher: profile.careerSwitcher ?? prev.careerSwitcher,
-          targetFunctionalDomain: profile.targetFunctionalDomain,
-          currentCountry: profile.currentCountry,
-          currentCity: profile.currentCity,
-          preferredWorkArrangement: profile.preferredWorkArrangement ?? null,
-          preferredWorkLocation: profile.preferredWorkLocation,
-          preferredCountry: profile.preferredCountry,
-          preferredLocationText: profile.preferredLocationText ?? '',
-          willingToRelocate: profile.willingToRelocate ?? prev.willingToRelocate,
-          employmentStatus: profile.employmentStatus ?? prev.employmentStatus,
-          currentEmployer: profile.currentEmployer ?? '',
-          currentJobTitle: profile.currentJobTitle ?? '',
-          employmentType: profile.employmentType ?? prev.employmentType,
-          currentBaseSalary: profile.currentBaseSalary
-            ? Number(profile.currentBaseSalary)
-            : null,
-          currentCurrency: profile.currentCurrency,
-          payFrequency: profile.payFrequency ?? prev.payFrequency,
-          currentBenefits: profile.currentBenefits ?? [],
+
+          careerStage:
+            profile.careerStage ?? null,
+
+          careerStageOtherText:
+            profile.careerStageOtherText ?? '',
+
+          careerSwitcher:
+            profile.careerSwitcher ??
+            prev.careerSwitcher,
+
+          targetFunctionalDomain:
+            profile.targetFunctionalDomain ??
+            null,
+
+          currentCountry:
+            profile.currentCountry ?? null,
+
+          currentCity:
+            profile.currentCity ?? null,
+
+          preferredWorkArrangement:
+            profile.preferredWorkArrangement ??
+            null,
+
+          preferredWorkLocation:
+            profile.preferredWorkLocation ??
+            null,
+
+          preferredCountry:
+            profile.preferredCountry ?? null,
+
+          preferredLocationText:
+            profile.preferredLocationText ??
+            '',
+
+          willingToRelocate:
+            profile.willingToRelocate ??
+            prev.willingToRelocate,
+
+          employmentStatus:
+            profile.employmentStatus ??
+            prev.employmentStatus,
+
+          currentEmployer:
+            profile.currentEmployer ?? '',
+
+          currentJobTitle:
+            profile.currentJobTitle ?? '',
+
+          employmentType:
+            profile.employmentType ??
+            prev.employmentType,
+
+          currentBaseSalary:
+            profile.currentBaseSalary != null
+              ? Number(
+                  profile.currentBaseSalary,
+                )
+              : null,
+
+          currentCurrency:
+            profile.currentCurrency ?? null,
+
+          payFrequency:
+            profile.payFrequency ??
+            prev.payFrequency,
+
+          currentBenefits:
+            profile.currentBenefits ?? [],
+
           currentWorkArrangement:
-            profile.currentWorkArrangement ?? prev.currentWorkArrangement,
-          workingHoursPerWeek: profile.workingHoursPerWeek,
-          averageDailyCommuteMinutes: profile.averageDailyCommuteMinutes,
-          overallJobSatisfaction: profile.overallJobSatisfaction,
-          careerGrowthSatisfaction: profile.careerGrowthSatisfaction,
-          workLifeBalanceSatisfaction: profile.workLifeBalanceSatisfaction,
+            profile.currentWorkArrangement ??
+            prev.currentWorkArrangement,
+
+          workingHoursPerWeek:
+            profile.workingHoursPerWeek ??
+            null,
+
+          averageDailyCommuteMinutes:
+            profile.averageDailyCommuteMinutes ??
+            null,
+
+          overallJobSatisfaction:
+            profile.overallJobSatisfaction ??
+            null,
+
+          careerGrowthSatisfaction:
+            profile.careerGrowthSatisfaction ??
+            null,
+
+          workLifeBalanceSatisfaction:
+            profile.workLifeBalanceSatisfaction ??
+            null,
         }));
 
-        setShareAnonymous(profile.consentSettings?.shareAnonymous ?? false);
-        setSelections(profile.consentSettings?.selections ?? {});
+        setShareAnonymous(
+          profile.consentSettings
+            ?.shareAnonymous ?? false,
+        );
+
+        setSelections(
+          profile.consentSettings
+            ?.selections ?? {},
+        );
       }
 
-      // The draft is written on every blur, so it is never older than the saved
-      // profile — overlay it to recover edits made after the last successful save.
-      const draftAnswers = draft?.answers as Partial<ProfileForm> | undefined;
-      if (draftAnswers && Object.keys(draftAnswers).length > 0) {
-        setForm((prev) => ({ ...prev, ...draftAnswers }));
+      const draftAnswers =
+        draft?.answers as
+          | Partial<ProfileForm>
+          | undefined;
+
+      if (
+        draftAnswers &&
+        Object.keys(draftAnswers).length > 0
+      ) {
+        setForm((prev) => ({
+          ...prev,
+          ...draftAnswers,
+        }));
       }
 
       setLoading(false);
     }
 
     load();
+
     return () => {
       cancelled = true;
     };
   }, []);
 
-  /* ---------------------------------------------------------------- helpers */
-
   const set = React.useCallback(
-    <K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => {
-      setForm((prev) => ({ ...prev, [key]: value }));
+    <K extends keyof ProfileForm>(
+      key: K,
+      value: ProfileForm[K],
+    ) => {
+      setForm((prev) => ({
+        ...prev,
+        [key]: value,
+      }));
     },
     [],
   );
 
-  // Autosave fires on blur, per the handoff's draft policy. Chips, radio cards and
-  // toggles have no meaningful blur, so they save on change instead.
   const onBlur = React.useCallback(
     () => scheduleSave(form),
     [scheduleSave, form],
@@ -197,99 +331,179 @@ export default function CandidateProfilePage() {
 
   React.useEffect(() => {
     if (loading) return;
+
     scheduleSave(form);
   }, [form, loading, scheduleSave]);
 
-  /* ------------------------------------------------------------ conditionals */
+  const isEmployed =
+    EMPLOYED_STATUSES.includes(
+      form.employmentStatus,
+    );
 
-  const isEmployed = EMPLOYED_STATUSES.includes(form.employmentStatus);
-  const isCareerSwitcher = form.careerSwitcher === 'Yes';
-  const wantsSpecificCity = form.preferredWorkLocation === 'Specific city';
+  const isCareerSwitcher =
+    form.careerSwitcher === 'Yes';
+
+  const wantsSpecificCity =
+    form.preferredWorkLocation ===
+    'Specific city';
+
   const wantsSpecificCountry =
-    form.preferredWorkLocation === 'Specific country' || wantsSpecificCity;
+    form.preferredWorkLocation ===
+      'Specific country' ||
+    wantsSpecificCity;
 
-  /**
-   * The one fully-hidden field on this screen: commute is meaningless for a remote
-   * worker, so it is removed rather than dimmed (Sprint 6 handoff §2 lists it as an
-   * explicit exception to the dimmed-with-pill default).
-   */
-  const showCommute = form.currentWorkArrangement !== 'Remote';
+  const showCommute =
+    form.currentWorkArrangement !==
+    'Remote';
 
-  /* ------------------------------------------------------------- validation */
+  const missingCareerStage =
+    !form.careerStage;
 
-  const missingCareerStage = !form.careerStage;
-  const missingArrangement = !form.preferredWorkArrangement;
+  const missingArrangement =
+    !form.preferredWorkArrangement;
+
   const careerStageOtherMissing =
-    form.careerStage === 'Other' && form.careerStageOtherText.trim() === '';
-  const canProceed =
-    !missingCareerStage && !missingArrangement && !careerStageOtherMissing;
+    form.careerStage === 'Other' &&
+    form.careerStageOtherText.trim() === '';
 
-  /* ----------------------------------------------------------------- submit */
+  const canProceed =
+    !missingCareerStage &&
+    !missingArrangement &&
+    !careerStageOtherMissing;
 
   async function handleNext() {
     setShowErrors(true);
+
     if (!canProceed) {
-      toast.error('Career stage and preferred work arrangement are required.');
+      toast.error(
+        careerStageOtherMissing
+          ? 'Please specify your career stage.'
+          : 'Career stage and preferred work arrangement are required.',
+      );
+
       return;
     }
 
     setSubmitting(true);
+
     try {
-      // Fields the candidate can't see aren't sent — a hidden commute value or a
-      // stale employment block would otherwise persist answers they never gave.
-      const payload: Record<string, unknown> = {
-        careerStage: form.careerStage,
+      const payload: Record<
+        string,
+        unknown
+      > = {
+        careerStage:
+          form.careerStage,
+
         careerStageOtherText:
-          form.careerStage === 'Other' ? form.careerStageOtherText : null,
-        careerSwitcher: form.careerSwitcher,
-        targetFunctionalDomain: isCareerSwitcher
-          ? form.targetFunctionalDomain
-          : null,
-        currentCountry: form.currentCountry,
-        currentCity: form.currentCity,
-        preferredWorkArrangement: form.preferredWorkArrangement,
-        preferredWorkLocation: form.preferredWorkLocation,
-        preferredCountry: wantsSpecificCountry ? form.preferredCountry : null,
-        preferredLocationText: wantsSpecificCity
-          ? form.preferredLocationText
-          : null,
-        willingToRelocate: form.willingToRelocate,
-        employmentStatus: form.employmentStatus,
+          form.careerStage === 'Other'
+            ? form.careerStageOtherText
+            : null,
+
+        careerSwitcher:
+          form.careerSwitcher,
+
+        targetFunctionalDomain:
+          isCareerSwitcher
+            ? form.targetFunctionalDomain
+            : null,
+
+        currentCountry:
+          form.currentCountry,
+
+        currentCity:
+          form.currentCity,
+
+        preferredWorkArrangement:
+          form.preferredWorkArrangement,
+
+        preferredWorkLocation:
+          form.preferredWorkLocation,
+
+        preferredCountry:
+          wantsSpecificCountry
+            ? form.preferredCountry
+            : null,
+
+        preferredLocationText:
+          wantsSpecificCity
+            ? form.preferredLocationText
+            : null,
+
+        willingToRelocate:
+          form.willingToRelocate,
+
+        employmentStatus:
+          form.employmentStatus,
       };
 
       if (isEmployed) {
         Object.assign(payload, {
-          currentEmployer: form.currentEmployer || null,
-          currentJobTitle: form.currentJobTitle || null,
-          employmentType: form.employmentType,
-          currentBaseSalary: form.currentBaseSalary,
-          currentCurrency: form.currentCurrency,
-          payFrequency: form.payFrequency,
-          currentBenefits: form.currentBenefits,
-          currentWorkArrangement: form.currentWorkArrangement,
-          workingHoursPerWeek: form.workingHoursPerWeek,
-          averageDailyCommuteMinutes: showCommute
-            ? form.averageDailyCommuteMinutes
-            : null,
-          overallJobSatisfaction: form.overallJobSatisfaction,
-          careerGrowthSatisfaction: form.careerGrowthSatisfaction,
-          workLifeBalanceSatisfaction: form.workLifeBalanceSatisfaction,
+          currentEmployer:
+            form.currentEmployer ||
+            null,
+
+          currentJobTitle:
+            form.currentJobTitle ||
+            null,
+
+          employmentType:
+            form.employmentType,
+
+          currentBaseSalary:
+            form.currentBaseSalary,
+
+          currentCurrency:
+            form.currentCurrency,
+
+          payFrequency:
+            form.payFrequency,
+
+          currentBenefits:
+            form.currentBenefits,
+
+          currentWorkArrangement:
+            form.currentWorkArrangement,
+
+          workingHoursPerWeek:
+            form.workingHoursPerWeek,
+
+          averageDailyCommuteMinutes:
+            showCommute
+              ? form.averageDailyCommuteMinutes
+              : null,
+
+          overallJobSatisfaction:
+            form.overallJobSatisfaction,
+
+          careerGrowthSatisfaction:
+            form.careerGrowthSatisfaction,
+
+          workLifeBalanceSatisfaction:
+            form.workLifeBalanceSatisfaction,
         });
       }
 
-      await api.saveCandidateProfile(payload);
+      await api.saveCandidateProfile(
+        payload,
+      );
 
-      // Consent must follow the profile save: its route 404s when no profile row
-      // exists yet, which is exactly the first-time-guest case.
       if (consentToggles.length > 0) {
-        await api.updateConsent({ shareAnonymous, selections });
+        await api.updateConsent({
+          shareAnonymous,
+          selections,
+        });
       }
 
       await saveNow(form);
-      router.push(getScreen('SCR-002').href);
+
+      router.push(
+        getScreen('SCR-002').href,
+      );
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Could not save your profile.',
+        error instanceof Error
+          ? error.message
+          : 'Could not save your profile.',
       );
     } finally {
       setSubmitting(false);
@@ -299,80 +513,159 @@ export default function CandidateProfilePage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading your profile…</p>
+        <p className="text-sm text-muted-foreground">
+          Loading your profile…
+        </p>
       </div>
     );
   }
-
-  /* ------------------------------------------------------------------ render */
 
   return (
     <WizardShell
       screen={SCREEN}
       introPurpose={C.purpose}
-      introRequirementNote={C.requirementNote}
-      sections={[
-        { label: C.sections.personal, shortLabel: 'Profile' },
-        { label: C.sections.employment, shortLabel: 'Employment' },
-      ]}
-      activeSectionIndex={0}
-      sectionHeading={`${SCREEN.title} — 2 sections`} // SCR-001 -> 2 Sections: 
-      onBack={() => router.push('/offerguide')}      //  1. Personal Career Profile, 2.Current Employment
+      introRequirementNote={
+        C.requirementNote
+      }
+      onBack={() =>
+        router.push('/offerguide')
+      }
       onNext={handleNext}
       isSubmitting={submitting}
     >
-      {/* ============================ 1 — Personal career profile ============ */}
-      <FieldSection index={1} title={C.sections.personal} meta="3 sub-sections">
-        <FieldSubSection title={C.subSections.professional} />
+      {/* ======================================================
+          SECTION 1 — PERSONAL CAREER PROFILE
+      ====================================================== */}
 
-        <Field label={C.labels.careerStage} required helpText={C.helpText.careerStage}>
+      <FieldSection
+        index={1}
+        title={C.sections.personal}
+        meta="3 sub-sections"
+      >
+        <FieldSubSection
+          title={
+            C.subSections.professional
+          }
+        />
+
+        <Field
+          label={C.labels.careerStage}
+          required
+          helpText={
+            C.helpText.careerStage
+          }
+        >
           <RadioCards
             name={C.labels.careerStage}
             options={CAREER_STAGES}
             value={form.careerStage}
-            onChange={(v) => set('careerStage', v)}
-            otherText={form.careerStageOtherText}
-            onOtherTextChange={(t) => set('careerStageOtherText', t)}
-            otherMaxLength={SCR001_LIMITS.careerStageOtherTextMax}
+            onChange={(v) =>
+              set('careerStage', v)
+            }
+            otherText={
+              form.careerStageOtherText
+            }
+            onOtherTextChange={(t) =>
+              set(
+                'careerStageOtherText',
+                t,
+              )
+            }
+            otherMaxLength={
+              SCR001_LIMITS
+                .careerStageOtherTextMax
+            }
           />
-          {showErrors && missingCareerStage && (
-            <p className="mt-1.5 text-xs text-destructive">
-              Select your career stage to continue.
-            </p>
-          )}
+
+          {showErrors &&
+            missingCareerStage && (
+              <p className="mt-1.5 text-xs text-destructive">
+                Select your career stage
+                to continue.
+              </p>
+            )}
+
+          {showErrors &&
+            careerStageOtherMissing && (
+              <p className="mt-1.5 text-xs text-destructive">
+                Please specify your career
+                stage.
+              </p>
+            )}
         </Field>
 
-        <Field label={C.labels.careerSwitcher} helpText={C.helpText.careerSwitcher}>
+        <Field
+          label={C.labels.careerSwitcher}
+          helpText={
+            C.helpText.careerSwitcher
+          }
+        >
           <RadioCards
-            name={C.labels.careerSwitcher}
+            name={
+              C.labels.careerSwitcher
+            }
             options={YES_NO}
             value={form.careerSwitcher}
-            onChange={(v) => set('careerSwitcher', v)}
+            onChange={(v) =>
+              set(
+                'careerSwitcher',
+                v,
+              )
+            }
           />
         </Field>
 
-        <Field label={C.labels.targetFunctionalDomain} helpText={C.helpText.targetFunctionalDomain}
-          conditional={{ pill: 'if career switcher', active: isCareerSwitcher }}
+        <Field
+          label={
+            C.labels
+              .targetFunctionalDomain
+          }
+          helpText={
+            C.helpText
+              .targetFunctionalDomain
+          }
+          conditional={{
+            pill: 'if career switcher',
+            active: isCareerSwitcher,
+          }}
         >
           <Combobox
             options={functionalDomains}
-            value={form.targetFunctionalDomain}
-            onChange={(v) => set('targetFunctionalDomain', v)}
+            value={
+              form.targetFunctionalDomain
+            }
+            onChange={(v) =>
+              set(
+                'targetFunctionalDomain',
+                v,
+              )
+            }
             onBlur={onBlur}
             disabled={!isCareerSwitcher}
             placeholder="Select a domain"
           />
         </Field>
 
-        <FieldSubSection title={C.subSections.location} />
+        <FieldSubSection
+          title={
+            C.subSections.location
+          }
+        />
 
-        <Field label={C.labels.currentCountry} helpText={C.helpText.currentCountry}>
+        <Field
+          label={
+            C.labels.currentCountry
+          }
+          helpText={
+            C.helpText.currentCountry
+          }
+        >
           <Combobox
             options={countries}
             value={form.currentCountry}
             onChange={(v) => {
               set('currentCountry', v);
-              set('currentCity', null); // city list is filtered by country
+              set('currentCity', null);
             }}
             onBlur={onBlur}
             loading={loadingCountries}
@@ -380,133 +673,331 @@ export default function CandidateProfilePage() {
           />
         </Field>
 
-        <Field label={C.labels.currentCity} helpText={C.helpText.currentCity}>
+        <Field
+          label={
+            C.labels.currentCity
+          }
+          helpText={
+            C.helpText.currentCity
+          }
+        >
           <Combobox
             options={cities}
             value={form.currentCity}
-            onChange={(v) => set('currentCity', v)}
+            onChange={(v) =>
+              set('currentCity', v)
+            }
             onBlur={onBlur}
-            disabled={!form.currentCountry}
+            disabled={
+              !form.currentCountry
+            }
             placeholder={
-              form.currentCountry ? 'Select a city' : 'Select a country first'
+              form.currentCountry
+                ? 'Select a city'
+                : 'Select a country first'
             }
           />
         </Field>
 
-        <FieldSubSection title={C.subSections.preferences} />
+        <FieldSubSection
+          title={
+            C.subSections.preferences
+          }
+        />
 
-        <Field label={C.labels.preferredWorkArrangement} required helpText={C.helpText.preferredWorkArrangement}>
+        <Field
+          label={
+            C.labels
+              .preferredWorkArrangement
+          }
+          required
+          helpText={
+            C.helpText
+              .preferredWorkArrangement
+          }
+        >
           <RadioCards
-            name={C.labels.preferredWorkArrangement}
-            options={PREFERRED_WORK_ARRANGEMENTS}
-            value={form.preferredWorkArrangement}
-            onChange={(v) => set('preferredWorkArrangement', v)}
+            name={
+              C.labels
+                .preferredWorkArrangement
+            }
+            options={
+              PREFERRED_WORK_ARRANGEMENTS
+            }
+            value={
+              form.preferredWorkArrangement
+            }
+            onChange={(v) =>
+              set(
+                'preferredWorkArrangement',
+                v,
+              )
+            }
           />
-          {showErrors && missingArrangement && (
-            <p className="mt-1.5 text-xs text-destructive">
-              Select your preferred work arrangement to continue.
-            </p>
-          )}
+
+          {showErrors &&
+            missingArrangement && (
+              <p className="mt-1.5 text-xs text-destructive">
+                Select your preferred work
+                arrangement to continue.
+              </p>
+            )}
         </Field>
 
-        <Field label={C.labels.preferredWorkLocation} helpText={C.helpText.preferredWorkLocation}>
+        <Field
+          label={
+            C.labels
+              .preferredWorkLocation
+          }
+          helpText={
+            C.helpText
+              .preferredWorkLocation
+          }
+        >
           <Select
-            options={PREFERRED_WORK_LOCATIONS}
-            value={form.preferredWorkLocation}
-            onChange={(v) => set('preferredWorkLocation', v)}
+            options={
+              PREFERRED_WORK_LOCATIONS
+            }
+            value={
+              form.preferredWorkLocation
+            }
+            onChange={(v) =>
+              set(
+                'preferredWorkLocation',
+                v,
+              )
+            }
             onBlur={onBlur}
             placeholder="Select a preference"
           />
         </Field>
 
-        <Field label={C.labels.preferredCountry} helpText={C.helpText.preferredCountry}
+        <Field
+          label={
+            C.labels.preferredCountry
+          }
+          helpText={
+            C.helpText.preferredCountry
+          }
           conditional={{
-            pill: 'if specific country or city',
-            active: wantsSpecificCountry,
+            pill:
+              'if specific country or city',
+            active:
+              wantsSpecificCountry,
           }}
         >
           <Combobox
             options={countries}
-            value={form.preferredCountry}
-            onChange={(v) => set('preferredCountry', v)}
+            value={
+              form.preferredCountry
+            }
+            onChange={(v) =>
+              set(
+                'preferredCountry',
+                v,
+              )
+            }
             onBlur={onBlur}
-            disabled={!wantsSpecificCountry}
+            disabled={
+              !wantsSpecificCountry
+            }
             placeholder="Select a country"
           />
         </Field>
 
-        <Field label={C.labels.preferredLocationText} helpText={C.helpText.preferredLocationText}
-          conditional={{ pill: 'if specific city', active: wantsSpecificCity }}
+        <Field
+          label={
+            C.labels
+              .preferredLocationText
+          }
+          helpText={
+            C.helpText
+              .preferredLocationText
+          }
+          conditional={{
+            pill: 'if specific city',
+            active:
+              wantsSpecificCity,
+          }}
         >
           <TextInput
-            value={form.preferredLocationText}
-            onChange={(v) => set('preferredLocationText', v)}
+            value={
+              form.preferredLocationText
+            }
+            onChange={(v) =>
+              set(
+                'preferredLocationText',
+                v,
+              )
+            }
             onBlur={onBlur}
-            maxLength={SCR001_LIMITS.preferredLocationTextMax}
-            disabled={!wantsSpecificCity}
+            maxLength={
+              SCR001_LIMITS
+                .preferredLocationTextMax
+            }
+            disabled={
+              !wantsSpecificCity
+            }
             placeholder="e.g. Lahore"
           />
         </Field>
 
-        <Field label={C.labels.willingToRelocate} helpText={C.helpText.willingToRelocate}>
+        <Field
+          label={
+            C.labels.willingToRelocate
+          }
+          helpText={
+            C.helpText
+              .willingToRelocate
+          }
+        >
           <RadioCards
-            name={C.labels.willingToRelocate}
-            options={WILLING_TO_RELOCATE}
-            value={form.willingToRelocate}
-            onChange={(v) => set('willingToRelocate', v)}
+            name={
+              C.labels
+                .willingToRelocate
+            }
+            options={
+              WILLING_TO_RELOCATE
+            }
+            value={
+              form.willingToRelocate
+            }
+            onChange={(v) =>
+              set(
+                'willingToRelocate',
+                v,
+              )
+            }
           />
         </Field>
       </FieldSection>
 
-      {/* ============================ 2 — Current employment ================= */}
-      <FieldSection index={2} title={C.sections.employment} meta={isEmployed ? '5 sub-sections' : undefined}>
-        {/*
-          Employment status lives inside "Employment information" now, but it
-          stays OUTSIDE the `isEmployed` gate below — its own FRS card says
-          "Always visible", and it's also the field `isEmployed` is computed
-          from, so gating it on its own value would strand a candidate the
-          moment they picked a non-working status. Only the sub-heading and
-          this one field render unconditionally; the rest of the sub-section
-          (employer, job title, employment type) stays gated.
-        */}
-        <FieldSubSection title={C.subSections.employmentInfo} />
+      {/* ======================================================
+          SECTION 2 — CURRENT EMPLOYMENT
+      ====================================================== */}
 
-        <Field label={C.labels.employmentStatus} helpText={C.helpText.employmentStatus}>
+      <FieldSection
+        index={2}
+        title={C.sections.employment}
+        meta={
+          isEmployed
+            ? '5 sub-sections'
+            : undefined
+        }
+      >
+        <FieldSubSection
+          title={
+            C.subSections
+              .employmentInfo
+          }
+        />
+
+        <Field
+          label={
+            C.labels.employmentStatus
+          }
+          helpText={
+            C.helpText
+              .employmentStatus
+          }
+        >
           <Select
-            options={EMPLOYMENT_STATUSES}
-            value={form.employmentStatus}
-            onChange={(v) => set('employmentStatus', v)}
+            options={
+              EMPLOYMENT_STATUSES
+            }
+            value={
+              form.employmentStatus
+            }
+            onChange={(v) =>
+              set(
+                'employmentStatus',
+                v,
+              )
+            }
             onBlur={onBlur}
           />
         </Field>
 
         {isEmployed && (
           <>
-            <Field label={C.labels.currentEmployer} helpText={C.helpText.currentEmployer}>
+            <Field
+              label={
+                C.labels.currentEmployer
+              }
+              helpText={
+                C.helpText
+                  .currentEmployer
+              }
+            >
               <TextInput
-                value={form.currentEmployer}
-                onChange={(v) => set('currentEmployer', v)}
+                value={
+                  form.currentEmployer
+                }
+                onChange={(v) =>
+                  set(
+                    'currentEmployer',
+                    v,
+                  )
+                }
                 onBlur={onBlur}
-                maxLength={SCR001_LIMITS.currentEmployerMax}
+                maxLength={
+                  SCR001_LIMITS
+                    .currentEmployerMax
+                }
                 placeholder="Company name"
               />
             </Field>
 
-            <Field label={C.labels.currentJobTitle} helpText={C.helpText.currentJobTitle}>
+            <Field
+              label={
+                C.labels.currentJobTitle
+              }
+              helpText={
+                C.helpText
+                  .currentJobTitle
+              }
+            >
               <TextInput
-                value={form.currentJobTitle}
-                onChange={(v) => set('currentJobTitle', v)}
+                value={
+                  form.currentJobTitle
+                }
+                onChange={(v) =>
+                  set(
+                    'currentJobTitle',
+                    v,
+                  )
+                }
                 onBlur={onBlur}
-                maxLength={SCR001_LIMITS.currentJobTitleMax}
+                maxLength={
+                  SCR001_LIMITS
+                    .currentJobTitleMax
+                }
                 placeholder="Job title"
               />
             </Field>
 
-            <Field label={C.labels.employmentType} helpText={C.helpText.employmentType}>
+            <Field
+              label={
+                C.labels.employmentType
+              }
+              helpText={
+                C.helpText
+                  .employmentType
+              }
+            >
               <Select
-                options={EMPLOYMENT_TYPES}
-                value={form.employmentType}
-                onChange={(v) => set('employmentType', v)}
+                options={
+                  EMPLOYMENT_TYPES
+                }
+                value={
+                  form.employmentType
+                }
+                onChange={(v) =>
+                  set(
+                    'employmentType',
+                    v,
+                  )
+                }
                 onBlur={onBlur}
               />
             </Field>
@@ -515,132 +1006,372 @@ export default function CandidateProfilePage() {
 
         {!isEmployed && (
           <p className="text-sm text-muted-foreground sm:col-span-2">
-            The rest of this section only applies to candidates who are currently
-            working, so we&apos;ve left it out. Nothing here is required.
+            The rest of this section only
+            applies to candidates who are
+            currently working, so we&apos;ve
+            left it out. Nothing here is
+            required.
           </p>
         )}
 
         {isEmployed && (
           <>
-            <FieldSubSection title={C.subSections.compensation} />
+            <FieldSubSection
+              title={
+                C.subSections
+                  .compensation
+              }
+            />
 
-            {/*
-              Salary amount + pay frequency are paired inline. Base salary and
-              Currency are ordinary grid Fields — not fullWidth — so they share
-              a row the same way as every other Compensation pair (matches the
-              pattern established on SCR-004's Base salary / Currency row).
-            */}
-            <Field label={C.labels.currentBaseSalary} helpText={C.helpText.currentBaseSalary}>
+            <Field
+              label={
+                C.labels
+                  .currentBaseSalary
+              }
+              helpText={
+                C.helpText
+                  .currentBaseSalary
+              }
+            >
               <PairedRow
                 primary={
-                  <NumericInput value={form.currentBaseSalary}
-                    onChange={(v) => set('currentBaseSalary', v)}
-                    onBlur={onBlur} min={1} allowDecimal placeholder="Enter amount"
+                  <NumericInput
+                    value={
+                      form.currentBaseSalary
+                    }
+                    onChange={(v) =>
+                      set(
+                        'currentBaseSalary',
+                        v,
+                      )
+                    }
+                    onBlur={onBlur}
+                    min={1}
+                    allowDecimal
+                    placeholder="Enter amount"
                   />
                 }
                 secondary={
-                  <Select options={PAY_FREQUENCIES} value={form.payFrequency}
-                    onChange={(v) => set('payFrequency', v)} onBlur={onBlur}
+                  <Select
+                    options={
+                      PAY_FREQUENCIES
+                    }
+                    value={
+                      form.payFrequency
+                    }
+                    onChange={(v) =>
+                      set(
+                        'payFrequency',
+                        v,
+                      )
+                    }
+                    onBlur={onBlur}
                   />
                 }
                 secondaryWidth="w-32"
               />
             </Field>
 
-            <Field label={C.labels.currentCurrency} helpText={C.helpText.currentCurrency}>
-              <Combobox options={CURRENCY_OPTIONS} value={form.currentCurrency}
-                onChange={(v) => set('currentCurrency', v)}
-                onBlur={onBlur} placeholder="Select a currency"
+            <Field
+              label={
+                C.labels.currentCurrency
+              }
+              helpText={
+                C.helpText
+                  .currentCurrency
+              }
+            >
+              <Combobox
+                options={
+                  CURRENCY_OPTIONS
+                }
+                value={
+                  form.currentCurrency
+                }
+                onChange={(v) =>
+                  set(
+                    'currentCurrency',
+                    v,
+                  )
+                }
+                onBlur={onBlur}
+                placeholder="Select a currency"
               />
             </Field>
 
-            <FieldSubSection title={C.subSections.benefits} />
+            <FieldSubSection
+              title={
+                C.subSections.benefits
+              }
+            />
 
-            <Field label={C.labels.currentBenefits} helpText={C.helpText.currentBenefits} fullWidth >
+            <Field
+              label={
+                C.labels.currentBenefits
+              }
+              helpText={
+                C.helpText
+                  .currentBenefits
+              }
+              fullWidth
+            >
               <Chips
-                name={C.labels.currentBenefits}
-                options={CURRENT_BENEFITS}
-                value={form.currentBenefits}
-                onChange={(v) => set('currentBenefits', v)}
+                name={
+                  C.labels
+                    .currentBenefits
+                }
+                options={
+                  CURRENT_BENEFITS
+                }
+                value={
+                  form.currentBenefits
+                }
+                onChange={(v) =>
+                  set(
+                    'currentBenefits',
+                    v,
+                  )
+                }
               />
             </Field>
 
-            <FieldSubSection title={C.subSections.workingConditions} />
+            <FieldSubSection
+              title={
+                C.subSections
+                  .workingConditions
+              }
+            />
 
-            <Field label={C.labels.currentWorkArrangement} helpText={C.helpText.currentWorkArrangement} fullWidth>
+            <Field
+              label={
+                C.labels
+                  .currentWorkArrangement
+              }
+              helpText={
+                C.helpText
+                  .currentWorkArrangement
+              }
+              fullWidth
+            >
               <RadioCards
-                name={C.labels.currentWorkArrangement}
-                options={CURRENT_WORK_ARRANGEMENTS}
-                value={form.currentWorkArrangement}
-                onChange={(v) => set('currentWorkArrangement', v)}
+                name={
+                  C.labels
+                    .currentWorkArrangement
+                }
+                options={
+                  CURRENT_WORK_ARRANGEMENTS
+                }
+                value={
+                  form.currentWorkArrangement
+                }
+                onChange={(v) =>
+                  set(
+                    'currentWorkArrangement',
+                    v,
+                  )
+                }
               />
             </Field>
 
-            <Field label={C.labels.workingHoursPerWeek} helpText={C.helpText.workingHoursPerWeek}>
+            <Field
+              label={
+                C.labels
+                  .workingHoursPerWeek
+              }
+              helpText={
+                C.helpText
+                  .workingHoursPerWeek
+              }
+            >
               <NumericInput
-                value={form.workingHoursPerWeek}
-                onChange={(v) => set('workingHoursPerWeek', v)}
+                value={
+                  form.workingHoursPerWeek
+                }
+                onChange={(v) =>
+                  set(
+                    'workingHoursPerWeek',
+                    v,
+                  )
+                }
                 onBlur={onBlur}
                 unit="hrs / week"
-                min={SCR001_LIMITS.workingHoursMin}
-                max={SCR001_LIMITS.workingHoursMax}
+                min={
+                  SCR001_LIMITS
+                    .workingHoursMin
+                }
+                max={
+                  SCR001_LIMITS
+                    .workingHoursMax
+                }
               />
             </Field>
 
-            {/* Hidden outright for remote workers — not dimmed. */}
             {showCommute && (
-              <Field label={C.labels.averageDailyCommuteMinutes} helpText={C.helpText.averageDailyCommuteMinutes}>
+              <Field
+                label={
+                  C.labels
+                    .averageDailyCommuteMinutes
+                }
+                helpText={
+                  C.helpText
+                    .averageDailyCommuteMinutes
+                }
+              >
                 <NumericInput
-                  value={form.averageDailyCommuteMinutes}
-                  onChange={(v) => set('averageDailyCommuteMinutes', v)}
+                  value={
+                    form.averageDailyCommuteMinutes
+                  }
+                  onChange={(v) =>
+                    set(
+                      'averageDailyCommuteMinutes',
+                      v,
+                    )
+                  }
                   onBlur={onBlur}
                   unit="min / day"
-                  min={SCR001_LIMITS.commuteMinutesMin}
-                  max={SCR001_LIMITS.commuteMinutesMax}
+                  min={
+                    SCR001_LIMITS
+                      .commuteMinutesMin
+                  }
+                  max={
+                    SCR001_LIMITS
+                      .commuteMinutesMax
+                  }
                 />
               </Field>
             )}
 
-            <FieldSubSection title={C.subSections.satisfaction} />
+            <FieldSubSection
+              title={
+                C.subSections
+                  .satisfaction
+              }
+            />
 
-            <Field label={C.labels.overallJobSatisfaction} helpText={C.helpText.overallJobSatisfaction} fullWidth>
+            <Field
+              label={
+                C.labels
+                  .overallJobSatisfaction
+              }
+              helpText={
+                C.helpText
+                  .overallJobSatisfaction
+              }
+              fullWidth
+            >
               <RatingCards
-                name={C.labels.overallJobSatisfaction}
-                value={form.overallJobSatisfaction}
-                onChange={(v) => set('overallJobSatisfaction', v)}
-                lowAnchor={SATISFACTION_ANCHORS.low}
-                highAnchor={SATISFACTION_ANCHORS.high}
+                name={
+                  C.labels
+                    .overallJobSatisfaction
+                }
+                value={
+                  form.overallJobSatisfaction
+                }
+                onChange={(v) =>
+                  set(
+                    'overallJobSatisfaction',
+                    v,
+                  )
+                }
+                lowAnchor={
+                  SATISFACTION_ANCHORS.low
+                }
+                highAnchor={
+                  SATISFACTION_ANCHORS.high
+                }
               />
             </Field>
 
-            <Field label={C.labels.careerGrowthSatisfaction} helpText={C.helpText.careerGrowthSatisfaction} fullWidth>
+            <Field
+              label={
+                C.labels
+                  .careerGrowthSatisfaction
+              }
+              helpText={
+                C.helpText
+                  .careerGrowthSatisfaction
+              }
+              fullWidth
+            >
               <RatingCards
-                name={C.labels.careerGrowthSatisfaction}
-                value={form.careerGrowthSatisfaction}
-                onChange={(v) => set('careerGrowthSatisfaction', v)}
-                lowAnchor={SATISFACTION_ANCHORS.low}
-                highAnchor={SATISFACTION_ANCHORS.high}
+                name={
+                  C.labels
+                    .careerGrowthSatisfaction
+                }
+                value={
+                  form.careerGrowthSatisfaction
+                }
+                onChange={(v) =>
+                  set(
+                    'careerGrowthSatisfaction',
+                    v,
+                  )
+                }
+                lowAnchor={
+                  SATISFACTION_ANCHORS.low
+                }
+                highAnchor={
+                  SATISFACTION_ANCHORS.high
+                }
               />
             </Field>
 
-            <Field label={C.labels.workLifeBalanceSatisfaction} helpText={C.helpText.workLifeBalanceSatisfaction} fullWidth>
+            <Field
+              label={
+                C.labels
+                  .workLifeBalanceSatisfaction
+              }
+              helpText={
+                C.helpText
+                  .workLifeBalanceSatisfaction
+              }
+              fullWidth
+            >
               <RatingCards
-                name={C.labels.workLifeBalanceSatisfaction}
-                value={form.workLifeBalanceSatisfaction}
-                onChange={(v) => set('workLifeBalanceSatisfaction', v)}
-                lowAnchor={SATISFACTION_ANCHORS.low}
-                highAnchor={SATISFACTION_ANCHORS.high}
+                name={
+                  C.labels
+                    .workLifeBalanceSatisfaction
+                }
+                value={
+                  form.workLifeBalanceSatisfaction
+                }
+                onChange={(v) =>
+                  set(
+                    'workLifeBalanceSatisfaction',
+                    v,
+                  )
+                }
+                lowAnchor={
+                  SATISFACTION_ANCHORS.low
+                }
+                highAnchor={
+                  SATISFACTION_ANCHORS.high
+                }
               />
             </Field>
           </>
         )}
       </FieldSection>
 
-      <ConsentCard toggles={consentToggles} shareAnonymous={shareAnonymous} selections={selections} onShareAnonymousChange={setShareAnonymous}
-        onSelectionChange={(id, value) => setSelections((prev) => ({ ...prev, [id]: value }))
-      }
-      /> 
-
+      <ConsentCard
+        toggles={consentToggles}
+        shareAnonymous={
+          shareAnonymous
+        }
+        selections={selections}
+        onShareAnonymousChange={
+          setShareAnonymous
+        }
+        onSelectionChange={(
+          id,
+          value,
+        ) =>
+          setSelections((prev) => ({
+            ...prev,
+            [id]: value,
+          }))
+        }
+      />
     </WizardShell>
   );
 }

@@ -55,10 +55,10 @@ export async function GET(request: Request) {
       });
     }
 
-    const program = await PGPProgram.findById(programId).lean();
+    const program = await PGPProgram.findById(programId).lean();const programDoc = Array.isArray(program) ? program[0] : program;
     const weeks = Array.from(
       new Set(
-        (program?.weeklySchedule || [])
+       (programDoc?.weeklySchedule || [])
           .map((w: { week?: string }) => w.week)
           .filter(Boolean)
       )
@@ -85,7 +85,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       enrolled: true,
-      programName: application?.assignedProgramName || program?.programName || "",
+      programName: application?.assignedProgramName || programDoc?.programName || "",
       weeks: rows,
       summary: { present, absent, late, excused, total: weeks.length, percent },
     });

@@ -17,17 +17,15 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const mainLinks = [
   { label: "Khudi Assessment", href: "/khudiassessment", icon: Sparkles },
-  { label: "PGP", href: "/pgp-access", icon: GraduationCap },
-  { label: "Offer Guide", href: "/offerguide", icon: FileText },
+  { label: "Offer Calculator", href: "/FinancialOffer", icon: Calculator },
+  { label: "3D CVs", href: "/cv", icon: Layers3 },
   { label: "Blogs", href: "/Blogs/", icon: BookOpen },
 ];
 
 const serviceLinks = [
-  { label: "Khudi Assessment", href: "/khudiassessment", icon: Sparkles },
-  { label: "3D CVs", href: "/cv", icon: Layers3 },
-  { label: "Offer Calculator", href: "/FinancialOffer", icon: Calculator },
+  { label: "Offer Guide", href: "/offerguide", icon: FileText },
   { label: "Professional Growth Program", href: "/pgp-access", icon: GraduationCap },
-];
+  ];
 
 export default function ModernHeader() {
   const [menuOpen, setMenuOpen] = useState(false);

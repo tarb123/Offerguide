@@ -6,8 +6,7 @@ import toast from 'react-hot-toast';
 import WizardShell from '../../_components/WizardShell';
 import Field, { FieldSection } from '../../_components/fields/Field';
 import RadioCards from '../../_components/fields/RadioCards';
-import { Select } from '../../_components/fields/Inputs';
-import { NotClearNumberInput } from '../../_components/fields/Inputs';
+import { NotClearNumberInput, Select } from '../../_components/fields/Inputs';
 import OtherTextInput from '../../_components/fields/OtherTextInput';
 
 import { getScreen } from '../../_constants/screens';
@@ -135,7 +134,7 @@ export default function BenefitsSecurityPage() {
       if (cancelled) return;
 
       if (offer) {
-        setOfferCountry(offer.offerCountry);
+        setOfferCountry(offer.offerCountry ?? null);
         setCurrentCountry(profile?.currentCountry ?? null);
 
         if (offer.benefitsSecurity) {
@@ -148,8 +147,8 @@ export default function BenefitsSecurityPage() {
             offerRetirementBenefits:
               b.offerRetirementBenefits || SCR005_DEFAULTS.offerRetirementBenefits,
             offerRetirementBenefitsOtherText: b.offerRetirementBenefitsOtherText ?? '',
-            offerAnnualLeaveDays: b.offerAnnualLeaveDays,
-            annualLeaveNotClear: b.offerAnnualLeaveDays === null,
+            offerAnnualLeaveDays: b.offerAnnualLeaveDays ?? null,
+            annualLeaveNotClear: b.offerAnnualLeaveDays == null,
             offerSickLeave: b.offerSickLeave || SCR005_DEFAULTS.offerSickLeave,
             offerSickLeaveOtherText: b.offerSickLeaveOtherText ?? '',
             offerParentalLeave: b.offerParentalLeave || SCR005_DEFAULTS.offerParentalLeave,
@@ -200,63 +199,128 @@ export default function BenefitsSecurityPage() {
   // only an explicit, matching country pair dims the field.
   const visaActive = !currentCountry || !offerCountry || offerCountry !== currentCountry;
 
-  async function handleNext() {
-    if (!offerId) return;
-    setSubmitting(true);
-    try {
-      const payload: Record<string, unknown> = {
-        offerHealthCoverage: form.offerHealthCoverage,
-        offerHealthCoverageOtherText:
-          form.offerHealthCoverage === 'Other' ? form.offerHealthCoverageOtherText : null,
-        offerLifeInsurance: form.offerLifeInsurance,
-        offerLifeInsuranceOtherText:
-          form.offerLifeInsurance === 'Other' ? form.offerLifeInsuranceOtherText : null,
-        offerRetirementBenefits: form.offerRetirementBenefits,
-        offerRetirementBenefitsOtherText:
-          form.offerRetirementBenefits === 'Other'
-            ? form.offerRetirementBenefitsOtherText
-            : null,
-        // Not clear submits a genuine null — never 0. The scoring engine reads
-        // these through separate paths (numericBands vs nullScore) and a zero
-        // would score as "no leave" rather than "unknown".
-        offerAnnualLeaveDays: form.annualLeaveNotClear ? null : form.offerAnnualLeaveDays,
-        offerSickLeave: form.offerSickLeave,
-        offerSickLeaveOtherText:
-          form.offerSickLeave === 'Other' ? form.offerSickLeaveOtherText : null,
-        offerParentalLeave: form.offerParentalLeave,
-        offerParentalLeaveOtherText:
-          form.offerParentalLeave === 'Other' ? form.offerParentalLeaveOtherText : null,
-        offerEducationReimbursement: form.offerEducationReimbursement,
-        offerDeviceSupport: form.offerDeviceSupport,
-        offerDeviceSupportOtherText:
-          form.offerDeviceSupport === 'Other' ? form.offerDeviceSupportOtherText : null,
-        offerMealSupport: form.offerMealSupport,
-        offerMealSupportOtherText:
-          form.offerMealSupport === 'Other' ? form.offerMealSupportOtherText : null,
-        offerWellnessBenefits: form.offerWellnessBenefits,
-        offerWellnessBenefitsOtherText:
-          form.offerWellnessBenefits === 'Other' ? form.offerWellnessBenefitsOtherText : null,
-        // When dimmed, submit the FRS default rather than a value edited before
-        // the country fields changed underneath it.
-        offerVisaSupport: visaActive ? form.offerVisaSupport : SCR005_DEFAULTS.offerVisaSupport,
-        offerVisaSupportOtherText:
-          visaActive && form.offerVisaSupport === 'Other' ? form.offerVisaSupportOtherText : null,
-        offerJobSecurity: form.offerJobSecurity,
-        offerRestrictiveClause: form.offerRestrictiveClause,
-      };
+async function handleNext() {
+  if (!offerId) return;
 
-      await api.updateOfferBenefitsSecurity(offerId, payload);
-      await saveNow(form);
-      navigateWithContext(getScreen('SCR-006').href, {
-        session: sessionId ?? undefined,
-        offer: offerId,
-      });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not save.');
-    } finally {
-      setSubmitting(false);
-    }
+  setSubmitting(true);
+
+  try {
+    const normalizedForm: BenefitsForm = {
+      ...form,
+
+      offerVisaSupport: visaActive
+        ? form.offerVisaSupport
+        : SCR005_DEFAULTS.offerVisaSupport,
+
+      offerVisaSupportOtherText: visaActive
+        ? form.offerVisaSupportOtherText
+        : '',
+    };
+
+    const payload: Record<string, unknown> = {
+      offerHealthCoverage: normalizedForm.offerHealthCoverage,
+
+      offerHealthCoverageOtherText:
+        normalizedForm.offerHealthCoverage === 'Other'
+          ? normalizedForm.offerHealthCoverageOtherText
+          : null,
+
+      offerLifeInsurance: normalizedForm.offerLifeInsurance,
+
+      offerLifeInsuranceOtherText:
+        normalizedForm.offerLifeInsurance === 'Other'
+          ? normalizedForm.offerLifeInsuranceOtherText
+          : null,
+
+      offerRetirementBenefits:
+        normalizedForm.offerRetirementBenefits,
+
+      offerRetirementBenefitsOtherText:
+        normalizedForm.offerRetirementBenefits === 'Other'
+          ? normalizedForm.offerRetirementBenefitsOtherText
+          : null,
+
+      offerAnnualLeaveDays:
+        normalizedForm.annualLeaveNotClear
+          ? null
+          : normalizedForm.offerAnnualLeaveDays,
+
+      offerSickLeave: normalizedForm.offerSickLeave,
+
+      offerSickLeaveOtherText:
+        normalizedForm.offerSickLeave === 'Other'
+          ? normalizedForm.offerSickLeaveOtherText
+          : null,
+
+      offerParentalLeave:
+        normalizedForm.offerParentalLeave,
+
+      offerParentalLeaveOtherText:
+        normalizedForm.offerParentalLeave === 'Other'
+          ? normalizedForm.offerParentalLeaveOtherText
+          : null,
+
+      offerEducationReimbursement:
+        normalizedForm.offerEducationReimbursement,
+
+      offerDeviceSupport:
+        normalizedForm.offerDeviceSupport,
+
+      offerDeviceSupportOtherText:
+        normalizedForm.offerDeviceSupport === 'Other'
+          ? normalizedForm.offerDeviceSupportOtherText
+          : null,
+
+      offerMealSupport:
+        normalizedForm.offerMealSupport,
+
+      offerMealSupportOtherText:
+        normalizedForm.offerMealSupport === 'Other'
+          ? normalizedForm.offerMealSupportOtherText
+          : null,
+
+      offerWellnessBenefits:
+        normalizedForm.offerWellnessBenefits,
+
+      offerWellnessBenefitsOtherText:
+        normalizedForm.offerWellnessBenefits === 'Other'
+          ? normalizedForm.offerWellnessBenefitsOtherText
+          : null,
+
+      offerVisaSupport:
+        normalizedForm.offerVisaSupport,
+
+      offerVisaSupportOtherText:
+        visaActive &&
+        normalizedForm.offerVisaSupport === 'Other'
+          ? normalizedForm.offerVisaSupportOtherText
+          : null,
+
+      offerJobSecurity:
+        normalizedForm.offerJobSecurity,
+
+      offerRestrictiveClause:
+        normalizedForm.offerRestrictiveClause,
+    };
+
+    await api.updateOfferBenefitsSecurity(offerId, payload);
+
+    await saveNow(normalizedForm);
+
+    navigateWithContext(getScreen('SCR-006').href, {
+      session: sessionId ?? undefined,
+      offer: offerId,
+    });
+  } catch (error) {
+    toast.error(
+      error instanceof Error
+        ? error.message
+        : 'Could not save.',
+    );
+  } finally {
+    setSubmitting(false);
   }
+}
 
   if (resolving || loading) {
     return (
@@ -267,25 +331,19 @@ export default function BenefitsSecurityPage() {
   }
 
   return (
-    <WizardShell
-      screen={SCREEN}
-      introPurpose={C.purpose}
-      introRequirementNote={C.requirementNote}
-      sections={[
-        { label: C.sections.benefits, shortLabel: 'Benefits' },
-        { label: C.sections.security, shortLabel: 'Security' },
-      ]}
-      activeSectionIndex={0}
-      sectionHeading={`${SCREEN.title} — 2 sections`}
-      onBack={() =>
-        navigateWithContext(getScreen('SCR-004').href, {
-          session: sessionId ?? undefined,
-          offer: offerId ?? undefined,
-        })
-      }
-      onNext={handleNext}
-      isSubmitting={submitting}
-    >
+<WizardShell
+  screen={SCREEN}
+  introPurpose={C.purpose}
+  introRequirementNote={C.requirementNote}
+  onBack={() =>
+    navigateWithContext(getScreen("SCR-004").href, {
+      session: sessionId ?? undefined,
+      offer: offerId ?? undefined,
+    })
+  }
+  onNext={handleNext}
+  isSubmitting={submitting}
+>
       <FieldSection index={1} title={C.sections.benefits} meta="11 fields">
         <Field label={C.labels.healthCoverage} helpText={C.helpText.healthCoverage}>
           <RadioCards

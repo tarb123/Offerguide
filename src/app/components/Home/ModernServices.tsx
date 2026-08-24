@@ -2,13 +2,17 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
-import { A11y, Autoplay, Keyboard, Navigation, Pagination } from "swiper/modules";
+import {
+  A11y,
+  Autoplay,
+  Keyboard,
+  Navigation,
+  Pagination,
+} from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
-// @ts-expect-error - swiper's css exports have no type declarations, but the files exist and Next resolves them fine
+
 import "swiper/css";
-// @ts-expect-error - swiper's css exports have no type declarations, but the files exist and Next resolves them fine
 import "swiper/css/navigation";
-// @ts-expect-error - swiper's css exports have no type declarations, but the files exist and Next resolves them fine
 import "swiper/css/pagination";
 
 const services = [
@@ -102,13 +106,13 @@ export default function ModernServices() {
           autoplay={{ delay: 1600, disableOnInteraction: false, pauseOnMouseEnter: true }}
           loop
           speed={1000}
-          spaceBetween={18}
-          slidesPerView={1.1}
+          spaceBetween={16}
+          slidesPerView={1}
           breakpoints={{
             640: { slidesPerView: 2, spaceBetween: 18 },
             1024: { slidesPerView: 4, spaceBetween: 20 },
           }}
-          className="services-swiper !overflow-visible !pb-14"
+          className="services-swiper !overflow-hidden !pb-14 lg:!overflow-visible"
         >
           {services.map((service) => (
             <SwiperSlide key={service.name} className="!h-auto max-w-[320px] justify-center">
@@ -118,7 +122,7 @@ export default function ModernServices() {
                     src={service.image}
                     alt={service.name}
                     fill
-                    sizes="(max-width: 640px) 190vw, (max-width: 1024px) 45vw, 320px"
+                    sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 320px"
                     className="object-cover"
                   />
                   <span className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-[#0b163f] text-xs font-bold text-white">

@@ -24,6 +24,7 @@ import {
   STRONG_LEADERS,
   TRAINING_SUPPORT,
 } from '../../_constants/scr007';
+
 import * as api from '../../_state/api';
 import { useWizardContext } from '../../_state/useWizardContext';
 import { useDraftAutosave } from '../../_state/useDraftAutosave';
@@ -66,56 +67,113 @@ const EMPTY_FORM: GrowthForm = {
 };
 
 /**
- * SCR-007 — Growth. 12 fields, all optional, two sections.
+ * SCR-007 — Growth.
+ * 12 fields, all optional, two sections.
  *
- * Goal match and role scope both span the full desktop width by FRS instruction:
- * goal match because it's the single most important growth signal on the screen,
- * role scope because its four values ("High ownership" especially) wrap badly in
- * a half-width column.
- *
- * `offer_education_reimbursement` deliberately stays on SCR-005 and is NOT
- * duplicated here — the two screens measure different dimensions of the same
- * benefit (financial reimbursement vs. growth enabler) and the FRS says not to
- * deduplicate them.
+ * Goal match and role scope both span the full desktop width.
  */
 export default function GrowthPage() {
-  const { sessionId, offerId, resolving, navigateWithContext } = useWizardContext();
-  const { scheduleSave, saveNow } = useDraftAutosave(SCREEN.id);
+  const {
+    sessionId,
+    offerId,
+    resolving,
+    navigateWithContext,
+  } = useWizardContext();
 
-  const [form, setForm] = React.useState<GrowthForm>(EMPTY_FORM);
-  const [loading, setLoading] = React.useState(true);
-  const [submitting, setSubmitting] = React.useState(false);
+  const {
+    scheduleSave,
+    saveNow,
+  } = useDraftAutosave(SCREEN.id);
+
+  const [form, setForm] =
+    React.useState<GrowthForm>(EMPTY_FORM);
+
+  const [loading, setLoading] =
+    React.useState(true);
+
+  const [submitting, setSubmitting] =
+    React.useState(false);
 
   React.useEffect(() => {
     if (resolving) return;
+
     let cancelled = false;
 
     async function load() {
       if (!sessionId || !offerId) {
-        navigateWithContext(getScreen('SCR-003').href, { session: sessionId ?? undefined });
+        navigateWithContext(
+          getScreen('SCR-003').href,
+          {
+            session: sessionId ?? undefined,
+          },
+        );
+
         return;
       }
 
-      const offer = await api.getOffer(offerId).catch(() => null);
+      const offer = await api
+        .getOffer(offerId)
+        .catch(() => null);
+
       if (cancelled) return;
 
-      const g = (offer as { growth?: api.OfferGrowth | null } | null)?.growth;
+      const g = (
+        offer as {
+          growth?: api.OfferGrowth | null;
+        } | null
+      )?.growth;
+
       if (g) {
         setForm((prev) => ({
           ...prev,
-          offerLearningBudget: g.offerLearningBudget || prev.offerLearningBudget,
-          offerTrainingSupport: g.offerTrainingSupport || prev.offerTrainingSupport,
-          offerBrandValue: g.offerBrandValue ?? prev.offerBrandValue,
-          offerSkillPotential: g.offerSkillPotential ?? prev.offerSkillPotential,
-          offerGoalMatch: g.offerGoalMatch ?? prev.offerGoalMatch,
-          offerPromotionPath: g.offerPromotionPath || prev.offerPromotionPath,
-          offerMentorship: g.offerMentorship || prev.offerMentorship,
-          offerStrongLeaders: g.offerStrongLeaders || prev.offerStrongLeaders,
-          offerInternalMobility: g.offerInternalMobility || prev.offerInternalMobility,
-          offerRoleScope: g.offerRoleScope || prev.offerRoleScope,
+
+          offerLearningBudget:
+            g.offerLearningBudget ||
+            prev.offerLearningBudget,
+
+          offerTrainingSupport:
+            g.offerTrainingSupport ||
+            prev.offerTrainingSupport,
+
+          offerBrandValue:
+            g.offerBrandValue ??
+            prev.offerBrandValue,
+
+          offerSkillPotential:
+            g.offerSkillPotential ??
+            prev.offerSkillPotential,
+
+          offerGoalMatch:
+            g.offerGoalMatch ??
+            prev.offerGoalMatch,
+
+          offerPromotionPath:
+            g.offerPromotionPath ||
+            prev.offerPromotionPath,
+
+          offerMentorship:
+            g.offerMentorship ||
+            prev.offerMentorship,
+
+          offerStrongLeaders:
+            g.offerStrongLeaders ||
+            prev.offerStrongLeaders,
+
+          offerInternalMobility:
+            g.offerInternalMobility ||
+            prev.offerInternalMobility,
+
+          offerRoleScope:
+            g.offerRoleScope ||
+            prev.offerRoleScope,
+
           offerPromotionTimeline:
-            g.offerPromotionTimeline || prev.offerPromotionTimeline,
-          offerGrowthImportance: g.offerGrowthImportance ?? prev.offerGrowthImportance,
+            g.offerPromotionTimeline ||
+            prev.offerPromotionTimeline,
+
+          offerGrowthImportance:
+            g.offerGrowthImportance ??
+            prev.offerGrowthImportance,
         }));
       }
 
@@ -123,63 +181,115 @@ export default function GrowthPage() {
     }
 
     load();
+
     return () => {
       cancelled = true;
     };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolving, sessionId, offerId]);
 
   const set = React.useCallback(
-    <K extends keyof GrowthForm>(key: K, value: GrowthForm[K]) => {
-      setForm((prev) => ({ ...prev, [key]: value }));
+    <K extends keyof GrowthForm>(
+      key: K,
+      value: GrowthForm[K],
+    ) => {
+      setForm((prev) => ({
+        ...prev,
+        [key]: value,
+      }));
     },
     [],
   );
 
-  const onBlur = React.useCallback(() => scheduleSave(form), [scheduleSave, form]);
+  const onBlur = React.useCallback(
+    () => scheduleSave(form),
+    [scheduleSave, form],
+  );
 
   React.useEffect(() => {
     if (loading) return;
+
     scheduleSave(form);
   }, [form, loading, scheduleSave]);
 
   async function handleNext() {
     if (!offerId) return;
+
     setSubmitting(true);
+
     try {
       const payload: Record<string, unknown> = {
-        offerLearningBudget: form.offerLearningBudget,
-        offerTrainingSupport: form.offerTrainingSupport,
-        offerBrandValue: form.offerBrandValue,
-        offerSkillPotential: form.offerSkillPotential,
-        offerGoalMatch: form.offerGoalMatch,
-        offerPromotionPath: form.offerPromotionPath,
-        offerMentorship: form.offerMentorship,
-        offerStrongLeaders: form.offerStrongLeaders,
-        offerInternalMobility: form.offerInternalMobility,
-        offerRoleScope: form.offerRoleScope,
-        offerPromotionTimeline: form.offerPromotionTimeline,
-        offerGrowthImportance: form.offerGrowthImportance,
+        offerLearningBudget:
+          form.offerLearningBudget,
+
+        offerTrainingSupport:
+          form.offerTrainingSupport,
+
+        offerBrandValue:
+          form.offerBrandValue,
+
+        offerSkillPotential:
+          form.offerSkillPotential,
+
+        offerGoalMatch:
+          form.offerGoalMatch,
+
+        offerPromotionPath:
+          form.offerPromotionPath,
+
+        offerMentorship:
+          form.offerMentorship,
+
+        offerStrongLeaders:
+          form.offerStrongLeaders,
+
+        offerInternalMobility:
+          form.offerInternalMobility,
+
+        offerRoleScope:
+          form.offerRoleScope,
+
+        offerPromotionTimeline:
+          form.offerPromotionTimeline,
+
+        offerGrowthImportance:
+          form.offerGrowthImportance,
       };
 
-      // `validateEnumField` requires the paired free text whenever the value is
-      // "Other", so send it only when that's actually the selection.
-      if (form.offerLearningBudget === 'Other') {
-        payload.offerLearningBudgetOtherText = form.offerLearningBudgetOtherText;
-      }
-      if (form.offerPromotionTimeline === 'Other') {
-        payload.offerPromotionTimelineOtherText = form.offerPromotionTimelineOtherText;
+      if (
+        form.offerLearningBudget === 'Other'
+      ) {
+        payload.offerLearningBudgetOtherText =
+          form.offerLearningBudgetOtherText;
       }
 
-      await api.updateOfferGrowth(offerId, payload);
+      if (
+        form.offerPromotionTimeline === 'Other'
+      ) {
+        payload.offerPromotionTimelineOtherText =
+          form.offerPromotionTimelineOtherText;
+      }
+
+      await api.updateOfferGrowth(
+        offerId,
+        payload,
+      );
+
       await saveNow(form);
-      navigateWithContext(getScreen('SCR-008').href, {
-        session: sessionId ?? undefined,
-        offer: offerId,
-      });
+
+      navigateWithContext(
+        getScreen('SCR-008').href,
+        {
+          session: sessionId ?? undefined,
+          offer: offerId,
+        },
+      );
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Could not save growth details.',
+        error instanceof Error
+          ? error.message
+          : 'Could not save growth details.',
       );
     } finally {
       setSubmitting(false);
@@ -189,7 +299,9 @@ export default function GrowthPage() {
   if (resolving || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">
+          Loading…
+        </p>
       </div>
     );
   }
@@ -199,119 +311,195 @@ export default function GrowthPage() {
       screen={SCREEN}
       introPurpose={C.purpose}
       introRequirementNote={C.requirementNote}
-      sections={[
-        { label: C.sections.learning, shortLabel: 'Learning' },
-        { label: C.sections.progression, shortLabel: 'Progression' },
-      ]}
-      activeSectionIndex={0}
-      sectionHeading={`${SCREEN.title} — 2 sections`}
       onBack={() =>
-        navigateWithContext(getScreen('SCR-006').href, {
-          session: sessionId ?? undefined,
-          offer: offerId ?? undefined,
-        })
+        navigateWithContext(
+          getScreen('SCR-006').href,
+          {
+            session: sessionId ?? undefined,
+            offer: offerId ?? undefined,
+          },
+        )
       }
       onNext={handleNext}
       isSubmitting={submitting}
     >
-      <FieldSection index={1} title={C.sections.learning} meta="4 fields">
-        <Field label={C.labels.learningBudget} helpText={C.helpText.learningBudget}>
+      <FieldSection
+        index={1}
+        title={C.sections.learning}
+        meta="4 fields"
+      >
+        <Field
+          label={C.labels.learningBudget}
+          helpText={C.helpText.learningBudget}
+        >
           <RadioCards
             name={C.labels.learningBudget}
             options={LEARNING_BUDGET}
             value={form.offerLearningBudget}
-            onChange={(v) => set('offerLearningBudget', v)}
-            otherText={form.offerLearningBudgetOtherText}
-            onOtherTextChange={(t) => set('offerLearningBudgetOtherText', t)}
-            otherMaxLength={SCR007_LIMITS.otherTextMax}
+            onChange={(v) =>
+              set('offerLearningBudget', v)
+            }
+            otherText={
+              form.offerLearningBudgetOtherText
+            }
+            onOtherTextChange={(t) =>
+              set(
+                'offerLearningBudgetOtherText',
+                t,
+              )
+            }
+            otherMaxLength={
+              SCR007_LIMITS.otherTextMax
+            }
           />
         </Field>
 
-        <Field label={C.labels.trainingSupport} helpText={C.helpText.trainingSupport}>
+        <Field
+          label={C.labels.trainingSupport}
+          helpText={C.helpText.trainingSupport}
+        >
           <Select
             options={TRAINING_SUPPORT}
             value={form.offerTrainingSupport}
-            onChange={(v) => set('offerTrainingSupport', v)}
+            onChange={(v) =>
+              set('offerTrainingSupport', v)
+            }
             onBlur={onBlur}
           />
         </Field>
 
-        <Field label={C.labels.brandValue} helpText={C.helpText.brandValue}>
+        <Field
+          label={C.labels.brandValue}
+          helpText={C.helpText.brandValue}
+        >
           <RatingCards
             name={C.labels.brandValue}
             value={form.offerBrandValue}
-            onChange={(v) => set('offerBrandValue', v)}
-            lowAnchor={GROWTH_ANCHORS.brandValue.low}
-            highAnchor={GROWTH_ANCHORS.brandValue.high}
+            onChange={(v) =>
+              set('offerBrandValue', v)
+            }
+            lowAnchor={
+              GROWTH_ANCHORS.brandValue.low
+            }
+            highAnchor={
+              GROWTH_ANCHORS.brandValue.high
+            }
           />
         </Field>
 
-        <Field label={C.labels.skillPotential} helpText={C.helpText.skillPotential}>
+        <Field
+          label={C.labels.skillPotential}
+          helpText={C.helpText.skillPotential}
+        >
           <RatingCards
             name={C.labels.skillPotential}
             value={form.offerSkillPotential}
-            onChange={(v) => set('offerSkillPotential', v)}
-            lowAnchor={GROWTH_ANCHORS.skillPotential.low}
-            highAnchor={GROWTH_ANCHORS.skillPotential.high}
+            onChange={(v) =>
+              set('offerSkillPotential', v)
+            }
+            lowAnchor={
+              GROWTH_ANCHORS.skillPotential.low
+            }
+            highAnchor={
+              GROWTH_ANCHORS.skillPotential.high
+            }
           />
         </Field>
       </FieldSection>
 
-      <FieldSection index={2} title={C.sections.progression} meta="8 fields">
-        {/* Most important field on the screen — full width by FRS instruction. */}
-        <Field label={C.labels.goalMatch} helpText={C.helpText.goalMatch} fullWidth>
+      <FieldSection
+        index={2}
+        title={C.sections.progression}
+        meta="8 fields"
+      >
+        <Field
+          label={C.labels.goalMatch}
+          helpText={C.helpText.goalMatch}
+          fullWidth
+        >
           <RatingCards
             name={C.labels.goalMatch}
             value={form.offerGoalMatch}
-            onChange={(v) => set('offerGoalMatch', v)}
-            lowAnchor={GROWTH_ANCHORS.goalMatch.low}
-            highAnchor={GROWTH_ANCHORS.goalMatch.high}
+            onChange={(v) =>
+              set('offerGoalMatch', v)
+            }
+            lowAnchor={
+              GROWTH_ANCHORS.goalMatch.low
+            }
+            highAnchor={
+              GROWTH_ANCHORS.goalMatch.high
+            }
           />
         </Field>
 
-        <Field label={C.labels.promotionPath} helpText={C.helpText.promotionPath}>
+        <Field
+          label={C.labels.promotionPath}
+          helpText={C.helpText.promotionPath}
+        >
           <RadioCards
             name={C.labels.promotionPath}
             options={PROMOTION_PATH}
             value={form.offerPromotionPath}
-            onChange={(v) => set('offerPromotionPath', v)}
+            onChange={(v) =>
+              set('offerPromotionPath', v)
+            }
           />
         </Field>
 
-        <Field label={C.labels.mentorship} helpText={C.helpText.mentorship}>
+        <Field
+          label={C.labels.mentorship}
+          helpText={C.helpText.mentorship}
+        >
           <RadioCards
             name={C.labels.mentorship}
             options={MENTORSHIP}
             value={form.offerMentorship}
-            onChange={(v) => set('offerMentorship', v)}
+            onChange={(v) =>
+              set('offerMentorship', v)
+            }
           />
         </Field>
 
-        <Field label={C.labels.strongLeaders} helpText={C.helpText.strongLeaders}>
+        <Field
+          label={C.labels.strongLeaders}
+          helpText={C.helpText.strongLeaders}
+        >
           <RadioCards
             name={C.labels.strongLeaders}
             options={STRONG_LEADERS}
             value={form.offerStrongLeaders}
-            onChange={(v) => set('offerStrongLeaders', v)}
+            onChange={(v) =>
+              set('offerStrongLeaders', v)
+            }
           />
         </Field>
 
-        <Field label={C.labels.internalMobility} helpText={C.helpText.internalMobility}>
+        <Field
+          label={C.labels.internalMobility}
+          helpText={C.helpText.internalMobility}
+        >
           <RadioCards
             name={C.labels.internalMobility}
             options={INTERNAL_MOBILITY}
             value={form.offerInternalMobility}
-            onChange={(v) => set('offerInternalMobility', v)}
+            onChange={(v) =>
+              set('offerInternalMobility', v)
+            }
           />
         </Field>
 
-        {/* Four values including "High ownership" — full width to avoid wrapping. */}
-        <Field label={C.labels.roleScope} helpText={C.helpText.roleScope} fullWidth>
+        <Field
+          label={C.labels.roleScope}
+          helpText={C.helpText.roleScope}
+          fullWidth
+        >
           <RadioCards
             name={C.labels.roleScope}
             options={ROLE_SCOPE}
             value={form.offerRoleScope}
-            onChange={(v) => set('offerRoleScope', v)}
+            onChange={(v) =>
+              set('offerRoleScope', v)
+            }
           />
         </Field>
 
@@ -322,25 +510,47 @@ export default function GrowthPage() {
           <Select
             options={PROMOTION_TIMELINE}
             value={form.offerPromotionTimeline}
-            onChange={(v) => set('offerPromotionTimeline', v)}
+            onChange={(v) =>
+              set('offerPromotionTimeline', v)
+            }
             onBlur={onBlur}
           />
-          {form.offerPromotionTimeline === 'Other' && (
+
+          {form.offerPromotionTimeline ===
+            'Other' && (
             <OtherTextInput
-              value={form.offerPromotionTimelineOtherText}
-              onChange={(v) => set('offerPromotionTimelineOtherText', v)}
-              maxLength={SCR007_LIMITS.otherTextMax}
+              value={
+                form.offerPromotionTimelineOtherText
+              }
+              onChange={(v) =>
+                set(
+                  'offerPromotionTimelineOtherText',
+                  v,
+                )
+              }
+              maxLength={
+                SCR007_LIMITS.otherTextMax
+              }
             />
           )}
         </Field>
 
-        <Field label={C.labels.growthImportance} helpText={C.helpText.growthImportance}>
+        <Field
+          label={C.labels.growthImportance}
+          helpText={C.helpText.growthImportance}
+        >
           <RatingCards
             name={C.labels.growthImportance}
             value={form.offerGrowthImportance}
-            onChange={(v) => set('offerGrowthImportance', v)}
-            lowAnchor={GROWTH_ANCHORS.growthImportance.low}
-            highAnchor={GROWTH_ANCHORS.growthImportance.high}
+            onChange={(v) =>
+              set('offerGrowthImportance', v)
+            }
+            lowAnchor={
+              GROWTH_ANCHORS.growthImportance.low
+            }
+            highAnchor={
+              GROWTH_ANCHORS.growthImportance.high
+            }
           />
         </Field>
       </FieldSection>

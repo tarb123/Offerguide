@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Invalid program." }, { status: 400 });
     }
 
-    const program = await PGPProgram.findById(programId).select("programName").lean();
+    const program = await PGPProgram.findById(programId).select("programName").exec();
     if (!program) {
       return NextResponse.json({ message: "Program not found." }, { status: 404 });
     }

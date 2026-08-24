@@ -26,6 +26,7 @@ import {
   WFH_SUPPORT,
   WORKLIFE_IMPORTANCE,
 } from '../../_constants/scr006';
+
 import * as api from '../../_state/api';
 import { useWizardContext } from '../../_state/useWizardContext';
 import { useDraftAutosave } from '../../_state/useDraftAutosave';
@@ -64,64 +65,122 @@ const EMPTY_FORM: WorkLifeForm = {
 };
 
 /**
- * SCR-006 — Work & Life. 12 fields, 0 required, two sections.
+ * SCR-006 — Work & Life.
  *
- * Two fields are hidden outright when the offer's work arrangement is Remote:
- * commute (not applicable) and WFH support (fully supported by definition, so
- * asking is redundant). The gating value lives on the Offer row from SCR-003,
- * so it's read once on load rather than being a field on this screen.
+ * 12 fields, all optional.
  *
- * Working hours and commute are the two numeric fields the Sprint 5 engine
- * scores through numericBands/nullScore — a blank must reach the API as null,
- * never 0, or "unknown" silently becomes "zero hours" / "zero commute".
+ * Commute and WFH support are hidden for Remote offers.
+ *
+ * Numeric values must remain null when blank rather than being converted to 0.
  */
 export default function WorkLifePage() {
-  const { sessionId, offerId, resolving, navigateWithContext } = useWizardContext();
-  const { scheduleSave, saveNow } = useDraftAutosave(SCREEN.id);
+  const {
+    sessionId,
+    offerId,
+    resolving,
+    navigateWithContext,
+  } = useWizardContext();
 
-  const [form, setForm] = React.useState<WorkLifeForm>(EMPTY_FORM);
-  const [loading, setLoading] = React.useState(true);
-  const [submitting, setSubmitting] = React.useState(false);
-  const [offerWorkArrangement, setOfferWorkArrangement] = React.useState<string | null>(null);
+  const {
+    scheduleSave,
+    saveNow,
+  } = useDraftAutosave(SCREEN.id);
+
+  const [form, setForm] =
+    React.useState<WorkLifeForm>(EMPTY_FORM);
+
+  const [loading, setLoading] =
+    React.useState(true);
+
+  const [submitting, setSubmitting] =
+    React.useState(false);
+
+  const [
+    offerWorkArrangement,
+    setOfferWorkArrangement,
+  ] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (resolving) return;
+
     let cancelled = false;
 
     async function load() {
       if (!sessionId || !offerId) {
-        navigateWithContext(getScreen('SCR-003').href, { session: sessionId ?? undefined });
+        navigateWithContext(
+          getScreen('SCR-003').href,
+          {
+            session: sessionId ?? undefined,
+          },
+        );
+
         return;
       }
 
-      const offer = await api.getOffer(offerId).catch(() => null);
+      const offer = await api
+        .getOffer(offerId)
+        .catch(() => null);
+
       if (cancelled) return;
 
       if (offer) {
-        setOfferWorkArrangement(offer.offerWorkArrangement);
+        setOfferWorkArrangement(
+          offer.offerWorkArrangement ?? null,
+        );
 
-        const w = (offer as { workLife?: api.OfferWorkLife | null }).workLife;
+        const w = (
+          offer as {
+            workLife?: api.OfferWorkLife | null;
+          }
+        ).workLife;
+
         if (w) {
           setForm({
-            offerWorkingHours: w.offerWorkingHours,
-            offerWeekendWork: w.offerWeekendWork || SCR006_DEFAULTS.offerWeekendWork,
+            offerWorkingHours:
+              w.offerWorkingHours ?? null,
+
+            offerWeekendWork:
+              w.offerWeekendWork ||
+              SCR006_DEFAULTS.offerWeekendWork,
+
             offerTravelRequirement:
-              w.offerTravelRequirement || SCR006_DEFAULTS.offerTravelRequirement,
-            offerHybridDays: w.offerHybridDays || SCR006_DEFAULTS.offerHybridDays,
-            offerCommuteMinutes: w.offerCommuteMinutes,
+              w.offerTravelRequirement ||
+              SCR006_DEFAULTS.offerTravelRequirement,
+
+            offerHybridDays:
+              w.offerHybridDays ||
+              SCR006_DEFAULTS.offerHybridDays,
+
+            offerCommuteMinutes:
+              w.offerCommuteMinutes ?? null,
+
             offerTimeFlexibility:
-              w.offerTimeFlexibility || SCR006_DEFAULTS.offerTimeFlexibility,
-            offerWfhSupport: w.offerWfhSupport || SCR006_DEFAULTS.offerWfhSupport,
+              w.offerTimeFlexibility ||
+              SCR006_DEFAULTS.offerTimeFlexibility,
+
+            offerWfhSupport:
+              w.offerWfhSupport ||
+              SCR006_DEFAULTS.offerWfhSupport,
+
             offerOvertimeCompensation:
-              w.offerOvertimeCompensation || SCR006_DEFAULTS.offerOvertimeCompensation,
+              w.offerOvertimeCompensation ||
+              SCR006_DEFAULTS.offerOvertimeCompensation,
+
             offerAfterHoursAvailability:
-              w.offerAfterHoursAvailability || SCR006_DEFAULTS.offerAfterHoursAvailability,
+              w.offerAfterHoursAvailability ||
+              SCR006_DEFAULTS.offerAfterHoursAvailability,
+
             offerLeaveFlexibility:
-              w.offerLeaveFlexibility || SCR006_DEFAULTS.offerLeaveFlexibility,
+              w.offerLeaveFlexibility ||
+              SCR006_DEFAULTS.offerLeaveFlexibility,
+
             offerPersonalEnergy:
-              w.offerPersonalEnergy || SCR006_DEFAULTS.offerPersonalEnergy,
+              w.offerPersonalEnergy ||
+              SCR006_DEFAULTS.offerPersonalEnergy,
+
             offerWorklifeImportance:
-              w.offerWorklifeImportance || SCR006_DEFAULTS.offerWorklifeImportance,
+              w.offerWorklifeImportance ||
+              SCR006_DEFAULTS.offerWorklifeImportance,
           });
         }
       }
@@ -130,64 +189,122 @@ export default function WorkLifePage() {
     }
 
     load();
+
     return () => {
       cancelled = true;
     };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolving, sessionId, offerId]);
 
   const set = React.useCallback(
-    <K extends keyof WorkLifeForm>(key: K, value: WorkLifeForm[K]) => {
-      setForm((prev) => ({ ...prev, [key]: value }));
+    <K extends keyof WorkLifeForm>(
+      key: K,
+      value: WorkLifeForm[K],
+    ) => {
+      setForm((prev) => ({
+        ...prev,
+        [key]: value,
+      }));
     },
     [],
   );
 
-  const onBlur = React.useCallback(() => scheduleSave(form), [scheduleSave, form]);
+  const onBlur = React.useCallback(
+    () => scheduleSave(form),
+    [scheduleSave, form],
+  );
 
   React.useEffect(() => {
     if (loading) return;
+
     scheduleSave(form);
   }, [form, loading, scheduleSave]);
 
-  const isRemote = offerWorkArrangement === 'Remote';
+  const isRemote =
+    offerWorkArrangement === 'Remote';
+
   const showCommute = !isRemote;
   const showWfhSupport = !isRemote;
 
   async function handleNext() {
     if (!offerId) return;
+
     setSubmitting(true);
+
     try {
-      const payload: Record<string, unknown> = {
-        // Blank stays null — never coerced to 0. NumericInput already returns
-        // null for an empty field; this just doesn't undo that.
-        offerWorkingHours: form.offerWorkingHours,
-        offerWeekendWork: form.offerWeekendWork,
-        offerTravelRequirement: form.offerTravelRequirement,
-        offerHybridDays: form.offerHybridDays,
-        offerTimeFlexibility: form.offerTimeFlexibility,
-        offerOvertimeCompensation: form.offerOvertimeCompensation,
-        offerAfterHoursAvailability: form.offerAfterHoursAvailability,
-        offerLeaveFlexibility: form.offerLeaveFlexibility,
-        offerPersonalEnergy: form.offerPersonalEnergy,
-        offerWorklifeImportance: form.offerWorklifeImportance,
-        // Hidden fields never submit a value left over from before the work
-        // arrangement changed underneath them.
-        offerCommuteMinutes: showCommute ? form.offerCommuteMinutes : null,
-        offerWfhSupport: showWfhSupport
-          ? form.offerWfhSupport
-          : SCR006_DEFAULTS.offerWfhSupport,
+      const normalizedForm: WorkLifeForm = {
+        ...form,
+
+        offerCommuteMinutes:
+          showCommute
+            ? form.offerCommuteMinutes
+            : null,
+
+        offerWfhSupport:
+          showWfhSupport
+            ? form.offerWfhSupport
+            : SCR006_DEFAULTS.offerWfhSupport,
       };
 
-      await api.updateOfferWorkLife(offerId, payload);
-      await saveNow(form);
-      navigateWithContext(getScreen('SCR-007').href, {
-        session: sessionId ?? undefined,
-        offer: offerId,
-      });
+      const payload: Record<string, unknown> = {
+        offerWorkingHours:
+          normalizedForm.offerWorkingHours,
+
+        offerWeekendWork:
+          normalizedForm.offerWeekendWork,
+
+        offerTravelRequirement:
+          normalizedForm.offerTravelRequirement,
+
+        offerHybridDays:
+          normalizedForm.offerHybridDays,
+
+        offerTimeFlexibility:
+          normalizedForm.offerTimeFlexibility,
+
+        offerOvertimeCompensation:
+          normalizedForm.offerOvertimeCompensation,
+
+        offerAfterHoursAvailability:
+          normalizedForm.offerAfterHoursAvailability,
+
+        offerLeaveFlexibility:
+          normalizedForm.offerLeaveFlexibility,
+
+        offerPersonalEnergy:
+          normalizedForm.offerPersonalEnergy,
+
+        offerWorklifeImportance:
+          normalizedForm.offerWorklifeImportance,
+
+        offerCommuteMinutes:
+          normalizedForm.offerCommuteMinutes,
+
+        offerWfhSupport:
+          normalizedForm.offerWfhSupport,
+      };
+
+      await api.updateOfferWorkLife(
+        offerId,
+        payload,
+      );
+
+      await saveNow(normalizedForm);
+
+      navigateWithContext(
+        getScreen('SCR-007').href,
+        {
+          session:
+            sessionId ?? undefined,
+          offer: offerId,
+        },
+      );
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Could not save work & life details.',
+        error instanceof Error
+          ? error.message
+          : 'Could not save work & life details.',
       );
     } finally {
       setSubmitting(false);
@@ -197,7 +314,9 @@ export default function WorkLifePage() {
   if (resolving || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">
+          Loading…
+        </p>
       </div>
     );
   }
@@ -206,153 +325,368 @@ export default function WorkLifePage() {
     <WizardShell
       screen={SCREEN}
       introPurpose={C.purpose}
-      introRequirementNote={C.requirementNote}
-      sections={[
-        { label: C.sections.dailyReality, shortLabel: 'Daily' },
-        { label: C.sections.flexibility, shortLabel: 'Flexibility' },
-      ]}
-      activeSectionIndex={0}
-      sectionHeading={`${SCREEN.title} — 2 sections`}
+      introRequirementNote={
+        C.requirementNote
+      }
       onBack={() =>
-        navigateWithContext(getScreen('SCR-005').href, {
-          session: sessionId ?? undefined,
-          offer: offerId ?? undefined,
-        })
+        navigateWithContext(
+          getScreen('SCR-005').href,
+          {
+            session:
+              sessionId ?? undefined,
+            offer:
+              offerId ?? undefined,
+          },
+        )
       }
       onNext={handleNext}
       isSubmitting={submitting}
     >
-      <FieldSection index={1} title={C.sections.dailyReality} meta="6 fields">
-        <Field label={C.labels.workingHours} helpText={C.helpText.workingHours}>
+      {/* =========================================
+          SECTION 1 — DAILY REALITY
+      ========================================= */}
+
+      <FieldSection
+        index={1}
+        title={C.sections.dailyReality}
+        meta="6 fields"
+      >
+        <Field
+          label={C.labels.workingHours}
+          helpText={
+            C.helpText.workingHours
+          }
+        >
           <NumericInput
-            value={form.offerWorkingHours}
-            onChange={(v) => set('offerWorkingHours', v)}
+            value={
+              form.offerWorkingHours
+            }
+            onChange={(v) =>
+              set(
+                'offerWorkingHours',
+                v,
+              )
+            }
             onBlur={onBlur}
             unit="hrs / week"
-            min={SCR006_LIMITS.workingHoursMin}
-            max={SCR006_LIMITS.workingHoursMax}
+            min={
+              SCR006_LIMITS
+                .workingHoursMin
+            }
+            max={
+              SCR006_LIMITS
+                .workingHoursMax
+            }
             placeholder="e.g. 45"
           />
         </Field>
 
-        <Field label={C.labels.weekendWork} helpText={C.helpText.weekendWork}>
+        <Field
+          label={C.labels.weekendWork}
+          helpText={
+            C.helpText.weekendWork
+          }
+        >
           <Select
             options={WEEKEND_WORK}
-            value={form.offerWeekendWork}
-            onChange={(v) => set('offerWeekendWork', v)}
+            value={
+              form.offerWeekendWork
+            }
+            onChange={(v) =>
+              set(
+                'offerWeekendWork',
+                v,
+              )
+            }
             onBlur={onBlur}
           />
         </Field>
 
-        <Field label={C.labels.travelRequirement} helpText={C.helpText.travelRequirement}>
+        <Field
+          label={
+            C.labels.travelRequirement
+          }
+          helpText={
+            C.helpText
+              .travelRequirement
+          }
+        >
           <RadioCards
-            name={C.labels.travelRequirement}
-            options={TRAVEL_REQUIREMENT}
-            value={form.offerTravelRequirement}
-            onChange={(v) => set('offerTravelRequirement', v)}
+            name={
+              C.labels.travelRequirement
+            }
+            options={
+              TRAVEL_REQUIREMENT
+            }
+            value={
+              form.offerTravelRequirement
+            }
+            onChange={(v) =>
+              set(
+                'offerTravelRequirement',
+                v,
+              )
+            }
           />
         </Field>
 
-        <Field label={C.labels.hybridDays} helpText={C.helpText.hybridDays}>
+        <Field
+          label={C.labels.hybridDays}
+          helpText={
+            C.helpText.hybridDays
+          }
+        >
           <Select
             options={HYBRID_DAYS}
-            value={form.offerHybridDays}
-            onChange={(v) => set('offerHybridDays', v)}
+            value={
+              form.offerHybridDays
+            }
+            onChange={(v) =>
+              set(
+                'offerHybridDays',
+                v,
+              )
+            }
             onBlur={onBlur}
           />
         </Field>
 
-        {/* Hidden outright for Remote roles — commute is not applicable. */}
         {showCommute && (
-          <Field label={C.labels.commuteMinutes} helpText={C.helpText.commuteMinutes}>
+          <Field
+            label={
+              C.labels.commuteMinutes
+            }
+            helpText={
+              C.helpText.commuteMinutes
+            }
+          >
             <NumericInput
-              value={form.offerCommuteMinutes}
-              onChange={(v) => set('offerCommuteMinutes', v)}
+              value={
+                form.offerCommuteMinutes
+              }
+              onChange={(v) =>
+                set(
+                  'offerCommuteMinutes',
+                  v,
+                )
+              }
               onBlur={onBlur}
               unit="min / day"
-              min={SCR006_LIMITS.commuteMinutesMin}
-              max={SCR006_LIMITS.commuteMinutesMax}
+              min={
+                SCR006_LIMITS
+                  .commuteMinutesMin
+              }
+              max={
+                SCR006_LIMITS
+                  .commuteMinutesMax
+              }
               placeholder="Round trip"
             />
           </Field>
         )}
 
-        <Field label={C.labels.timeFlexibility} helpText={C.helpText.timeFlexibility}>
+        <Field
+          label={
+            C.labels.timeFlexibility
+          }
+          helpText={
+            C.helpText
+              .timeFlexibility
+          }
+        >
           <Select
             options={TIME_FLEXIBILITY}
-            value={form.offerTimeFlexibility}
-            onChange={(v) => set('offerTimeFlexibility', v)}
+            value={
+              form.offerTimeFlexibility
+            }
+            onChange={(v) =>
+              set(
+                'offerTimeFlexibility',
+                v,
+              )
+            }
             onBlur={onBlur}
           />
         </Field>
       </FieldSection>
 
-      <FieldSection index={2} title={C.sections.flexibility} meta="6 fields">
-        {/* Hidden for Remote roles — WFH is fully supported by definition. */}
+      {/* =========================================
+          SECTION 2 — FLEXIBILITY
+      ========================================= */}
+
+      <FieldSection
+        index={2}
+        title={C.sections.flexibility}
+        meta="6 fields"
+      >
         {showWfhSupport && (
-          <Field label={C.labels.wfhSupport} helpText={C.helpText.wfhSupport}>
+          <Field
+            label={C.labels.wfhSupport}
+            helpText={
+              C.helpText.wfhSupport
+            }
+          >
             <RadioCards
-              name={C.labels.wfhSupport}
+              name={
+                C.labels.wfhSupport
+              }
               options={WFH_SUPPORT}
-              value={form.offerWfhSupport}
-              onChange={(v) => set('offerWfhSupport', v)}
+              value={
+                form.offerWfhSupport
+              }
+              onChange={(v) =>
+                set(
+                  'offerWfhSupport',
+                  v,
+                )
+              }
             />
           </Field>
         )}
 
         <Field
-          label={C.labels.overtimeCompensation}
-          helpText={C.helpText.overtimeCompensation}
+          label={
+            C.labels
+              .overtimeCompensation
+          }
+          helpText={
+            C.helpText
+              .overtimeCompensation
+          }
         >
           <RadioCards
-            name={C.labels.overtimeCompensation}
-            options={OVERTIME_COMPENSATION}
-            value={form.offerOvertimeCompensation}
-            onChange={(v) => set('offerOvertimeCompensation', v)}
+            name={
+              C.labels
+                .overtimeCompensation
+            }
+            options={
+              OVERTIME_COMPENSATION
+            }
+            value={
+              form.offerOvertimeCompensation
+            }
+            onChange={(v) =>
+              set(
+                'offerOvertimeCompensation',
+                v,
+              )
+            }
           />
         </Field>
 
         <Field
-          label={C.labels.afterHoursAvailability}
-          helpText={C.helpText.afterHoursAvailability}
+          label={
+            C.labels
+              .afterHoursAvailability
+          }
+          helpText={
+            C.helpText
+              .afterHoursAvailability
+          }
         >
           <Select
-            options={AFTER_HOURS_AVAILABILITY}
-            value={form.offerAfterHoursAvailability}
-            onChange={(v) => set('offerAfterHoursAvailability', v)}
+            options={
+              AFTER_HOURS_AVAILABILITY
+            }
+            value={
+              form.offerAfterHoursAvailability
+            }
+            onChange={(v) =>
+              set(
+                'offerAfterHoursAvailability',
+                v,
+              )
+            }
             onBlur={onBlur}
-          />
-        </Field>
-
-        <Field label={C.labels.leaveFlexibility} helpText={C.helpText.leaveFlexibility}>
-          <Select
-            options={LEAVE_FLEXIBILITY}
-            value={form.offerLeaveFlexibility}
-            onChange={(v) => set('offerLeaveFlexibility', v)}
-            onBlur={onBlur}
-          />
-        </Field>
-
-        <Field label={C.labels.personalEnergy} helpText={C.helpText.personalEnergy}>
-          <RadioCards
-            name={C.labels.personalEnergy}
-            options={PERSONAL_ENERGY}
-            value={form.offerPersonalEnergy}
-            onChange={(v) => set('offerPersonalEnergy', v)}
-            positiveValues={ENERGY_POSITIVE_VALUES}
-            warningValues={ENERGY_WARNING_VALUES}
           />
         </Field>
 
         <Field
-          label={C.labels.worklifeImportance}
-          helpText={C.helpText.worklifeImportance}
+          label={
+            C.labels.leaveFlexibility
+          }
+          helpText={
+            C.helpText
+              .leaveFlexibility
+          }
+        >
+          <Select
+            options={
+              LEAVE_FLEXIBILITY
+            }
+            value={
+              form.offerLeaveFlexibility
+            }
+            onChange={(v) =>
+              set(
+                'offerLeaveFlexibility',
+                v,
+              )
+            }
+            onBlur={onBlur}
+          />
+        </Field>
+
+        <Field
+          label={
+            C.labels.personalEnergy
+          }
+          helpText={
+            C.helpText.personalEnergy
+          }
         >
           <RadioCards
-            name={C.labels.worklifeImportance}
-            options={WORKLIFE_IMPORTANCE}
-            value={form.offerWorklifeImportance}
-            onChange={(v) => set('offerWorklifeImportance', v)}
+            name={
+              C.labels.personalEnergy
+            }
+            options={
+              PERSONAL_ENERGY
+            }
+            value={
+              form.offerPersonalEnergy
+            }
+            onChange={(v) =>
+              set(
+                'offerPersonalEnergy',
+                v,
+              )
+            }
+            positiveValues={
+              ENERGY_POSITIVE_VALUES
+            }
+            warningValues={
+              ENERGY_WARNING_VALUES
+            }
+          />
+        </Field>
+
+        <Field
+          label={
+            C.labels
+              .worklifeImportance
+          }
+          helpText={
+            C.helpText
+              .worklifeImportance
+          }
+        >
+          <RadioCards
+            name={
+              C.labels
+                .worklifeImportance
+            }
+            options={
+              WORKLIFE_IMPORTANCE
+            }
+            value={
+              form.offerWorklifeImportance
+            }
+            onChange={(v) =>
+              set(
+                'offerWorklifeImportance',
+                v,
+              )
+            }
           />
         </Field>
       </FieldSection>

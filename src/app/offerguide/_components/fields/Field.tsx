@@ -24,12 +24,14 @@ export function ConditionalPill({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Standard field wrapper: label, required marker, optional conditional pill,
- * the control itself, then help text.
+ * Standard field wrapper: label + ⓘ HelpIcon, optional conditional pill, then
+ * the control itself.
  *
- * Help text sits BELOW the control deliberately. On these screens it is guidance
- * for an answer already in progress ("Do not include bonuses or allowances"),
- * not a precondition for understanding the label.
+ * `helpText` renders ONLY inside the HelpIcon tooltip, never as visible text —
+ * that was the original SCR-001→007 pattern (a permanent paragraph under every
+ * field), replaced product-wide so every screen matches SCR-008/SCR-009's
+ * icon-on-demand standard. Content is still the FRS's Help Text verbatim, just
+ * relocated from an always-open paragraph to a click-to-open tooltip.
  *
  * When `conditional` is supplied and inactive, the whole block dims and stops
  * accepting pointer events. The control is still in the DOM and still in the tab
@@ -43,27 +45,17 @@ export default function Field({
   helpText,
   conditional,
   fullWidth = false,
-  helpIcon = false,
   children,
 }: {
   label: string;
   htmlFor?: string;
   required?: boolean;
+  /** Tooltip content only — never rendered as visible text. */
   helpText?: string;
   /** Omit entirely for unconditional fields. */
   conditional?: { pill: string; active: boolean };
   /** Span both columns of the two-column desktop grid. */
   fullWidth?: boolean;
-  /**
-   * Render the ⓘ HelpIcon inline with the label, using this field's own
-   * `helpText` as the tooltip content (Sprint 7 §2.1 — content must be the FRS
-   * Help Text, never new copy, which is why it reuses the same prop rather than
-   * taking separate tooltip text).
-   *
-   * Opt-in per screen: SCR-008 sets it on every field as the standard's
-   * introduction; the Epic 7.4 retrofit turns it on for SCR-001→007.
-   */
-  helpIcon?: boolean;
   children: React.ReactNode;
 }) {
   const isDimmed = conditional !== undefined && !conditional.active;
@@ -76,9 +68,9 @@ export default function Field({
       ].join(' ')}
       aria-disabled={isDimmed || undefined}
     >
-      <label htmlFor={htmlFor} className="mb-1 flex flex-wrap items-center text-sm font-sans   font-bold">
+      <label htmlFor={htmlFor} className="mb-1 flex flex-wrap items-center text-xs">
         {label}
-        {helpIcon && helpText && <HelpIcon text={helpText} label={label} />}
+        {helpText && <HelpIcon text={helpText} label={label} />}
         {required && (
           <span className="ml-1.5 text-xs font-semibold text-destructive">
             required
@@ -88,12 +80,6 @@ export default function Field({
       </label>
 
       {children}
-
-      {helpText && (
-        <p className="mt-1 text-[11px] text-yellow-700 leading-snug">
-          {helpText}
-        </p>
-      )}
     </div>
   );
 }
@@ -121,10 +107,10 @@ export function FieldSection({
 }) {
   return (
     <section className="mt-4 first:mt-0">
-      <div className="mb-2.5 flex items-center justify-between gap-3 border-b border-border pb-1.5">
-        <h2 className="flex items-center gap-2 text-base uppercase font-mono font-bold text-red-700">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full 
-          bg-red-700 text-[12px] text-primary-foreground">
+      <div className="mb-2 flex items-center justify-between border-b border-3 border-black pb-1.5">
+        <h2 className="flex items-center uppercase font-mono">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full text-sm
+          text-black text-[12px]">
             {index}.
           </span>
           {title}
@@ -151,7 +137,7 @@ export function FieldSection({
 /** Sub-heading inside a section, e.g. "Professional information" on SCR-001. */
 export function FieldSubSection({ title }: { title: string }) {
   return (
-    <p className="mt-1 text-sm font-bold uppercase text-blue-800 sm:col-span-2">
+    <p className="mb-1 mt-2 text-sm  font-sans uppercase text-zinc-800 sm:col-span-2">
       {title}:
     </p>
   );

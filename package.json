@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "build": "next build",
-    "vercel-build": "next build",
+    "vercel-build": "prisma generate && next build",
     "test": "vitest run",
     "test:watch": "vitest"
   },

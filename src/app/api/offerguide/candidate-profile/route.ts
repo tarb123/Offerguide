@@ -18,26 +18,92 @@ import { serializeDecimals } from "@/lib/offerguide/serialize";
 // 5. Either way: if we made a new ticket in step 2, attach it as a cookie
 // so the browser remembers you next time.
 
+// export async function GET(req: NextRequest) {
+//   let identity = resolveIdentity(req);
+//   let mintedGuestToken: string | null = null;
+
+//   if (!identity) {
+//     mintedGuestToken = mintGuestToken();
+//     identity = { type: "guest", guestToken: mintedGuestToken };
+//   }
+
+//   const profile = await findCandidateProfile(identity);
+
+//   if (!profile) {
+//     const response = notFound();
+//     if (mintedGuestToken) setGuestCookie(response, mintedGuestToken);
+//     return response;
+//   }
+
+//   const response = NextResponse.json(serializeDecimals(profile));
+//   if (mintedGuestToken) setGuestCookie(response, mintedGuestToken);
+//   return response;
+// }
+
 export async function GET(req: NextRequest) {
-  let identity = resolveIdentity(req);
-  let mintedGuestToken: string | null = null;
+  try {
+    let identity = resolveIdentity(req);
+    let mintedGuestToken: string | null = null;
 
-  if (!identity) {
-    mintedGuestToken = mintGuestToken();
-    identity = { type: "guest", guestToken: mintedGuestToken };
-  }
+    if (!identity) {
+      mintedGuestToken = mintGuestToken();
+      identity = {
+        type: "guest",
+        guestToken: mintedGuestToken,
+      };
+    }
 
-  const profile = await findCandidateProfile(identity);
+    console.log("[OfferGuide Profile GET] identity:", {
+      type: identity.type,
+      hasGuestToken:
+        identity.type === "guest" ? Boolean(identity.guestToken) : false,
+      userInfoId:
+        identity.type === "user" ? identity.userInfoId : undefined,
+    });
 
-  if (!profile) {
-    const response = notFound();
-    if (mintedGuestToken) setGuestCookie(response, mintedGuestToken);
+    const profile = await findCandidateProfile(identity);
+
+    if (!profile) {
+      console.log("[OfferGuide Profile GET] No profile found");
+
+      const response = notFound();
+
+      if (mintedGuestToken) {
+        setGuestCookie(response, mintedGuestToken);
+      }
+
+      return response;
+    }
+
+    console.log("[OfferGuide Profile GET] Profile found:", profile.id);
+
+    const response = NextResponse.json(
+      serializeDecimals(profile)
+    );
+
+    if (mintedGuestToken) {
+      setGuestCookie(response, mintedGuestToken);
+    }
+
     return response;
-  }
+  } catch (error) {
+    console.error("[OfferGuide Profile GET] FAILED");
 
-  const response = NextResponse.json(serializeDecimals(profile));
-  if (mintedGuestToken) setGuestCookie(response, mintedGuestToken);
-  return response;
+    if (error instanceof Error) {
+      console.error("Name:", error.name);
+      console.error("Message:", error.message);
+      console.error("Stack:", error.stack);
+    } else {
+      console.error(error);
+    }
+
+    return NextResponse.json(
+      {
+        error: "Candidate profile database request failed.",
+      },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: NextRequest) {

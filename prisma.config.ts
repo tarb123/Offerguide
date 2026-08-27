@@ -11,4 +11,17 @@ export default defineConfig({
   datasource: {
     url: process.env["DATABASE_URL"],
   },
+
+  // The OfferGuide schema shares its database with the portal's original
+  // tables, which predate Prisma and are still managed by raw mysql2 queries.
+  // Without declaring them, `prisma migrate dev` sees tables it has no
+  // migration for, reports "Drift detected", and offers to reset the database
+  // — which would drop the portal's real data. Listing them here tells Prisma
+  // they are not its business: it will neither migrate nor diff them.
+  experimental: {
+    externalTables: true,
+  },
+  tables: {
+    external: ["users", "sanjeedausers", "forgot_password"],
+  },
 });

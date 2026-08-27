@@ -10,10 +10,17 @@
 // UPDATE and never a destructive call, and that is visible in the stub's
 // recorded calls.
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import type { Model } from "mongoose";
 import { createItemHandlers, createCollectionHandlers } from "./adminCrud";
+
+// The model is stubbed below, so no real Mongo connection is wanted here.
+// dbConnect() now throws when MONGODB_URI is absent — it used to swallow the
+// error and return, which is exactly what let "buffering timed out after
+// 10000ms" surface instead of the real cause — so stub it out to keep this
+// test hermetic in CI.
+vi.mock("@/utils/dbConnect", () => ({ default: async () => undefined }));
 
 const ADMIN_TOKEN = "sprint8-admin-token";
 const ORIGINAL_TOKEN = process.env.OFFERGUIDE_ADMIN_TOKEN;

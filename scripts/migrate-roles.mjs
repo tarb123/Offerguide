@@ -1,0 +1,281 @@
+#!/usr/bin/env node
+/**
+ * Sprint 9, Stories 9.1.2 and 9.1.3 — the portal's role rollout.
+ *
+ * Adds `sanjeedausers.role`, baselines every existing account to 'user', and
+ * promotes a supplied list of accounts to 'admin'. One script, because those
+ * three things have to be one auditable operation: a column that exists but has
+ * not been baselined, or a baseline with no admin, is a half-migrated portal.
+ *
+ * WHY NOT A PRISMA MIGRATION. `sanjeedausers` is declared external in
+ * prisma.config.ts and must stay that way. The read-only UserInfo model
+ * deliberately models only the columns permission checks need, so if the table
+ * were taken off the external list, `prisma migrate diff` proposes:
+ *
+ *     ALTER TABLE `sanjeedausers` DROP COLUMN `google_id`, DROP COLUMN `password`,
+ *       DROP COLUMN `reset_code`, DROP COLUMN `reset_code_expiry`, …
+ *
+ * — the portal's credentials. That was verified, not assumed. This is also what
+ * the handoff asks for: "a plain SQL migration, following the precedent set by
+ * the Sprint 1 bcrypt migration".
+ *
+ * IDEMPOTENT. Every step checks before it writes, so running twice produces the
+ * same result and a partial run can simply be re-run.
+ *
+ * REVERSIBLE. `--rollback` drops the column. Roles are not stored anywhere else,
+ * so that restores the exact pre-migration state.
+ *
+ * NO SELF-SERVICE PROMOTION. There is no admin UI and no API endpoint that
+ * changes a role, by design (Sprint 9 §6). This script is the only way in, and
+ * running it is a deliberate operational act.
+ *
+ * USAGE
+ *   node scripts/migrate-roles.mjs --check                  inspect, change nothing
+ *   node scripts/migrate-roles.mjs                          add column + baseline
+ *   node scripts/migrate-roles.mjs --emails=a@x.com,b@y.com  … and promote those
+ *   node scripts/migrate-roles.mjs --rollback               drop the column
+ *   node scripts/migrate-roles.mjs --prod                   target DB_PROD_* instead of DB_*
+ *
+ * The admin list may also come from OFFERGUIDE_ADMIN_EMAILS (comma-separated).
+ * It is never hardcoded here and never committed.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import mysql from "mysql2/promise";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const TABLE = "sanjeedausers";
+const COLUMN = "role";
+const DEFAULT_ROLE = "user";
+const ADMIN_ROLE = "admin";
+
+const args = process.argv.slice(2);
+const has = (flag) => args.includes(flag);
+const valueOf = (name) => {
+  const hit = args.find((a) => a.startsWith(`--${name}=`));
+  return hit ? hit.slice(name.length + 3) : null;
+};
+
+const CHECK_ONLY = has("--check");
+const ROLLBACK = has("--rollback");
+const PROD = has("--prod");
+
+/* ------------------------------------------------------------------ env */
+
+// .env.local is the project's own convention (Next reads it); node does not.
+for (const file of [".env.local", ".env"]) {
+  const full = path.join(ROOT, file);
+  if (!fs.existsSync(full)) continue;
+  for (const line of fs.readFileSync(full, "utf8").split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Za-z0-9_]+)\s*=\s*(.*?)\s*$/);
+    if (m && process.env[m[1]] === undefined) {
+      process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+    }
+  }
+}
+
+const conf = PROD
+  ? {
+      host: process.env.DB_PROD_HOST,
+      port: Number(process.env.DB_PROD_PORT || 4000),
+      user: process.env.DB_PROD_USER,
+      password: process.env.DB_PROD_PASS,
+      database: process.env.DB_PROD_NAME,
+      // TiDB Cloud's public endpoint rejects insecure transport.
+      ssl: { minVersion: "TLSv1.2" },
+    }
+  : {
+      host: process.env.DB_HOST,
+      port: Number(process.env.DB_PORT || 3306),
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      database: process.env.DB_NAME,
+    };
+
+for (const [key, value] of Object.entries({
+  host: conf.host,
+  user: conf.user,
+  database: conf.database,
+})) {
+  if (!value) {
+    console.error(
+      `[migrate-roles] ERROR: database ${key} is not set (${PROD ? "DB_PROD_*" : "DB_*"}).`
+    );
+    process.exit(1);
+  }
+}
+
+const adminEmails = (valueOf("emails") ?? process.env.OFFERGUIDE_ADMIN_EMAILS ?? "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
+/* --------------------------------------------------------------- helpers */
+
+async function columns(conn) {
+  const [rows] = await conn.query(`SHOW COLUMNS FROM \`${TABLE}\``);
+  return rows;
+}
+
+function log(...parts) {
+  console.log("[migrate-roles]", ...parts);
+}
+
+/* ------------------------------------------------------------------ main */
+
+const conn = await mysql.createConnection(conf);
+let exitCode = 0;
+
+try {
+  log(`target: ${PROD ? "PRODUCTION" : "local"} — ${conf.database} at ${conf.host}:${conf.port}`);
+
+  const cols = await columns(conn);
+  const names = cols.map((c) => c.Field);
+  const primaryKey = cols.find((c) => c.Key === "PRI")?.Field ?? "(none)";
+  const roleColumn = cols.find((c) => c.Field === COLUMN);
+
+  // The plan's §0.2 open question, answered by whichever database this is
+  // pointed at. schema.prisma maps UserInfo.userInfoId to `user_id`; if this
+  // says otherwise, that @map is the one line that has to change.
+  log(`primary key: ${primaryKey}`);
+  if (primaryKey !== "user_id") {
+    console.warn(
+      `[migrate-roles] WARNING: schema.prisma maps UserInfo to \`user_id\`, but this database's primary key is \`${primaryKey}\`. Update the @map before relying on Prisma reads.`
+    );
+  }
+  log(`columns: ${names.join(", ")}`);
+
+  const [[{ total }]] = await conn.query(`SELECT COUNT(*) AS total FROM \`${TABLE}\``);
+  log(`accounts: ${total}`);
+
+  if (roleColumn) {
+    const [byRole] = await conn.query(
+      `SELECT \`${COLUMN}\` AS role, COUNT(*) AS n FROM \`${TABLE}\` GROUP BY \`${COLUMN}\``
+    );
+    log(`current roles: ${byRole.map((r) => `${r.role || "(empty)"}=${r.n}`).join(", ") || "none"}`);
+  } else {
+    log(`column \`${COLUMN}\`: not present`);
+  }
+
+  /* ---------------------------------------------------------- rollback */
+
+  if (ROLLBACK) {
+    if (!roleColumn) {
+      log("nothing to roll back — column does not exist.");
+    } else if (CHECK_ONLY) {
+      log(`--check: would DROP COLUMN \`${COLUMN}\`.`);
+    } else {
+      await conn.query(`ALTER TABLE \`${TABLE}\` DROP COLUMN \`${COLUMN}\``);
+      log(`rolled back: dropped \`${COLUMN}\`. Roll the application back too — it reads this column.`);
+    }
+    process.exit(0);
+  }
+
+  /* ------------------------------------------------- 1. add the column */
+
+  if (!roleColumn) {
+    if (CHECK_ONLY) {
+      log(`--check: would ADD COLUMN \`${COLUMN}\` VARCHAR(32) NOT NULL DEFAULT '${DEFAULT_ROLE}'.`);
+    } else {
+      // VARCHAR(32), not an ENUM: the allowed values are validated in
+      // src/lib/portal/permissions.ts so a fourth role is a config change, not a
+      // migration on the portal's identity table. MySQL backfills existing rows
+      // with the DEFAULT as part of this statement, so no account is more
+      // restricted the moment it lands than it was the day before.
+      await conn.query(
+        `ALTER TABLE \`${TABLE}\` ADD COLUMN \`${COLUMN}\` VARCHAR(32) NOT NULL DEFAULT '${DEFAULT_ROLE}'`
+      );
+      log(`added \`${COLUMN}\` VARCHAR(32) NOT NULL DEFAULT '${DEFAULT_ROLE}'.`);
+    }
+  } else {
+    log(`\`${COLUMN}\` already present (${roleColumn.Type}) — skipping.`);
+  }
+
+  /* ---------------------------------------------------- 2. baseline */
+
+  // Explicit and idempotent even though the DEFAULT already covers the ALTER:
+  // it also repairs rows left empty by a partial earlier run, and it makes the
+  // baseline an auditable statement rather than a side effect of the DDL.
+  if (CHECK_ONLY) {
+    if (roleColumn) {
+      const [[{ n }]] = await conn.query(
+        `SELECT COUNT(*) AS n FROM \`${TABLE}\` WHERE \`${COLUMN}\` IS NULL OR \`${COLUMN}\` = ''`
+      );
+      log(`--check: would baseline ${n} row(s) to '${DEFAULT_ROLE}'.`);
+    }
+  } else {
+    const [result] = await conn.query(
+      `UPDATE \`${TABLE}\` SET \`${COLUMN}\` = ? WHERE \`${COLUMN}\` IS NULL OR \`${COLUMN}\` = ''`,
+      [DEFAULT_ROLE]
+    );
+    log(`baselined ${result.affectedRows} row(s) to '${DEFAULT_ROLE}'.`);
+  }
+
+  /* ------------------------------------------------------ 3. promote */
+
+  if (adminEmails.length === 0) {
+    log(
+      "no admin emails supplied — nobody promoted. Pass --emails=a@x.com,b@y.com or set OFFERGUIDE_ADMIN_EMAILS."
+    );
+  } else {
+    log(`admin list (${adminEmails.length}): ${adminEmails.join(", ")}`);
+
+    for (const email of adminEmails) {
+      const [rows] = await conn.query(
+        `SELECT \`${COLUMN}\` AS role FROM \`${TABLE}\` WHERE LOWER(email) = ?`,
+        [email]
+      );
+
+      if (rows.length === 0) {
+        // Warn rather than fail: a typo in one address must not abort the run
+        // and leave the other promotions half-applied. Re-running after fixing
+        // the address is safe.
+        console.warn(`[migrate-roles] WARNING: no account for ${email} — not promoted.`);
+        exitCode = 0;
+        continue;
+      }
+
+      if (rows[0].role === ADMIN_ROLE) {
+        log(`${email} is already ${ADMIN_ROLE} — skipping.`);
+        continue;
+      }
+
+      if (CHECK_ONLY) {
+        log(`--check: would promote ${email} to ${ADMIN_ROLE}.`);
+      } else {
+        await conn.query(
+          `UPDATE \`${TABLE}\` SET \`${COLUMN}\` = ? WHERE LOWER(email) = ?`,
+          [ADMIN_ROLE, email]
+        );
+        log(`promoted ${email} to ${ADMIN_ROLE}.`);
+      }
+    }
+  }
+
+  /* --------------------------------------------------------- 4. report */
+
+  if (!CHECK_ONLY) {
+    const [byRole] = await conn.query(
+      `SELECT \`${COLUMN}\` AS role, COUNT(*) AS n FROM \`${TABLE}\` GROUP BY \`${COLUMN}\``
+    );
+    log(`final roles: ${byRole.map((r) => `${r.role}=${r.n}`).join(", ")}`);
+
+    const [[{ admins }]] = await conn.query(
+      `SELECT COUNT(*) AS admins FROM \`${TABLE}\` WHERE \`${COLUMN}\` = ?`,
+      [ADMIN_ROLE]
+    );
+    if (admins === 0) {
+      console.warn(
+        "[migrate-roles] WARNING: no admin accounts exist. /admin/config/* is unreachable by anyone until one is promoted."
+      );
+    }
+  }
+} catch (error) {
+  console.error("[migrate-roles] FAILED:", error.message);
+  exitCode = 1;
+} finally {
+  await conn.end();
+}
+
+process.exit(exitCode);

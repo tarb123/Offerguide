@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import OtherTextInput from './OtherTextInput';
+import { useT } from '../../_i18n/LocaleProvider';
 
 /**
  * Radio Cards — the workhorse control.
@@ -70,6 +71,8 @@ export default function RadioCards({
   otherMaxLength = 100,
   otherPlaceholder = 'Please specify',
 }: RadioCardsProps) {
+  const t = useT();
+
   return (
     <div>
       <div
@@ -132,7 +135,9 @@ export default function RadioCards({
                   )}
                 </span>
               )}
-              {isOther ? 'Other…' : option}
+              {/* Translated for display; `onChange(option)` above still sends the
+                  English value the server validates against. */}
+              {isOther ? `${t('Other')}…` : t(option)}
             </button>
           );
         })}
@@ -173,6 +178,8 @@ export function BinaryRadioCards({
   /** Optional one-liner under each label. */
   descriptions?: Record<string, string>;
 }) {
+  const t = useT();
+
   return (
     <div role="radiogroup" aria-label={name} className="grid grid-cols-2 gap-1.5">
       {options.map((option) => {
@@ -193,7 +200,7 @@ export function BinaryRadioCards({
               disabled ? 'cursor-not-allowed opacity-50' : '',
             ].join(' ')}
           >
-            <span className="block">{option}</span>
+            <span className="block">{t(option)}</span>
             {descriptions?.[option] && (
               <span
                 className={[
@@ -203,7 +210,7 @@ export function BinaryRadioCards({
                     : 'text-muted-foreground',
                 ].join(' ')}
               >
-                {descriptions[option]}
+                {t(descriptions[option])}
               </span>
             )}
           </button>

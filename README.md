@@ -60,9 +60,35 @@ outcome in its response `message` rather than failing.
 
 The six admin-editable Mongo collections (`OgQuestions`, `OgScoringConfig`,
 `OgGeography`, `OgMarketBenchmarks`, `OgFunctionalDomains`, `OgConsentToggles`)
-are edited through Swagger, `curl`, or a script. No admin interface exists, and
-none is planned before Sprint 9. Everything under `/admin/config/*` is a
-26-operation surface intended for operators, not end users.
+are edited through Swagger, `curl`, or a script. No admin interface exists.
+Everything under `/admin/config/*` is a **30-operation** surface intended for
+operators, not end users. (Earlier documents say 26 — that count predates the two
+`/geography/{countryCode}/cities` operations Sprint 8 added.)
+
+### There is no UI for promoting a user to admin
+
+Roles are set by migration script and operational action only. There is no
+self-service promotion, no admin UI, and **no API endpoint that changes a role** —
+deliberately (Sprint 9 §6). To promote someone:
+
+```bash
+node scripts/migrate-roles.mjs --emails=someone@example.com
+```
+
+Add `--prod` to target the production database instead of local, and `--check` to
+see what would happen without writing anything. The list may also come from the
+`OFFERGUIDE_ADMIN_EMAILS` environment variable. It is never hardcoded in the
+script and never committed.
+
+The same script adds the `role` column and baselines every existing account to
+`user` on first run. It is idempotent — running it twice produces the same result —
+and reversible with `--rollback`, which drops the column and restores the exact
+pre-migration state. Roll the application back too if you do that; it reads the
+column.
+
+Demoting is the same operation against the database directly; there is no
+`--demote` flag, because removing someone's admin access should be as deliberate
+as granting it.
 
 ### The admin gate is temporary and is replaced in Sprint 9
 

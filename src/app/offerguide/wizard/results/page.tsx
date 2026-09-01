@@ -21,6 +21,32 @@ const SCREEN = getScreen('SCR-010');
 const C = SCR010_COPY;
 
 /**
+ * Hands a generated blob to the browser as a file download.
+ *
+ * The object URL is revoked on a delay rather than immediately: Safari and
+ * Firefox read the href asynchronously after the synthetic click, and revoking
+ * while that read is still in flight aborts the save. Holding one blob for a
+ * few seconds costs nothing next to a Download button that silently produces
+ * no file.
+ *
+ * (Headless Chrome reports `downloadProgress: canceled` for blob-URL downloads
+ * regardless of this delay — that is a quirk of its download manager, not this
+ * code. The PDF bytes are verified directly from the blob instead.)
+ */
+const REVOKE_DELAY_MS = 10_000;
+
+function triggerDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS);
+}
+
+/**
  * SCR-010 — Results. Zero input fields, fully read-only.
  *
  * Every number, label, strength, watch-out and next step is READ from the
@@ -42,6 +68,7 @@ export default function ResultsPage() {
   } | null>(null);
   const [isSingleOffer, setIsSingleOffer] = React.useState(true);
   const [loading, setLoading] = React.useState(true);
+  const [downloading, setDownloading] = React.useState(false);
 
   React.useEffect(() => {
     if (resolving) return;
@@ -94,9 +121,10 @@ export default function ResultsPage() {
     [score],
   );
 
-  function handleDownload() {
-    if (!score) return;
-    const text = buildSummaryText({
+  async function handleDownload() {
+    if (!score || downloading) return;
+
+    const payload = {
       offerLabel: offer?.label ?? 'Offer',
       companyName: offer?.companyName ?? null,
       roleTitle: offer?.roleTitle ?? null,
@@ -106,20 +134,31 @@ export default function ResultsPage() {
       strengths: score.strengths ?? [],
       watchOuts: score.watchOuts ?? [],
       nextSteps: score.nextSteps ?? [],
-    });
+    };
 
-    // Plain text, real browser download — PDF export is backlogged.
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `offerguide-summary-${(offer?.label ?? 'offer')
-      .toLowerCase()
-      .replace(/\s+/g, '-')}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Guarded because jsPDF is fetched on demand — the chunk can fail on a bad
+    // connection, and a Download button that silently does nothing is worse
+    // than one that says why. The text build is the fallback so the candidate
+    // still leaves with their summary rather than empty-handed.
+    setDownloading(true);
+    try {
+      const { buildSummaryPdf, summaryPdfFilename } = await import(
+        '@/lib/offerguide/buildSummaryPdf'
+      );
+      const blob = await buildSummaryPdf(payload);
+      triggerDownload(blob, summaryPdfFilename(offer?.label ?? null));
+    } catch {
+      const text = buildSummaryText(payload);
+      triggerDownload(
+        new Blob([text], { type: 'text/plain;charset=utf-8' }),
+        `offerguide-summary-${(offer?.label ?? 'offer')
+          .toLowerCase()
+          .replace(/\s+/g, '-')}.txt`,
+      );
+      toast.error('Could not build the PDF — downloaded a text summary instead.');
+    } finally {
+      setDownloading(false);
+    }
   }
 
   if (resolving || loading) {
@@ -333,13 +372,17 @@ export default function ResultsPage() {
 
       {/* ============================== action strip ========================= */}
       <div className="mt-6 flex flex-wrap gap-2">
+        {/* Disabled while building: the PDF chunk has to download and render,
+            which is long enough that a second click would produce a second file. */}
         <button
           type="button"
           onClick={handleDownload}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          disabled={downloading}
+          aria-busy={downloading}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Download className="h-3.5 w-3.5" aria-hidden="true" />
-          {C.actions.download}
+          {downloading ? 'Preparing PDF…' : C.actions.download}
         </button>
 
         <button

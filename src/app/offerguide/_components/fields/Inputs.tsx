@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useT } from '../../_i18n/LocaleProvider';
 
 const CONTROL_CLASS =
   'w-full rounded-md border border-border bg-background px-2.5 py-1 text-sm placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50';
@@ -22,6 +23,8 @@ export function TextInput({
   maxLength?: number;
   disabled?: boolean;
 }) {
+  const t = useT();
+
   return (
     <input
       id={id}
@@ -29,7 +32,11 @@ export function TextInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onBlur={onBlur}
-      placeholder={placeholder}
+      // The typed VALUE is never translated — only the placeholder hint is.
+      // dir="auto" so a candidate typing Urdu into an English-labelled field
+      // still gets correct text direction.
+      dir="auto"
+      placeholder={placeholder ? t(placeholder) : undefined}
       maxLength={maxLength}
       disabled={disabled}
       className={CONTROL_CLASS}
@@ -62,13 +69,16 @@ export function TextArea({
   rows?: number;
   disabled?: boolean;
 }) {
+  const t = useT();
+
   return (
     <textarea
       id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onBlur={onBlur}
-      placeholder={placeholder}
+      dir="auto"
+      placeholder={placeholder ? t(placeholder) : undefined}
       maxLength={maxLength}
       rows={rows}
       disabled={disabled}
@@ -110,6 +120,8 @@ export function NumericInput({
   disabled?: boolean;
   allowDecimal?: boolean;
 }) {
+  const t = useT();
+
   return (
     <div className="relative">
       <input
@@ -127,13 +139,15 @@ export function NumericInput({
         min={min}
         max={max}
         step={allowDecimal ? 'any' : 1}
-        placeholder={placeholder}
+        placeholder={placeholder ? t(placeholder) : undefined}
         disabled={disabled}
         className={`${CONTROL_CLASS} ${unit ? 'pr-20' : ''}`}
       />
+      {/* The unit stays pinned right even in RTL — it reads as part of the
+          number ("40 hrs / week"), not as prose that should mirror. */}
       {unit && (
         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-          {unit}
+          {t(unit)}
         </span>
       )}
     </div>
@@ -203,6 +217,8 @@ export function Select({
   placeholder?: string;
   disabled?: boolean;
 }) {
+  const t = useT();
+
   return (
     <select
       id={id}
@@ -210,16 +226,19 @@ export function Select({
       onChange={(e) => onChange(e.target.value)}
       onBlur={onBlur}
       disabled={disabled}
+      dir="auto"
       className={CONTROL_CLASS}
     >
       {placeholder && (
         <option value="" disabled>
-          {placeholder}
+          {t(placeholder)}
         </option>
       )}
+      {/* `value` stays the English original — that is what `onChange` reports
+          and what the server validates. Only the visible label translates. */}
       {options.map((option) => (
         <option key={option} value={option}>
-          {option}
+          {t(option)}
         </option>
       ))}
     </select>

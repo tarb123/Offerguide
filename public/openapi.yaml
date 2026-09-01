@@ -27,16 +27,22 @@ info:
 
     * **bearerAuth** — a portal JWT only. A guest cookie is rejected.
 
-    * **adminAuth** — the interim `x-og-admin-token` gate. Rejects no
-      credentials, a guest cookie, and an ordinary registered-user JWT alike.
+    * **adminAuth** — a portal JWT whose account's stored `role` is `admin`.
+      Rejects no credentials, a guest cookie, and an ordinary registered-user
+      JWT alike. The role is read from the database on every check, so a
+      demotion takes effect immediately rather than at the next token expiry.
 
     ### Swagger UI limitation (read before verifying)
 
-    The **Authorize** button can only drive the JWT and admin-token cases. It
-    cannot attach the `guestToken` httpOnly cookie. Every `guestOrAuth`
-    operation must therefore be verified **twice**: once here with a JWT, and
-    once outside Swagger (browser or `curl -b`) with only the guest cookie
-    present. Both must return the same shape.
+    The **Authorize** button can only drive the JWT cases. It cannot attach the
+    `guestToken` httpOnly cookie. Every `guestOrAuth` operation must therefore
+    be verified **twice**: once here with a JWT, and once outside Swagger
+    (browser or `curl -b`) with only the guest cookie present. Both must return
+    the same shape.
+
+    `adminAuth` and `bearerAuth` are the same credential — one bearer JWT — so
+    authorizing once covers both. Which of the two a request satisfies depends
+    on the account behind the token, not on anything the client sends.
 
 
     ## Contract-level integrity rules
@@ -94,9 +100,10 @@ tags:
     description: Candidate-safe reference data. No auth of any kind.
   - name: Admin Config
     description: >
-      Swagger/script/curl-only endpoints — no admin UI exists or is planned
-      before Sprint 9. Every route here is gated by the interim admin-token
-      check (see AdminToken), which is explicitly NOT real RBAC.
+      Swagger/script/curl-only endpoints — no admin UI exists. Every route here
+      requires a portal JWT whose account's stored role is `admin` (see
+      AdminAuth). Roles are assigned by migration script and operational action
+      only; there is no endpoint here or anywhere else that changes one.
   - name: Superset
     description: >
       Reachable in code but outside the handoff §3.1 inventory of 54.
@@ -733,7 +740,7 @@ paths:
       description: >
         adminAuth. Returns retired (`active: false`) documents too — the admin
         view is exactly where a soft-deleted document must stay visible.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: OK
@@ -751,7 +758,7 @@ paths:
         adminAuth. Category composition is field-driven: a new question with
         `category: Growth` joins the Growth average on the next scoring run
         with no code change.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       requestBody:
         required: true
         content:
@@ -773,7 +780,7 @@ paths:
     get:
       tags: [Admin Config]
       summary: Get a question by fieldId
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: OK
@@ -787,7 +794,7 @@ paths:
     put:
       tags: [Admin Config]
       summary: Update a question (partial merge)
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       requestBody:
         required: true
         content:
@@ -814,7 +821,7 @@ paths:
         meaning of evaluations scored while it was live. It disappears from
         `GET /config/questions` and stops feeding the category average, but
         stays in the admin list.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: "Retired — the returned document has active: false"
@@ -833,7 +840,7 @@ paths:
     get:
       tags: [Admin Config]
       summary: List all scoring config versions
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: OK
@@ -853,7 +860,7 @@ paths:
         version is not a route that rejects requests, it is a route that does
         not exist. Re-POSTing an existing version number returns 400.
         Creating a new version leaves previously computed scores untouched.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       requestBody:
         required: true
         content:
@@ -886,7 +893,7 @@ paths:
       description: >
         adminAuth. The audit read path: resolves the `scoringConfigVersion`
         stamped on a stored score back to the exact weights behind it.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: OK
@@ -907,7 +914,7 @@ paths:
     get:
       tags: [Admin Config]
       summary: List all countries with their cities
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: OK
@@ -921,7 +928,7 @@ paths:
     post:
       tags: [Admin Config]
       summary: Create a country
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       requestBody:
         required: true
         content:
@@ -944,7 +951,7 @@ paths:
       tags: [Superset]
       summary: Get one country
       description: adminAuth. Outside the §3.1 inventory — see the Superset tag.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: OK
@@ -958,7 +965,7 @@ paths:
     put:
       tags: [Admin Config]
       summary: Update a country (partial merge)
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       requestBody:
         required: true
         content:
@@ -979,7 +986,7 @@ paths:
     delete:
       tags: [Admin Config]
       summary: Retire a country (soft delete)
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: "Retired — the returned document has active: false"
@@ -1001,7 +1008,7 @@ paths:
         sub-resource POST rather than a create against a collection of its
         own. `cityId` is unique within its country; a duplicate returns 409.
         Returns the whole updated country.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       requestBody:
         required: true
         content:
@@ -1040,7 +1047,7 @@ paths:
         `active: false`, never removed from its country document, following
         the same soft-delete rule as the rest of `/admin/config/*`. That is
         why this path has no DELETE sibling.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       requestBody:
         required: true
         content:
@@ -1073,7 +1080,7 @@ paths:
         is what the Salary category score is computed against — it is **not**
         the same thing as community aggregate data, which comes from
         candidate-contributed consent data and does not exist yet.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: OK
@@ -1087,7 +1094,7 @@ paths:
     post:
       tags: [Admin Config]
       summary: Create a market benchmark row
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       requestBody:
         required: true
         content:
@@ -1110,7 +1117,7 @@ paths:
       tags: [Superset]
       summary: Get one market benchmark row
       description: adminAuth. Outside the §3.1 inventory — see the Superset tag.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: OK
@@ -1124,7 +1131,7 @@ paths:
     put:
       tags: [Admin Config]
       summary: Update a market benchmark row (partial merge)
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       requestBody:
         required: true
         content:
@@ -1153,7 +1160,7 @@ paths:
         Keyed on the Mongo `_id` rather than a business key — unlike the other
         five collections, this one is identified by `role` + `location`
         together, so there is no single field to key on.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: "Retired — the returned document has active: false"
@@ -1172,7 +1179,7 @@ paths:
     get:
       tags: [Admin Config]
       summary: List functional domains
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: OK
@@ -1186,7 +1193,7 @@ paths:
     post:
       tags: [Admin Config]
       summary: Create a functional domain
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       requestBody:
         required: true
         content:
@@ -1209,7 +1216,7 @@ paths:
       tags: [Superset]
       summary: Get one functional domain
       description: adminAuth. Outside the §3.1 inventory — see the Superset tag.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: OK
@@ -1223,7 +1230,7 @@ paths:
     put:
       tags: [Admin Config]
       summary: Update a functional domain (partial merge)
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       requestBody:
         required: true
         content:
@@ -1244,7 +1251,7 @@ paths:
     delete:
       tags: [Admin Config]
       summary: Retire a functional domain (soft delete)
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: "Retired — the returned document has active: false"
@@ -1263,7 +1270,7 @@ paths:
     get:
       tags: [Admin Config]
       summary: List consent toggles
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: OK
@@ -1277,7 +1284,7 @@ paths:
     post:
       tags: [Admin Config]
       summary: Create a consent toggle
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       requestBody:
         required: true
         content:
@@ -1300,7 +1307,7 @@ paths:
       tags: [Superset]
       summary: Get one consent toggle
       description: adminAuth. Outside the §3.1 inventory — see the Superset tag.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: OK
@@ -1314,7 +1321,7 @@ paths:
     put:
       tags: [Admin Config]
       summary: Update a consent toggle (partial merge)
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       requestBody:
         required: true
         content:
@@ -1343,7 +1350,7 @@ paths:
 
         **Retiring the master toggle (`consent_share_anonymous`) returns
         409** — it would orphan every candidate's stored consent preference.
-      security: [{ AdminToken: [] }]
+      security: [{ AdminAuth: [] }]
       responses:
         "200":
           description: "Retired — the returned document has active: false"
@@ -1377,18 +1384,28 @@ components:
         httpOnly cookie minted by `POST /candidate-profile` when no identity
         is present. **Swagger UI cannot attach this** — verify guest-mode
         behaviour outside Swagger with `curl -b` or a browser session.
-    AdminToken:
-      type: apiKey
-      in: header
-      name: x-og-admin-token
+    AdminAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
       description: >
-        *** TEMPORARY, Sprint 9 placeholder for real RBAC *** — a single
-        env-configured token (`OFFERGUIDE_ADMIN_TOKEN`), not a role column,
-        not `usePermission()`. No `role` field is referenced anywhere in the
-        gate's logic, because it does not exist yet. Fails closed: an unset
-        env var means no request can pass. Every `/admin/config/*` route
-        requires it, and it rejects an ordinary registered-user JWT — a
-        registered user is not an admin.
+        The portal's own JWT, belonging to an account whose stored `role` is
+        `admin` (Sprint 9). The same credential as `BearerAuth` — what separates
+        the two is the account behind the token, not anything the client sends.
+
+        The role is read from `sanjeedausers` on every check rather than taken
+        from a token claim, so a demotion applies immediately instead of at the
+        next expiry. Authorization is expressed as the `portal.admin.access`
+        permission, resolved through the static role→permission map in
+        `src/lib/portal/permissions.ts`; no call site compares the role directly.
+
+        Fails closed. No token, an expired token, a token for a deleted account,
+        an unrecognised role, or a database error all resolve to the public tier,
+        which does not hold `portal.admin.access`.
+
+        Sprint 9 replaced an interim env-configured header gate here. It was
+        removed entirely rather than kept as a fallback — there is no second way
+        into these routes.
 
   parameters:
     MongoId:

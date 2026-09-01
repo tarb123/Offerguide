@@ -107,6 +107,55 @@ model CandidateProfile {
 }
 
 // ---------------------------------------------------------------------------
+// Portal identity — READ-ONLY (Sprint 9, Story 9.1.2)
+// ---------------------------------------------------------------------------
+//
+// The table the handoffs call `userinfo`. It is actually `sanjeedausers`; the
+// `candidate_profiles.userinfo_id` column name is the only trace of the old name.
+//
+// READ-ONLY FROM PRISMA. The portal's existing raw mysql2 code in
+// src/app/api/auth/route.ts owns every write to this table — signup, Google
+// account linking, password reset. Prisma reads it for permission checks and
+// nothing else. Do not add create/update/delete calls against this model; a
+// second writer on the identity table is exactly the coupling the original
+// scope note was avoiding.
+//
+// STILL DECLARED EXTERNAL in prisma.config.ts, and that is what makes this model
+// safe rather than contradictory: external keeps Prisma out of the table's DDL
+// while still allowing reads through the model. Only the columns permission
+// checks need are modelled — password, google_id and the reset-code columns are
+// deliberately absent so nothing in OfferGuide can read them by accident — and
+// Prisma would try to DROP every unmodelled one if this table were ever taken
+// off the external list. It was tried; `migrate diff` proposed exactly that.
+//
+// The `role` column is therefore added by scripts/migrate-roles.mjs (plain SQL,
+// idempotent, reversible), NOT by a Prisma migration.
+//
+// NO RELATION to CandidateProfile, deliberately. CandidateProfile.userInfoId
+// stays a plain scalar Int?. A relation field would make Prisma want to manage a
+// foreign key constraint on the portal's identity table, which is the same
+// coupling by another route — and OfferGuide's guest rows carry a null there by
+// design, so the constraint would buy nothing.
+//
+// PRIMARY KEY: `user_id` is what the local database has. Production has not been
+// verified (see OFFERGUIDE_SPRINT9_PLAN_AND_CHECKLIST.md §0.2). If production
+// turns out to name it `id`, this @map is the one line that changes;
+// `node scripts/migrate-roles.mjs --check` reports the real column rather than
+// letting it fail at runtime.
+model UserInfo {
+  userInfoId Int    @id @map("user_id")
+  name       String
+  email      String
+
+  /// One of the values in ROLES (src/lib/portal/permissions.ts). VARCHAR(32),
+  /// not an enum — validated in application code so a fourth role is a config
+  /// change, not a migration on the identity table.
+  role String @default("user")
+
+  @@map("sanjeedausers")
+}
+
+// ---------------------------------------------------------------------------
 // SCR-002 — Evaluation Setup (session-level, applies to all offers in session)
 // ---------------------------------------------------------------------------
 model EvaluationSession {

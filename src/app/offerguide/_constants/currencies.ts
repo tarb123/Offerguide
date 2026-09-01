@@ -1,5 +1,5 @@
 /**
- * ISO 4217 currency list.
+ * ISO 4217 currency list — every active circulating currency.
  *
  * TEMPORARY HOME. Every other reference list in this module comes from `/config/*`
  * (geography, functional domains, consent toggles), but no currency endpoint or
@@ -7,9 +7,16 @@
  * as a backlog item to move behind `/config/currencies` alongside the others.
  * Adding a currency should not be a code change.
  *
- * Not the full ISO 4217 register: this is the working set for the target market
- * and the corridors candidates actually receive offers from. PKR leads because the
- * FRS examples and the seeded market benchmarks are Pakistan-based.
+ * NAMES ARE NOT HARDCODED.
+ * Only the codes are listed. Display names come from `Intl.DisplayNames`, which
+ * ships with the browser and knows every ISO 4217 code in every locale — so the
+ * currency dropdown translates itself for free in any language added later, with
+ * no translation file to maintain. `FALLBACK_NAMES` covers only the handful of
+ * runtimes that lack currency display names, and the code itself is the last
+ * resort, so an unknown currency degrades to "XAF" rather than blank.
+ *
+ * PKR leads because the FRS examples and the seeded market benchmarks are
+ * Pakistan-based; the rest follow in alphabetical order by code.
  *
  * Related backlog item, already recorded in both the SCR-001 and SCR-004 FRS:
  * auto-suggesting the currency from the selected country. Deferred, so the
@@ -18,49 +25,94 @@
 
 export type Currency = { code: string; name: string };
 
-export const CURRENCIES: readonly Currency[] = [
-  { code: 'PKR', name: 'Pakistani Rupee' },
-  { code: 'USD', name: 'US Dollar' },
-  { code: 'AED', name: 'UAE Dirham' },
-  { code: 'SAR', name: 'Saudi Riyal' },
-  { code: 'GBP', name: 'Pound Sterling' },
-  { code: 'EUR', name: 'Euro' },
-  { code: 'CAD', name: 'Canadian Dollar' },
-  { code: 'AUD', name: 'Australian Dollar' },
-  { code: 'QAR', name: 'Qatari Riyal' },
-  { code: 'KWD', name: 'Kuwaiti Dinar' },
-  { code: 'BHD', name: 'Bahraini Dinar' },
-  { code: 'OMR', name: 'Omani Rial' },
-  { code: 'INR', name: 'Indian Rupee' },
-  { code: 'BDT', name: 'Bangladeshi Taka' },
-  { code: 'LKR', name: 'Sri Lankan Rupee' },
-  { code: 'CNY', name: 'Chinese Yuan' },
-  { code: 'JPY', name: 'Japanese Yen' },
-  { code: 'SGD', name: 'Singapore Dollar' },
-  { code: 'MYR', name: 'Malaysian Ringgit' },
-  { code: 'HKD', name: 'Hong Kong Dollar' },
-  { code: 'NZD', name: 'New Zealand Dollar' },
-  { code: 'CHF', name: 'Swiss Franc' },
-  { code: 'SEK', name: 'Swedish Krona' },
-  { code: 'NOK', name: 'Norwegian Krone' },
-  { code: 'DKK', name: 'Danish Krone' },
-  { code: 'TRY', name: 'Turkish Lira' },
-  { code: 'ZAR', name: 'South African Rand' },
-  { code: 'EGP', name: 'Egyptian Pound' },
-  { code: 'NGN', name: 'Nigerian Naira' },
-  { code: 'KES', name: 'Kenyan Shilling' },
-  { code: 'IDR', name: 'Indonesian Rupiah' },
-  { code: 'PHP', name: 'Philippine Peso' },
-  { code: 'THB', name: 'Thai Baht' },
-  { code: 'VND', name: 'Vietnamese Dong' },
-  { code: 'BRL', name: 'Brazilian Real' },
-  { code: 'MXN', name: 'Mexican Peso' },
-  { code: 'AFN', name: 'Afghan Afghani' },
-  { code: 'IRR', name: 'Iranian Rial' },
+/** Shown first — the module's primary market. */
+const PRIORITY_CODES = ['PKR', 'USD', 'AED', 'SAR', 'GBP', 'EUR'] as const;
+
+/** Every other active ISO 4217 code, alphabetical. */
+const OTHER_CODES = [
+  'AFN', 'ALL', 'AMD', 'ANG', 'AOA', 'ARS', 'AUD', 'AWG', 'AZN', 'BAM',
+  'BBD', 'BDT', 'BGN', 'BHD', 'BIF', 'BMD', 'BND', 'BOB', 'BRL', 'BSD',
+  'BTN', 'BWP', 'BYN', 'BZD', 'CAD', 'CDF', 'CHF', 'CLP', 'CNY', 'COP',
+  'CRC', 'CUP', 'CVE', 'CZK', 'DJF', 'DKK', 'DOP', 'DZD', 'EGP', 'ERN',
+  'ETB', 'FJD', 'FKP', 'GEL', 'GHS', 'GIP', 'GMD', 'GNF', 'GTQ', 'GYD',
+  'HKD', 'HNL', 'HTG', 'HUF', 'IDR', 'ILS', 'INR', 'IQD', 'IRR', 'ISK',
+  'JMD', 'JOD', 'JPY', 'KES', 'KGS', 'KHR', 'KMF', 'KPW', 'KRW', 'KWD',
+  'KYD', 'KZT', 'LAK', 'LBP', 'LKR', 'LRD', 'LSL', 'LYD', 'MAD', 'MDL',
+  'MGA', 'MKD', 'MMK', 'MNT', 'MOP', 'MRU', 'MUR', 'MVR', 'MWK', 'MXN',
+  'MYR', 'MZN', 'NAD', 'NGN', 'NIO', 'NOK', 'NPR', 'NZD', 'OMR', 'PAB',
+  'PEN', 'PGK', 'PHP', 'PLN', 'PYG', 'QAR', 'RON', 'RSD', 'RUB', 'RWF',
+  'SBD', 'SCR', 'SDG', 'SEK', 'SGD', 'SHP', 'SLE', 'SOS', 'SRD', 'SSP',
+  'STN', 'SVC', 'SYP', 'SZL', 'THB', 'TJS', 'TMT', 'TND', 'TOP', 'TRY',
+  'TTD', 'TWD', 'TZS', 'UAH', 'UGX', 'UYU', 'UZS', 'VES', 'VND', 'VUV',
+  'WST', 'XAF', 'XCD', 'XOF', 'XPF', 'YER', 'ZAR', 'ZMW', 'ZWG',
 ] as const;
 
+export const CURRENCY_CODES: readonly string[] = [
+  ...PRIORITY_CODES,
+  ...OTHER_CODES.filter((c) => !PRIORITY_CODES.includes(c as never)),
+];
+
+/**
+ * Used only where `Intl.DisplayNames` has no currency data. Covers the codes a
+ * candidate in this module's markets is most likely to pick, so the common path
+ * never degrades to a bare code.
+ */
+const FALLBACK_NAMES: Record<string, string> = {
+  PKR: 'Pakistani Rupee',
+  USD: 'US Dollar',
+  AED: 'UAE Dirham',
+  SAR: 'Saudi Riyal',
+  GBP: 'British Pound',
+  EUR: 'Euro',
+  QAR: 'Qatari Riyal',
+  KWD: 'Kuwaiti Dinar',
+  BHD: 'Bahraini Dinar',
+  OMR: 'Omani Rial',
+  INR: 'Indian Rupee',
+  BDT: 'Bangladeshi Taka',
+  LKR: 'Sri Lankan Rupee',
+  CAD: 'Canadian Dollar',
+  AUD: 'Australian Dollar',
+  SGD: 'Singapore Dollar',
+  MYR: 'Malaysian Ringgit',
+  TRY: 'Turkish Lira',
+  CNY: 'Chinese Yuan',
+  JPY: 'Japanese Yen',
+};
+
+/**
+ * Localised currency name for a code.
+ *
+ * `locale` is passed in rather than read from a global so this stays a pure
+ * function — the language switcher re-renders the dropdown by changing the
+ * argument, and nothing here needs to know how language state is stored.
+ */
+export function currencyName(code: string, locale = 'en'): string {
+  try {
+    const name = new Intl.DisplayNames([locale], { type: 'currency' }).of(code);
+    // Intl returns the input unchanged when it has no entry for the code.
+    if (name && name !== code) return name;
+  } catch {
+    /* fall through */
+  }
+  return FALLBACK_NAMES[code] ?? code;
+}
+
 /** Combobox-ready — "PKR — Pakistani Rupee", matching the SCR-004 mockup. */
-export const CURRENCY_OPTIONS = CURRENCIES.map((c) => ({
-  value: c.code,
-  label: `${c.code} — ${c.name}`,
+export function currencyOptions(locale = 'en') {
+  return CURRENCY_CODES.map((code) => ({
+    value: code,
+    label: `${code} — ${currencyName(code, locale)}`,
+  }));
+}
+
+/**
+ * English snapshot, kept so existing synchronous imports and any server-side
+ * formatting keep working unchanged.
+ */
+export const CURRENCIES: readonly Currency[] = CURRENCY_CODES.map((code) => ({
+  code,
+  name: currencyName(code),
 }));
+
+export const CURRENCY_OPTIONS = currencyOptions();

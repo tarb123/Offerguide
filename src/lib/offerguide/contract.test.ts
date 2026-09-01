@@ -143,7 +143,12 @@ function declaredAuth(operation: Record<string, unknown>): AuthMode {
   const security = operation.security as { [scheme: string]: unknown }[] | undefined;
   if (!security || security.length === 0) return "PUBLIC";
   const schemes = security.flatMap((entry) => Object.keys(entry));
-  if (schemes.includes("AdminToken")) return "adminAuth";
+  // Sprint 9 renamed the scheme AdminToken → AdminAuth and changed its type from
+  // an `x-og-admin-token` apiKey to a bearer JWT, so the mode can no longer be
+  // inferred from the credential's shape — adminAuth and bearerAuth are now the
+  // same credential, separated only by the role of the account behind it. The
+  // scheme name is what distinguishes them, which is why the rename mattered.
+  if (schemes.includes("AdminAuth")) return "adminAuth";
   if (schemes.includes("GuestCookie")) return "guestOrAuth";
   return "bearerAuth";
 }

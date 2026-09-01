@@ -80,6 +80,7 @@ import { OgMarketBenchmarks } from "./models/OgMarketBenchmarks.js";
 import { OgFunctionalDomains } from "./models/OgFunctionalDomains.js";
 import { OgConsentToggles } from "./models/OgConsentToggles.js";
 import { WizardDraft } from "./models/WizardDraft.js";
+import { parseGeoData } from "../../offerguide/geoData.js";
 
 // Consistent anchor scores, applied throughout instead of bespoke per-field
 // numbers, per the "clean uniform default scale" decision.
@@ -735,31 +736,45 @@ async function seed() {
   console.log("✓ OgScoringConfig seeded (v1 + v2)");
 
   // ===========================================================================
-  // OgGeography — 2 countries, unchanged.
+  // OgGeography — every country, from the shared geoData dataset.
+  //
+  // Deliberately NOT deleteMany + insertMany like the collections above.
+  // Geography is the one collection admins edit at runtime (the admin config
+  // routes add and deactivate cities), so a full rebuild here would silently
+  // discard their work every time anyone reseeded the question bank. Countries
+  // that already exist keep their stored cities and active flags; only genuinely
+  // new entries are written.
+  //
+  // scripts/seed-geography.mjs runs this same merge on its own, for when only
+  // the location lists need topping up.
   // ===========================================================================
-  await OgGeography.deleteMany({ countryCode: { $in: ["PK", "AE"] } });
-  await OgGeography.insertMany([
-    {
-      countryCode: "PK",
-      countryName: "Pakistan",
-      active: true,
-      cities: [
-        { cityId: "karachi", name: "Karachi", active: true },
-        { cityId: "lahore", name: "Lahore", active: true },
-        { cityId: "islamabad", name: "Islamabad", active: true },
-      ],
-    },
-    {
-      countryCode: "AE",
-      countryName: "United Arab Emirates",
-      active: true,
-      cities: [
-        { cityId: "dubai", name: "Dubai", active: true },
-        { cityId: "abu_dhabi", name: "Abu Dhabi", active: true },
-      ],
-    },
-  ]);
-  console.log("✓ OgGeography seeded (2 countries)");
+  const geoCountries = parseGeoData();
+  let geoCreated = 0;
+  let geoCitiesAdded = 0;
+
+  for (const country of geoCountries) {
+    const existing = await OgGeography.findOne({ countryCode: country.countryCode });
+
+    if (!existing) {
+      await OgGeography.create(country);
+      geoCreated += 1;
+      geoCitiesAdded += country.cities.length;
+      continue;
+    }
+
+    const seen = new Set(existing.cities.map((c) => c.cityId));
+    const additions = country.cities.filter((c) => !seen.has(c.cityId));
+    if (additions.length > 0) {
+      existing.cities.push(...additions);
+      geoCitiesAdded += additions.length;
+      await existing.save();
+    }
+  }
+
+  console.log(
+    `✓ OgGeography seeded (${geoCountries.length} countries known, ` +
+      `${geoCreated} created, ${geoCitiesAdded} cities added)`
+  );
 
   // ===========================================================================
   // OgMarketBenchmarks

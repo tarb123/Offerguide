@@ -1,15 +1,15 @@
-// OfferGuide — admin config CRUD factory
-// Sprint 5, Epic 5.2 §4.1. The 5 non-OgScoringConfig admin collections
+﻿// OfferGuide â€” admin config CRUD factory
+// Sprint 5, Epic 5.2 Â§4.1. The 5 non-OgScoringConfig admin collections
 // (OgQuestions, OgGeography, OgMarketBenchmarks, OgFunctionalDomains,
 // OgConsentToggles) all need identical standard CRUD wired behind the same
-// admin gate — this factory avoids duplicating that boilerplate 5 times.
+// admin gate â€” this factory avoids duplicating that boilerplate 5 times.
 // OgScoringConfig is deliberately NOT built on this factory: it only
 // supports POST (new version) + GET, never PUT/PATCH/DELETE, so it's
 // hand-written in its own route file instead of forcing an unused shape
 // through here.
 //
 // Sprint 8 changed two things here, both DoD items:
-//   * DELETE is a SOFT delete — it sets active: false and leaves the document
+//   * DELETE is a SOFT delete â€” it sets active: false and leaves the document
 //     in the collection. Nothing in /admin/config/* is ever hard-deleted,
 //     because a retired question or toggle still has to explain the meaning of
 //     evaluations that were scored while it was live.
@@ -31,11 +31,11 @@ function errorMessage(err: unknown): string {
 }
 
 export function createCollectionHandlers(model: Model<AnyDoc>) {
-  // Returns retired (active: false) documents too — the admin view is exactly
+  // Returns retired (active: false) documents too â€” the admin view is exactly
   // where a soft-deleted document still has to be visible. The public
   // /config/* reads are the ones that filter on active: true.
   async function GET(req: NextRequest) {
-    const denied = requireAdmin(req);
+    const denied = await requireAdmin(req);
     if (denied) return denied;
 
     await dbConnect();
@@ -44,7 +44,7 @@ export function createCollectionHandlers(model: Model<AnyDoc>) {
   }
 
   async function POST(req: NextRequest) {
-    const denied = requireAdmin(req);
+    const denied = await requireAdmin(req);
     if (denied) return denied;
 
     const body = await req.json();
@@ -64,7 +64,7 @@ type ItemHandlerOptions = {
   /**
    * The collection's own business key, matching the route's path parameter
    * (e.g. "fieldId" for /admin/config/questions/{fieldId}). Omit to key on the
-   * Mongo _id — only market-benchmarks does that, since it has no single
+   * Mongo _id â€” only market-benchmarks does that, since it has no single
    * business key (it is identified by role + location together).
    */
   keyField?: string;
@@ -98,7 +98,7 @@ export function createItemHandlers(model: Model<AnyDoc>, options: ItemHandlerOpt
   }
 
   async function GET(req: NextRequest, context: RouteContext) {
-    const denied = requireAdmin(req);
+    const denied = await requireAdmin(req);
     if (denied) return denied;
 
     const id = await idFrom(context);
@@ -109,10 +109,10 @@ export function createItemHandlers(model: Model<AnyDoc>, options: ItemHandlerOpt
   }
 
   // Partial-merge update (matches this codebase's existing PATCH-style offer
-  // routes) rather than a strict full-document replace — a client only needs
+  // routes) rather than a strict full-document replace â€” a client only needs
   // to send the fields it's changing.
   async function PUT(req: NextRequest, context: RouteContext) {
-    const denied = requireAdmin(req);
+    const denied = await requireAdmin(req);
     if (denied) return denied;
 
     const id = await idFrom(context);
@@ -133,12 +133,12 @@ export function createItemHandlers(model: Model<AnyDoc>, options: ItemHandlerOpt
   /**
    * Soft delete (Sprint 8 DoD). Sets active: false and returns the retired
    * document, so the caller can see the flag flipped rather than having to
-   * trust a bodyless 204 — and so it's self-evident from the response that
+   * trust a bodyless 204 â€” and so it's self-evident from the response that
    * nothing was destroyed. Re-deleting an already-retired document is a no-op
    * that still returns 200.
    */
   async function DELETE(req: NextRequest, context: RouteContext) {
-    const denied = requireAdmin(req);
+    const denied = await requireAdmin(req);
     if (denied) return denied;
 
     const id = await idFrom(context);

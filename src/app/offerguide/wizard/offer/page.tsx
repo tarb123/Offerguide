@@ -551,6 +551,8 @@ export default function OfferDetailsPage() {
           label={C.labels.city}
           helpText={C.helpText.city}
         >
+          {/* allowCustom: same reasoning as SCR-001's current city — the list is
+              suggestions over a free-text column, not a closed set. */}
           <Combobox
             options={cities}
             value={form.offerCity}
@@ -558,12 +560,13 @@ export default function OfferDetailsPage() {
               set('offerCity', v)
             }
             onBlur={onBlur}
+            allowCustom
             disabled={
               !form.offerCountry
             }
             placeholder={
               form.offerCountry
-                ? 'Select a city'
+                ? 'Select or type a city'
                 : 'Select a country first'
             }
           />

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { CredentialResponse } from "@react-oauth/google";
 import { toast, ToastContainer } from "react-toastify";
 import GoogleLoginButton from "../components/GoogleLoginButton";
+import { storePortalToken } from "@/lib/portal/session";
 import "react-toastify/dist/ReactToastify.css";
 
 type AuthMode = "login" | "signup" | "forgot" | "reset" | "google";
@@ -120,7 +121,7 @@ const response = await axios.post<AuthResponse>("/api/auth", {
   ...payload,
 });
       if (response.data.token) {
-        localStorage.setItem("authToken", response.data.token);
+        storePortalToken(response.data.token);
         setMessage("Login successful!");
         routeUserAfterLogin(payload.email);
       } else {
@@ -164,7 +165,7 @@ const response = await axios.post<AuthResponse>("/api/auth", {
 });
 
       if (response.data.token) {
-        localStorage.setItem("authToken", response.data.token);
+        storePortalToken(response.data.token);
 
         if (response.data.email) {
           routeUserAfterLogin(response.data.email);

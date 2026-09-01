@@ -10,7 +10,7 @@ import { badRequest } from "@/lib/offerguide/errors";
 // route that can exist, not a route that happens to reject requests.
 
 export async function GET(req: NextRequest) {
-  const denied = requireAdmin(req);
+  const denied = await requireAdmin(req);
   if (denied) return denied;
 
   await dbConnect();
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const denied = requireAdmin(req);
+  const denied = await requireAdmin(req);
   if (denied) return denied;
 
   const body = await req.json();

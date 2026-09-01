@@ -7,6 +7,7 @@ import ModernFooter from "./footer/ModernFooter";
 import { Toaster } from "react-hot-toast";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ThemeProvider, THEME_STORAGE_KEY } from "@/components/theme-provider";
+import { AuthProvider } from "@/lib/portal/AuthProvider";
 
 // Applied before paint to avoid a flash of the wrong theme. Must stay in sync
 // with ThemeProvider (same storage key, same resolution of 'system').
@@ -67,12 +68,24 @@ export default function RootLayout({
       </head>
       <body className={`${jameelNoori.variable} antialiased min-h-screen w-full overflow-x-hidden`}>
         <ThemeProvider>
-          <ResponsiveNav/>
-            <SpeedInsights />
-              {children}
-          <Analytics />
-          <ModernFooter/>
-          <Toaster/>
+          {/*
+            AuthProvider wraps the whole portal because the nav does — it is
+            portal infrastructure, not an OfferGuide concern, and offerguide/
+            layout.tsx is documented as layout-only with no auth logic.
+
+            It deliberately does NOT read cookies here. Doing so would opt every
+            page in the portal out of static rendering to personalise a nav that
+            is identical for the guests who make up most traffic. See the
+            provider's own header comment for the full trade-off.
+          */}
+          <AuthProvider>
+            <ResponsiveNav/>
+              <SpeedInsights />
+                {children}
+            <Analytics />
+            <ModernFooter/>
+            <Toaster/>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

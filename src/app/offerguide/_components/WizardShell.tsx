@@ -5,6 +5,7 @@ import ModuleStepper from './ModuleStepper';
 // import SectionStepper, { type SectionStep } from './SectionStepper';
 import IntroCard from './IntroCard';
 import BottomNav from './BottomNav';
+import LanguageSwitcher from './LanguageSwitcher';
 import type { WizardScreen } from '../_constants/screens';
 
 /**
@@ -84,6 +85,12 @@ export default function WizardShell({
     // so claiming a full viewport just pads the page out. The bottom nav is sticky
     // and sits correctly at the natural content height.
     <div className="flex flex-col">
+      {/* Sits above the stepper so it is reachable on every screen of the flow,
+          including the ones where the intro card moves into a sidebar. */}
+      <div className="flex justify-end px-4 pt-3 sm:px-6">
+        <LanguageSwitcher />
+      </div>
+
       <ModuleStepper currentScreenId={screen.id} />
 
       {stickySlot && (

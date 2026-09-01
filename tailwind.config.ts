@@ -3,7 +3,19 @@ import tailwindcssAnimate from 'tailwindcss-animate';
 
 const config: Config = {
   darkMode: 'class',
-  content: ['./public/**/*.html', './src/**/*.{js,ts,jsx,tsx}'],
+  // `!./src/generated/**` is not optional. That directory holds the generated
+  // Prisma client — thousands of files with no class names in them. Scanning it
+  // is pure waste, and worse: `prisma generate` rewrites the directory, which
+  // invalidates Tailwind's cached file list mid-session. Its content watcher
+  // then statSync()s a path that no longer exists and throws
+  //   ENOENT: no such file or directory, stat '…/src/generated/prisma/internal/class.ts'
+  // out of globals.css — which surfaces as every page 500ing until the dev
+  // server is restarted. Regenerating the client should not take the site down.
+  content: [
+    './public/**/*.html',
+    './src/**/*.{js,ts,jsx,tsx}',
+    '!./src/generated/**',
+  ],
 
   theme: {
     screens: {
@@ -18,7 +30,11 @@ const config: Config = {
       colors: {
         // 🔵 Brand Colors
         customBlue: '#00838F',
-        darkBlue: '#060b2d',
+        darkBlue: '#1f5690',
+        // Dark-mode surface for OfferGuide + Khudi. Matches the footer hex so the
+        // header, page and footer meet without a seam. Deliberately NOT a change to
+        // `darkBlue`, which ~15 other pages still read.
+        nightBlue: '#060c29',
         TealBlue: '#004D60',
         Blue: '#2E3192',
         Red: '#C00000',

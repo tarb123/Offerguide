@@ -546,9 +546,9 @@ const calculateCareerMatches = (
   return (
     <>
       {quizState === 'quiz' && (
-        <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-darkBlue dark:via-darkBlue dark:to-darkBlue text-slate-900 dark:text-slate-100">
+        <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-nightBlue dark:via-nightBlue dark:to-nightBlue text-slate-900 dark:text-slate-100">
           {/* ✅ Responsive page container: more breathing on big screens, tighter on mobile */}
-          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 2xl:max-w-screen-2xl 2xl:px-12 2xl:py-10">
+          <div className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6 sm:pb-12 sm:pt-8 lg:px-8 2xl:max-w-screen-2xl 2xl:px-12 2xl:pt-10">
             {/* ✅ Responsive gap for large screens */}
             <div className="grid grid-cols-1 gap-6 lg:gap-8 2xl:gap-10 lg:grid-cols-12">
               {/* Sidebar */}
@@ -558,15 +558,15 @@ const calculateCareerMatches = (
                 <div className="space-y-4 lg:sticky lg:top-24 2xl:top-28">
                   
                 {/* Progress Card */}
-                <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-4 sm:mt-20 lg:p-6 shadow-sm">
+                <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-4 lg:p-6 shadow-sm">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-base font-semibold text-slate-900 dark:text-white">Progress</h2>
-                    <div className="text-sm text-slate-500 sm:text-right">
+                    <div className="text-sm text-slate-500 dark:text-slate-300 sm:text-right">
                       <span>{progressPct}% complete</span>
                     </div>
                   </div>
                   
-                  <div className="mt-4 h-2.5 w-full rounded-full bg-slate-100">
+                  <div className="mt-4 h-2.5 w-full rounded-full bg-slate-100 dark:bg-white/10">
                     <div className="h-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 transition-[width]"
                      style={{ width: `${progressPct}%` }}
                     />
@@ -576,12 +576,12 @@ const calculateCareerMatches = (
 
                   {/* Question Map */}
                   <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 shadow-sm">
-                    <div className="flex items-center justify-between border-b border-slate-200  px-3 py-3 2xl:px-5 2xl:py-4">
+                    <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 px-3 py-3 2xl:px-5 2xl:py-4">
                       <h3 className="text-sm 2xl:text-base font-semibold">Question Map</h3>
                        <button
                         type="button"
                         onClick={() => setShowSlider((prev) => !prev)}
-                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5smoke px-3 py-2 text-xs 2xl:text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600"
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-xs 2xl:text-sm font-semibold text-slate-700 dark:text-slate-100 shadow-sm hover:bg-slate-50 dark:hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600"
                       >
                         {showSlider ? 'Hide' : 'Show'} questions <span aria-hidden="true">{showSlider ? '🙉' : '🙈'}</span>
                       </button>
@@ -601,10 +601,10 @@ const calculateCareerMatches = (
                               : 'bg-rose-400';
 
                             const rowClass = current
-                              ? 'border-indigo-200 bg-indigo-50 text-indigo-900'
+                              ? 'border-indigo-200 bg-indigo-50 text-indigo-900 dark:border-indigo-400/40 dark:bg-indigo-500/20 dark:text-indigo-50'
                               : answered
-                              ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                              : 'border-rose-200 bg-rose-50/50 text-rose-900 hover:bg-rose-50';
+                              ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10'
+                              : 'border-rose-200 bg-rose-50/50 text-rose-900 hover:bg-rose-50 dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-100 dark:hover:bg-rose-500/20';
 
                             return (
                               <button
@@ -614,7 +614,7 @@ const calculateCareerMatches = (
                                 className={`w-full rounded-xl border px-3 py-2 2xl:px-4 2xl:py-3 text-left text-sm 2xl:text-base transition ${rowClass} focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600`}
                               >
                                 <div className="flex items-center gap-3">
-                                  <span className="inline-flex h-7 w-7 2xl:h-8 2xl:w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900/5 text-xs 2xl:text-sm font-bold">
+                                  <span className="inline-flex h-7 w-7 2xl:h-8 2xl:w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900/5 dark:bg-white/10 text-xs 2xl:text-sm font-bold">
                                     {idx + 1}
                                   </span>
 
@@ -622,7 +622,7 @@ const calculateCareerMatches = (
                                     <span className="block truncate text-xs 2xl:text-sm font-medium">
                                       {q.text.length > 70 ? `${q.text.slice(0, 70)}…` : q.text}
                                     </span>
-                                    <span className="mt-1 block text-[11px] 2xl:text-xs text-slate-500">
+                                    <span className="mt-1 block text-[11px] 2xl:text-xs text-slate-500 dark:text-slate-300">
                                       {current ? 'Current' : answered ? 'Answered' : 'Pending'}
                                     </span>
                                   </span>
@@ -657,22 +657,22 @@ const calculateCareerMatches = (
 
               {/* Main Quiz Card */}
               <section className="order-1 lg:order-2 lg:col-span-8 xl:col-span-9">
-                <div className="rounded-2xl border mt-20 border-slate-200 bg-white shadow-[0_10px_30px_rgba(2,6,23,0.08)]">
+                <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-900 dark:text-slate-100 shadow-[0_10px_30px_rgba(2,6,23,0.08)]">
                   {/* ✅ Responsive padding */}
-                  <div className="border-b  border-slate-200 p-5 sm:p-8 lg:px-16 2xl:p-12">
+                  <div className="border-b  border-slate-200 dark:border-white/10 p-5 sm:p-8 lg:px-16 2xl:p-12">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="-mb-3">
          
                         {/* ✅ Scale title for big screens */}
-                        <h1 className="-mt-1 text-xl sm:text-2xl lg:text-3xl 2xl:text-4xl font-semibold">
-                          <span lang="ur" dir="rtl" className="font-urdu leading-[2] text-right mr-2 inline-block"> خودی</span>
-                             <span>Personality Assessment</span>
+                        <h1 className="-mt-1 flex flex-wrap items-baseline gap-x-2 text-xl sm:text-2xl lg:text-3xl 2xl:text-4xl font-semibold text-slate-900 dark:text-slate-100">
+                          <span lang="ur" dir="rtl" className="font-urdu leading-[2] text-slate-900 dark:text-slate-100">خودی</span>
+                          <span className="text-slate-900 dark:text-slate-100">Personality Assessment</span>
                         </h1>
                       </div>
 
                       {/* Mobile quick actions */}
                       <div className="flex flex-wrap items-center gap-2 sm:justify-end mt-3">
-                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs 2xl:text-sm font-semibold text-slate-700">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/10 px-3 py-1.5 text-xs 2xl:text-sm font-semibold text-slate-700 dark:text-slate-200">
                           <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" aria-hidden="true" />
                           {answeredCount}/{totalCount || '—'} answered
                         </span>
@@ -692,7 +692,7 @@ const calculateCareerMatches = (
                   <div className="p-5 sm:p-8 lg:p-10 2xl:p-12">
                     {!currentQuestion ? (
                       <div className="py-10 sm:py-12 text-center">
-                        <div className="mx-auto h-10 w-10 animate-pulse rounded-2xl bg-slate-100" />
+                        <div className="mx-auto h-10 w-10 animate-pulse rounded-2xl bg-slate-100 dark:bg-white/10" />
                         <p className="mt-3 text-sm 2xl:text-base text-slate-600 dark:text-slate-300">Loading questions…</p>
                       </div>
                     ) : (
@@ -711,7 +711,7 @@ const calculateCareerMatches = (
                         type="button"
                         onClick={goToPrevious}
                         disabled={currentIndex === 0}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 2xl:px-6 2xl:py-4 text-sm 2xl:text-base font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 2xl:px-6 2xl:py-4 text-sm 2xl:text-base font-semibold text-slate-700 dark:text-slate-100 shadow-sm hover:bg-slate-50 dark:hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600"
                       >
                         Previous
                       </button>

@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import HelpIcon from '@/components/shared/HelpIcon';
+import { useT } from '../../_i18n/LocaleProvider';
 
 /**
  * Conditional pill — the amber tag that explains WHY a field is inactive.
@@ -17,7 +18,7 @@ import HelpIcon from '@/components/shared/HelpIcon';
  */
 export function ConditionalPill({ children }: { children: React.ReactNode }) {
   return (
-    <span className="ml-2 inline-flex items-center rounded-full border border-warning/40 bg-warning-subtle px-2 py-0.5 text-[11px] font-medium text-warning">
+    <span className="ml-2 inline-flex items-center rounded-full border border-warning/40 bg-warning-subtle px-2 py-0.5 text-base font-medium text-warning">
       {children}
     </span>
   );
@@ -58,6 +59,7 @@ export default function Field({
   fullWidth?: boolean;
   children: React.ReactNode;
 }) {
+  const t = useT();
   const isDimmed = conditional !== undefined && !conditional.active;
 
   return (
@@ -68,15 +70,25 @@ export default function Field({
       ].join(' ')}
       aria-disabled={isDimmed || undefined}
     >
-      <label htmlFor={htmlFor} className="mb-1 flex flex-wrap items-center text-xs">
-        {label}
-        {helpText && <HelpIcon text={helpText} label={label} />}
+      {/* dir="auto" lets the browser pick direction from the text itself. It
+          matters for the untranslated fallback: an English string inside an RTL
+          container has its trailing punctuation displaced to the front
+          ("…evaluate." renders as ".…evaluate"). */}
+      <label
+        htmlFor={htmlFor}
+        dir="auto"
+        className="mt-2 mb-3 flex flex-wrap items-center text-sm"
+      >
+        {t(label)}
+        {/* The tooltip text translates; the `label` prop stays English because
+            it builds the accessible name, not visible copy. */}
+        {helpText && <HelpIcon text={t(helpText)} label={label} />}
         {required && (
           <span className="ml-1.5 text-xs font-semibold text-destructive">
-            required
+            {t('required')}
           </span>
         )}
-        {conditional && <ConditionalPill>{conditional.pill}</ConditionalPill>}
+        {conditional && <ConditionalPill>{t(conditional.pill)}</ConditionalPill>}
       </label>
 
       {children}
@@ -105,19 +117,21 @@ export function FieldSection({
   columns?: 1 | 2;
   children: React.ReactNode;
 }) {
+  const t = useT();
+
   return (
     <section className="mt-4 first:mt-0">
       <div className="mb-2 flex items-center justify-between border-b border-3 border-black pb-1.5">
         <h2 className="flex items-center uppercase font-mono">
           <span className="flex h-6 w-6 items-center justify-center rounded-full text-sm
-          text-black text-[12px]">
+          text-foreground text-[12px]">
             {index}.
           </span>
-          {title}
+          {t(title)}
         </h2>
 
         {meta && (
-          <span className="shrink-0 text-sm font-mono text-zinc-900">
+          <span className="shrink-0 text-sm font-mono text-muted-foreground">
             {meta}
           </span>
         )}
@@ -136,9 +150,13 @@ export function FieldSection({
 
 /** Sub-heading inside a section, e.g. "Professional information" on SCR-001. */
 export function FieldSubSection({ title }: { title: string }) {
+  const t = useT();
   return (
-    <p className="mb-1 mt-2 text-sm  font-sans uppercase text-zinc-800 sm:col-span-2">
-      {title}:
+    <p
+      dir="auto"
+      className="-mb-1 mt-2 text-sm  font-sans uppercase text-muted-foreground sm:col-span-2"
+    >
+      {t(title)}:
     </p>
   );
 }

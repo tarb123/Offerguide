@@ -115,8 +115,8 @@ export default function ModernServices() {
           className="services-swiper !overflow-hidden !pb-14 lg:!overflow-visible"
         >
           {services.map((service) => (
-            <SwiperSlide key={service.name} className="!h-auto max-w-[320px] justify-center">
-              <article className="flex max-h-auto flex-col">
+            <SwiperSlide key={service.name} className="!h-auto">
+              <article className="mx-auto flex w-full max-w-[320px] flex-col">
                 <div className="relative aspect-[3/2] w-full overflow-hidden bg-white/5">
                   <Image
                     src={service.image}

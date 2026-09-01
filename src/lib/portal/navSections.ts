@@ -12,22 +12,21 @@
  * used to hold two hardcoded arrays and render each of them twice, which is how
  * a link ends up in one menu and not the other.
  *
- * The Sprint 2 OfferGuide entry lived in that hardcoded `serviceLinks` array.
- * It is REPLACED by the `offerguide.wizard.use` entry below, not duplicated
- * alongside it.
+ * NO OFFERGUIDE ENTRY, DELIBERATELY. `/offerguide` is still a public route and
+ * still reachable by URL and by direct link; it is simply not advertised in the
+ * header. navSections.test.ts pins its absence, so re-adding it here fails that
+ * test rather than silently changing the menu.
  *
- * WHY `offerguide.wizard.use` GATES A PUBLIC LINK. It reads oddly to gate a
- * link everyone can see, but the alternative — an `always visible` escape hatch
- * — is the thing that erodes. Every entry naming a permission means every new
- * entry has to answer "who is this for?", and the public tier holds
- * `offerguide.wizard.use`, so guests see it. OfferGuide must stay reachable
- * with no account; permissions.test.ts pins that.
+ * WHY `offerguide.wizard.use` GATES PUBLIC LINKS. It reads oddly to gate links
+ * everyone can see, but the alternative — an `always visible` escape hatch — is
+ * the thing that erodes. Every entry naming a permission means every new entry
+ * has to answer "who is this for?", and the public tier holds
+ * `offerguide.wizard.use`, so guests see them.
  */
 
 import {
   BookOpen,
   Calculator,
-  FileText,
   GraduationCap,
   History,
   Layers3,
@@ -76,14 +75,6 @@ export const NAV_SECTIONS: readonly NavEntry[] = [
     href: "/Blogs/",
     icon: BookOpen,
     group: "explore",
-    permission: "offerguide.wizard.use",
-  },
-  {
-    // Replaces the plain Sprint 2 entry. Must remain reachable with no account.
-    label: "Offer Guide",
-    href: "/offerguide",
-    icon: FileText,
-    group: "services",
     permission: "offerguide.wizard.use",
   },
   {

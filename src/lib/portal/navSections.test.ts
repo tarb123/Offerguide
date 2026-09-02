@@ -30,6 +30,7 @@ describe("three tiers render correctly", () => {
         "Blogs",
         "Khudi Assessment",
         "Offer Calculator",
+        "Offer Guide",
         "Professional Growth Program",
       ].sort()
     );
@@ -90,11 +91,17 @@ describe("the declaration itself", () => {
     }
   });
 
-  it("does not advertise OfferGuide in the header", () => {
+  it("keeps OfferGuide reachable with no account", () => {
+    const offerguide = NAV_SECTIONS.find((e) => e.href === "/offerguide" && e.group === "services");
+    expect(offerguide, "the OfferGuide entry point is missing").toBeDefined();
+    expect(permissionsFor(guest).has(offerguide!.permission)).toBe(true);
+  });
+
+  it("declares the Sprint 2 OfferGuide entry once, not twice", () => {
     const inServices = NAV_SECTIONS.filter(
       (e) => e.href === "/offerguide" && e.group === "services"
     );
-    expect(inServices, "OfferGuide was re-added to the nav").toHaveLength(0);
+    expect(inServices).toHaveLength(1);
   });
 
   it("points the admin tier at /api-docs", () => {

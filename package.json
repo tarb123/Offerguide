@@ -11,7 +11,9 @@
     "build": "next build",
     "vercel-build": "prisma generate && node scripts/migrate-prod.mjs && next build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "admins": "node scripts/migrate-roles.mjs --list",
+    "roles": "node scripts/migrate-roles.mjs"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.0.0",

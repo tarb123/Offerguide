@@ -55,7 +55,7 @@ import {
   type ReactNode,
 } from "react";
 import { PUBLIC_PERMISSION_SET, type Permission } from "./permissions";
-import { logoutPortalSession } from "./session";
+import { logoutPortalSession, onAuthChange } from "./session";
 
 export type PortalIdentity = {
   authenticated: boolean;
@@ -132,10 +132,45 @@ export function AuthProvider({
   }, []);
 
   useEffect(() => {
-    if (initialIdentity) return;
     const controller = new AbortController();
-    void load(controller.signal);
-    return () => controller.abort();
+    if (!initialIdentity) void load(controller.signal);
+
+    // ---------------------------------------------------------------------
+    // Why this provider revalidates rather than checking once.
+    //
+    // It is mounted in the root layout, so it NEVER unmounts — a client-side
+    // navigation after login does not remount it. Checking only on mount meant
+    // logging in as an admin left the nav on the tier resolved when the tab
+    // first opened, until a hard refresh. That was the reported bug.
+    //
+    // Three signals, cheapest first:
+    //   1. An explicit announcement from login/logout — instant, same tab and
+    //      across tabs.
+    //   2. The tab regaining focus — catches a login completed elsewhere, or a
+    //      session that expired while the tab sat in the background.
+    //   3. refresh(), for callers that want to force it.
+    // ---------------------------------------------------------------------
+    const unsubscribe = onAuthChange(() => void load());
+
+    // Throttled: alt-tabbing should not fire a request per switch. An explicit
+    // announcement is never throttled, so login still updates instantly.
+    let lastFocusCheck = Date.now();
+    const revalidateOnFocus = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - lastFocusCheck < 10_000) return;
+      lastFocusCheck = Date.now();
+      void load();
+    };
+
+    window.addEventListener("focus", revalidateOnFocus);
+    document.addEventListener("visibilitychange", revalidateOnFocus);
+
+    return () => {
+      controller.abort();
+      unsubscribe();
+      window.removeEventListener("focus", revalidateOnFocus);
+      document.removeEventListener("visibilitychange", revalidateOnFocus);
+    };
   }, [initialIdentity, load]);
 
   const logout = useCallback(async () => {

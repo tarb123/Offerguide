@@ -8,6 +8,7 @@ import { CredentialResponse } from "@react-oauth/google";
 import { toast, ToastContainer } from "react-toastify";
 import GoogleLoginButton from "../components/GoogleLoginButton";
 import { storePortalToken } from "@/lib/portal/session";
+import { useAuth } from "@/lib/portal/AuthProvider";
 import "react-toastify/dist/ReactToastify.css";
 
 type AuthMode = "login" | "signup" | "forgot" | "reset" | "google";
@@ -32,13 +33,8 @@ type AxiosErrorResponse = {
   message?: string;
 };
 
-type PGPStudent = {
-  name: string;
-  email: string;
-  education: string;
-  discipline: string;
-  programs: string[];
-};
+// PGPStudent went with the `pgp_students` lookup that routeUserAfterLogin used
+// to gate navigation on. Nothing else referenced it.
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   const axiosError = error as AxiosErrorResponse;
@@ -69,24 +65,37 @@ export default function AuthPage() {
 
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const { refresh } = useAuth();
 
-  const routeUserAfterLogin = (email: string) => {
+  /**
+   * Post-login housekeeping.
+   *
+   * Sprint 9 fixed two things here:
+   *
+   * 1. It now ALWAYS navigates away. It used to push "/" only when the email
+   *    appeared in the `pgp_students` localStorage array, so most people stayed
+   *    sitting on the login form after a successful login with no sign anything
+   *    had happened.
+   * 2. It refreshes AuthProvider first. The provider lives in the root layout
+   *    and never unmounts, so a client-side navigation does not make it re-read
+   *    the session — without this, logging in as an admin left the nav showing
+   *    the guest tier until a hard refresh.
+   *
+   * Order matters: refresh before navigating, so the destination renders with
+   * the correct tier rather than correcting itself a moment later.
+   */
+  const routeUserAfterLogin = async (email: string) => {
     const normalizedEmail = email.trim().toLowerCase();
 
     localStorage.setItem("pgp_session_email", normalizedEmail);
     localStorage.setItem("pgp_active_student_email", normalizedEmail);
 
-    const savedStudents = JSON.parse(
-      localStorage.getItem("pgp_students") || "[]"
-    ) as PGPStudent[];
+    await refresh();
 
-    const isRegisteredInPGP = savedStudents.some(
-      (student) => student.email?.toLowerCase() === normalizedEmail
-    );
-
-    if (isRegisteredInPGP) {
-      router.push("/");
-    }
+    router.push("/");
+    // The destination is a client component tree; refresh() has already updated
+    // the provider, but this also re-runs any server components on the way.
+    router.refresh();
   };
 
   const handleLoginChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -123,7 +132,7 @@ const response = await axios.post<AuthResponse>("/api/auth", {
       if (response.data.token) {
         storePortalToken(response.data.token);
         setMessage("Login successful!");
-        routeUserAfterLogin(payload.email);
+        await routeUserAfterLogin(payload.email);
       } else {
         setMessage(response.data.message || "Login failed");
       }
@@ -136,15 +145,23 @@ const response = await axios.post<AuthResponse>("/api/auth", {
     e.preventDefault();
 
     try {
-await axios.post("/api/auth", {
-  action: "signup",
-  name: signupForm.name.trim(),
-  email: signupForm.email.trim().toLowerCase(),
-  password: signupForm.password,
-});
+      const email = signupForm.email.trim().toLowerCase();
+      const response = await axios.post<AuthResponse>("/api/auth", {
+        action: "signup",
+        name: signupForm.name.trim(),
+        email,
+        password: signupForm.password,
+      });
 
       setMessage("Signup successful!");
-      router.push("/pgp");
+
+      // Sprint 9 fixed two things here. Signup never stored its token, so a new
+      // account was logged in on the server (the cookie is set on the signup
+      // response) but not on the client. And it navigated to "/pgp", which is
+      // not a route — the pgp entry point is "/pgp-access" — so a successful
+      // signup landed on a 404.
+      if (response.data.token) storePortalToken(response.data.token);
+      await routeUserAfterLogin(email);
     } catch (error: unknown) {
       setMessage(getErrorMessage(error, "Signup failed"));
     }
@@ -168,9 +185,10 @@ const response = await axios.post<AuthResponse>("/api/auth", {
         storePortalToken(response.data.token);
 
         if (response.data.email) {
-          routeUserAfterLogin(response.data.email);
+          await routeUserAfterLogin(response.data.email);
         } else {
-          router.push("/pgp");
+          await refresh();
+          router.push("/");
         }
       } else {
         setMessage(response.data.message || "Google authentication failed");

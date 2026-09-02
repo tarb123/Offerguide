@@ -30,11 +30,19 @@
  * running it is a deliberate operational act.
  *
  * USAGE
+ *   node scripts/migrate-roles.mjs --list                   WHO ARE THE ADMINS?
+ *   node scripts/migrate-roles.mjs --emails=a@x.com         add an admin
+ *   node scripts/migrate-roles.mjs --demote=a@x.com         remove an admin
  *   node scripts/migrate-roles.mjs --check                  inspect, change nothing
  *   node scripts/migrate-roles.mjs                          add column + baseline
- *   node scripts/migrate-roles.mjs --emails=a@x.com,b@y.com  … and promote those
  *   node scripts/migrate-roles.mjs --rollback               drop the column
- *   node scripts/migrate-roles.mjs --prod                   target DB_PROD_* instead of DB_*
+ *
+ * Add --prod to any of the above to target the production database (DB_PROD_*)
+ * instead of local (DB_*). Add --check to preview a promotion or demotion.
+ *
+ * `--list` is the ONLY place to see who has admin access. There is no page for
+ * it and no API that exposes it, deliberately: roles are operational state, not
+ * application data.
  *
  * The admin list may also come from OFFERGUIDE_ADMIN_EMAILS (comma-separated).
  * It is never hardcoded here and never committed.
@@ -60,6 +68,8 @@ const valueOf = (name) => {
 const CHECK_ONLY = has("--check");
 const ROLLBACK = has("--rollback");
 const PROD = has("--prod");
+const LIST = has("--list");
+const FORCE = has("--force");
 
 /* ------------------------------------------------------------------ env */
 
@@ -111,6 +121,11 @@ const adminEmails = (valueOf("emails") ?? process.env.OFFERGUIDE_ADMIN_EMAILS ??
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
+const demoteEmails = (valueOf("demote") ?? "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
 /* --------------------------------------------------------------- helpers */
 
 async function columns(conn) {
@@ -156,6 +171,99 @@ try {
     log(`current roles: ${byRole.map((r) => `${r.role || "(empty)"}=${r.n}`).join(", ") || "none"}`);
   } else {
     log(`column \`${COLUMN}\`: not present`);
+  }
+
+  /* -------------------------------------------------------------- list */
+
+  // `--list` is the answer to "who are the admins?". There is no page that
+  // shows this and deliberately no API that exposes it: roles are operational
+  // state, not application data. This is the only place to look.
+  if (LIST) {
+    if (!roleColumn) {
+      log(`column \`${COLUMN}\` does not exist yet — run this script with no flags first.`);
+      process.exit(0);
+    }
+
+    const [rows] = await conn.query(
+      `SELECT \`${primaryKey}\` AS id, name, email, \`${COLUMN}\` AS role
+         FROM \`${TABLE}\`
+        ORDER BY (\`${COLUMN}\` = '${ADMIN_ROLE}') DESC, \`${primaryKey}\``
+    );
+
+    const admins = rows.filter((r) => r.role === ADMIN_ROLE);
+
+    console.log("");
+    console.log(`  ADMINS (${admins.length})`);
+    console.log("  " + "-".repeat(58));
+    if (admins.length === 0) {
+      console.log("  (none — /admin/config/* is unreachable by anyone)");
+    } else {
+      for (const a of admins) console.log(`  #${String(a.id).padEnd(5)} ${a.email}`);
+    }
+
+    const users = rows.filter((r) => r.role !== ADMIN_ROLE);
+    console.log("");
+    console.log(`  OTHER ACCOUNTS (${users.length})`);
+    console.log("  " + "-".repeat(58));
+    for (const u of users) {
+      console.log(`  #${String(u.id).padEnd(5)} ${String(u.email).padEnd(38)} ${u.role}`);
+    }
+    console.log("");
+    log(`total ${rows.length} account(s): ${admins.length} admin, ${users.length} user`);
+    process.exit(0);
+  }
+
+  /* ------------------------------------------------------------ demote */
+
+  // Removing an admin. Separate flag from --emails on purpose: promoting and
+  // demoting in one command makes it too easy to mistype one address and both
+  // grant and revoke the wrong access in a single run.
+  if (demoteEmails.length > 0) {
+    if (!roleColumn) {
+      log(`column \`${COLUMN}\` does not exist yet — nothing to demote.`);
+      process.exit(0);
+    }
+
+    const [currentAdmins] = await conn.query(
+      `SELECT email FROM \`${TABLE}\` WHERE \`${COLUMN}\` = ?`,
+      [ADMIN_ROLE]
+    );
+    const adminSet = new Set(currentAdmins.map((r) => String(r.email).toLowerCase()));
+    const actuallyAdmin = demoteEmails.filter((e) => adminSet.has(e));
+
+    // Locking everyone out of the admin API is recoverable only by running this
+    // script again — which is fine on a laptop and a genuine incident on
+    // production at 2am. Refuse by default; --force is the deliberate override.
+    if (actuallyAdmin.length >= adminSet.size && adminSet.size > 0 && !FORCE) {
+      console.error(
+        `[migrate-roles] REFUSED: that would remove the last admin (${adminSet.size} exist, ${actuallyAdmin.length} named).`
+      );
+      console.error(`[migrate-roles] Promote a replacement first, or pass --force if you mean it.`);
+      process.exit(1);
+    }
+
+    for (const email of demoteEmails) {
+      if (!adminSet.has(email)) {
+        console.warn(`[migrate-roles] WARNING: ${email} is not an admin — nothing to do.`);
+        continue;
+      }
+      if (CHECK_ONLY) {
+        log(`--check: would demote ${email} to ${DEFAULT_ROLE}.`);
+      } else {
+        await conn.query(
+          `UPDATE \`${TABLE}\` SET \`${COLUMN}\` = ? WHERE LOWER(email) = ?`,
+          [DEFAULT_ROLE, email]
+        );
+        log(`demoted ${email} to ${DEFAULT_ROLE}.`);
+      }
+    }
+
+    const [[{ admins }]] = await conn.query(
+      `SELECT COUNT(*) AS admins FROM \`${TABLE}\` WHERE \`${COLUMN}\` = ?`,
+      [ADMIN_ROLE]
+    );
+    log(`admins remaining: ${admins}`);
+    process.exit(0);
   }
 
   /* ---------------------------------------------------------- rollback */

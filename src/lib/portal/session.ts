@@ -19,6 +19,48 @@
 
 export const PORTAL_TOKEN_STORAGE_KEY = "authToken";
 
+/**
+ * Broadcast channel name for "the session changed". AuthProvider listens; login
+ * and logout announce.
+ *
+ * This exists because the provider lives in the root layout and therefore never
+ * unmounts. A client-side navigation after login does not remount it, so
+ * without an explicit signal it would keep showing the tier it resolved when
+ * the tab first opened — which is exactly the bug where you log in as admin and
+ * the nav stays on the guest tier until a hard refresh.
+ */
+const AUTH_CHANNEL = "portal-auth";
+
+/**
+ * Tells every AuthProvider in every open tab to re-read the session.
+ *
+ * Cross-tab matters: logging out in one tab must not leave another tab showing
+ * admin links that no longer work. Falls back silently where BroadcastChannel
+ * is unavailable — the provider also revalidates on focus, which covers it.
+ */
+export function announceAuthChange(): void {
+  try {
+    if (typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel(AUTH_CHANNEL);
+    channel.postMessage("changed");
+    channel.close();
+  } catch {
+    /* unsupported or blocked — focus revalidation is the fallback */
+  }
+}
+
+/** Subscribes to session-changed announcements. Returns an unsubscribe function. */
+export function onAuthChange(handler: () => void): () => void {
+  try {
+    if (typeof BroadcastChannel === "undefined") return () => {};
+    const channel = new BroadcastChannel(AUTH_CHANNEL);
+    channel.onmessage = () => handler();
+    return () => channel.close();
+  } catch {
+    return () => {};
+  }
+}
+
 /** The key GoogleLoginButton used to write via a dead code path. Cleared on logout so no stale copy survives the upgrade. */
 const LEGACY_TOKEN_STORAGE_KEY = "token";
 
@@ -38,6 +80,9 @@ export function storePortalToken(token: string): void {
   } catch {
     /* quota or blocked storage — the cookie is the authoritative copy anyway */
   }
+  // The server already set the httpOnly cookie on the response that carried
+  // this token; announcing here is what makes the nav update without a reload.
+  announceAuthChange();
 }
 
 export function readPortalToken(): string | null {
@@ -75,4 +120,8 @@ export async function logoutPortalSession(): Promise<void> {
   } catch {
     /* nothing more we can do client-side */
   }
+
+  // Other tabs must drop back to the guest tier too, or they keep showing admin
+  // links for a session that no longer exists.
+  announceAuthChange();
 }

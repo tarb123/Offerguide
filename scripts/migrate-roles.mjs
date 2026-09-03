@@ -137,9 +137,78 @@ function log(...parts) {
   console.log("[migrate-roles]", ...parts);
 }
 
+/**
+ * The column schema.prisma expects `UserInfo`'s primary key to be, read from the
+ * schema rather than hardcoded.
+ *
+ * Hardcoding it is what let this drift in the first place: the script asserted
+ * `user_id` (what local had), production turned out to use `id`, and the check
+ * would have kept warning about the wrong column after the schema was corrected.
+ * Reading the real @map means this comparison can never go stale.
+ */
+function schemaPrimaryKey() {
+  try {
+    const schema = fs.readFileSync(path.join(ROOT, "prisma", "schema.prisma"), "utf8");
+    const model = schema.match(/model\s+UserInfo\s*\{([\s\S]*?)\n\}/);
+    if (!model) return null;
+    const idLine = model[1].split("\n").find((l) => /@id\b/.test(l));
+    return idLine?.match(/@map\("([^"]+)"\)/)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /* ------------------------------------------------------------------ main */
 
-const conn = await mysql.createConnection(conf);
+/**
+ * Connecting is its own step with its own error handling, because the failures
+ * here are environmental rather than logical and each one has a different fix.
+ * Left unhandled, mysql2 throws before the try block below and Node prints a
+ * raw stack trace — which tells an operator running this against production at
+ * deploy time approximately nothing.
+ */
+async function connect() {
+  try {
+    return await mysql.createConnection(conf);
+  } catch (error) {
+    const target = `${conf.host}:${conf.port}`;
+    console.error(`[migrate-roles] Could not connect to ${PROD ? "PRODUCTION" : "local"} database at ${target}.`);
+
+    switch (error.code) {
+      case "EAI_AGAIN":
+        console.error(`[migrate-roles] DNS lookup for ${conf.host} failed temporarily.`);
+        console.error(`[migrate-roles] This is usually a transient network blip — WAIT A MOMENT AND RUN IT AGAIN.`);
+        console.error(`[migrate-roles] If it keeps failing, check your connection, VPN, or DNS.`);
+        break;
+      case "ENOTFOUND":
+        console.error(`[migrate-roles] The host ${conf.host} does not resolve at all.`);
+        console.error(`[migrate-roles] Check DB_${PROD ? "PROD_" : ""}HOST in .env.local.`);
+        break;
+      case "ETIMEDOUT":
+      case "ECONNREFUSED":
+        console.error(`[migrate-roles] Reached the network but nothing accepted the connection.`);
+        console.error(
+          PROD
+            ? `[migrate-roles] TiDB Cloud restricts by IP — check your current address is allowed.`
+            : `[migrate-roles] Is your local MySQL running?`
+        );
+        break;
+      case "ER_ACCESS_DENIED_ERROR":
+        console.error(`[migrate-roles] Credentials rejected. Check DB_${PROD ? "PROD_" : ""}USER / _PASS.`);
+        break;
+      case "ER_BAD_DB_ERROR":
+        console.error(`[migrate-roles] Database "${conf.database}" does not exist on that host.`);
+        break;
+      default:
+        console.error(`[migrate-roles] ${error.code ?? "error"}: ${error.message}`);
+    }
+
+    console.error(`[migrate-roles] Nothing was changed.`);
+    process.exit(1);
+  }
+}
+
+const conn = await connect();
 let exitCode = 0;
 
 try {
@@ -150,13 +219,17 @@ try {
   const primaryKey = cols.find((c) => c.Key === "PRI")?.Field ?? "(none)";
   const roleColumn = cols.find((c) => c.Field === COLUMN);
 
-  // The plan's §0.2 open question, answered by whichever database this is
-  // pointed at. schema.prisma maps UserInfo.userInfoId to `user_id`; if this
-  // says otherwise, that @map is the one line that has to change.
-  log(`primary key: ${primaryKey}`);
-  if (primaryKey !== "user_id") {
+  // Local and production genuinely diverged here — local had `user_id`, TiDB has
+  // `id` — and a mismatch is not cosmetic: Prisma would select a column that does
+  // not exist, every role read would throw, and every admin would be denied.
+  const expectedKey = schemaPrimaryKey();
+  log(`primary key: ${primaryKey}${expectedKey ? ` (schema.prisma expects \`${expectedKey}\`)` : ""}`);
+  if (expectedKey && primaryKey !== expectedKey) {
     console.warn(
-      `[migrate-roles] WARNING: schema.prisma maps UserInfo to \`user_id\`, but this database's primary key is \`${primaryKey}\`. Update the @map before relying on Prisma reads.`
+      `[migrate-roles] WARNING: schema.prisma maps UserInfo's id to \`${expectedKey}\`, but this database's primary key is \`${primaryKey}\`.`
+    );
+    console.warn(
+      `[migrate-roles] Prisma role reads WILL FAIL here, which denies every admin. Align the column or the @map before deploying.`
     );
   }
   log(`columns: ${names.join(", ")}`);

@@ -542,7 +542,7 @@ Handoff §8, corrected against Part 0. Additions marked **[+]**; corrections mar
 **[~]**.
 
 **Phase 0 — session repair [+]** — *implemented; see §5 for what was verified*
-- [ ] **[+]** Production `sanjeedausers` columns confirmed; any local/production divergence resolved. **← still open.** `userIdOf()` reads `user_id ?? id` so login works either way, but the fallback should be collapsed once production is known.
+- [x] **[+]** Production `sanjeedausers` columns confirmed (2026-09-02) and the divergence resolved — production's key is **`id`**, local was renamed to match, `schema.prisma` corrected. See §6.6. `userIdOf()` keeps reading `user_id ?? id`, which is what kept login working on both while they differed.
 - [x] **[+]** Login- and Google-issued JWTs carry a positive-integer `id`; a row with no readable key fails loudly instead of minting a claimless token.
 - [x] **[+]** httpOnly `portalToken` cookie issued on login, signup and Google login; `identity.ts` reads it after the bearer header and before the guest cookie.
 - [x] **[+]** Logout exists (`POST /api/auth`, `action: "logout"`), clears the cookie and both `localStorage` keys, and leaves the guest cookie intact.
@@ -775,12 +775,55 @@ was scanning thousands of generated files with no class names in them, so this i
 a straight build-time win. **This bug predates Sprint 9** — anyone who ran
 `prisma generate` with the dev server up would have hit it.
 
-### 6.6 Open
+### 6.6 RESOLVED — production's primary key was `id`, and local was wrong
 
-- **Production `sanjeedausers` columns still unverified.** `node scripts/migrate-roles.mjs --prod --check`
-  now answers this and writes nothing — it prints the primary key and warns if it is not
-  `user_id`, which is what `schema.prisma`'s `@map` assumes. Run it before the first
-  production role migration.
+**§0.2's open question, answered 2026-09-02**, by running
+`node scripts/migrate-roles.mjs --prod --check` against TiDB:
+
+```
+[migrate-roles] target: PRODUCTION — SanjeedaDB at gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000
+[migrate-roles] primary key: id
+[migrate-roles] columns: id, name, email, password, google_id, reset_code, reset_code_expiry, created_at
+[migrate-roles] accounts: 7
+```
+
+The databases had genuinely diverged:
+
+| | local | production |
+|---|---|---|
+| Primary key | `user_id` | **`id`** |
+| `created_at` | absent | present |
+
+**This would have broken admin in production entirely.** `schema.prisma` mapped
+`UserInfo.userInfoId` to `user_id`, so Prisma would have selected a column that does not
+exist on TiDB. Every role read throws, `loadPermissionIdentity` catches and returns null,
+and `hasPermission` then treats every caller as the public tier — so **every admin would
+have been denied**. Fail-closed, so not a security hole, but the admin API would have been
+unusable and the cause would have looked like a permissions bug rather than a column name.
+
+**Resolution: local was aligned to production, not the reverse.** Production is the source
+of truth — 7 live accounts — and renaming its primary key would be riskier and pointless.
+
+1. `ALTER TABLE sanjeedausers CHANGE COLUMN user_id id INT NOT NULL AUTO_INCREMENT` on
+   local. All 5 rows kept their ids and roles; no inbound foreign keys existed.
+2. `schema.prisma` now maps `@id @map("id")`, with the verification date recorded.
+3. `prisma generate`; `migrate diff` reports an empty migration.
+4. Prisma role reads verified working against the renamed column.
+
+`userIdOf()` in [`users.ts`](src/lib/portal/users.ts) reads `user_id ?? id`, which is why
+**login kept working on both databases throughout** — that tolerance was written into
+Phase 0 precisely because this divergence was suspected but unconfirmed.
+
+The staleness check that missed this is also fixed: `migrate-roles.mjs` used to hardcode
+`user_id` as the expected key. It now parses the real `@map` out of `schema.prisma`, so
+the comparison cannot go stale after the schema is corrected.
+
+### 6.7 Open
+
+- **Production still has no `role` column and no admin.** `--check` confirms the migration
+  is ready to run; nothing has been written there yet.
+- **`created_at` exists in production but not locally.** Harmless — the table is external
+  and `UserInfo` does not model it — but the two databases are still not identical.
 - **The local database now has one admin** (`conductivityhrconsultant@gmail.com`), so
   Phase 3's gate has something to test against. Production has none until the script is
   run there; until then `/admin/config/*` is unreachable by anyone, which the script

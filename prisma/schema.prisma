@@ -137,13 +137,25 @@ model CandidateProfile {
 // coupling by another route — and OfferGuide's guest rows carry a null there by
 // design, so the constraint would buy nothing.
 //
-// PRIMARY KEY: `user_id` is what the local database has. Production has not been
-// verified (see OFFERGUIDE_SPRINT9_PLAN_AND_CHECKLIST.md §0.2). If production
-// turns out to name it `id`, this @map is the one line that changes;
-// `node scripts/migrate-roles.mjs --check` reports the real column rather than
-// letting it fail at runtime.
+// PRIMARY KEY: `id`. VERIFIED against production 2026-09-02 via
+// `node scripts/migrate-roles.mjs --prod --check`.
+//
+// This was `user_id` until that check ran, because that is what the local
+// database had — and the two had genuinely diverged. Production is the source of
+// truth (7 live accounts), so LOCAL was renamed to match, not the reverse.
+//
+// Left unfixed this would have broken admin in production entirely: Prisma would
+// have selected a `user_id` column that does not exist there, every role read
+// would have thrown, loadPermissionIdentity would have returned null, and every
+// admin would have been denied. Fail-closed, so not a security hole — but the
+// admin API would have been unusable.
+//
+// `sanjeedausers` also carries columns this model does not name (password,
+// google_id, reset codes, and `created_at` in production only). That is fine and
+// intended: the table is declared external in prisma.config.ts, so Prisma reads
+// the named columns and stays out of its DDL.
 model UserInfo {
-  userInfoId Int    @id @map("user_id")
+  userInfoId Int    @id @map("id")
   name       String
   email      String
 

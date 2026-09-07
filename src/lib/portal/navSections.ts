@@ -12,16 +12,38 @@
  * used to hold two hardcoded arrays and render each of them twice, which is how
  * a link ends up in one menu and not the other.
  *
- * The Sprint 2 OfferGuide entry lived in that hardcoded `serviceLinks` array.
- * It is REPLACED by the `offerguide.wizard.use` entry below, not duplicated
- * alongside it.
+ * WHY `offerguide.wizard.use` GATES PUBLIC LINKS. It reads oddly to gate links
+ * everyone can see, but the alternative — an `always visible` escape hatch — is
+ * the thing that erodes. Every entry naming a permission means every new entry
+ * has to answer "who is this for?", and the public tier holds
+ * `offerguide.wizard.use`, so guests see them.
  *
- * WHY `offerguide.wizard.use` GATES A PUBLIC LINK. It reads oddly to gate a
- * link everyone can see, but the alternative — an `always visible` escape hatch
- * — is the thing that erodes. Every entry naming a permission means every new
- * entry has to answer "who is this for?", and the public tier holds
- * `offerguide.wizard.use`, so guests see it. OfferGuide must stay reachable
- * with no account; permissions.test.ts pins that.
+ * ============ THE OFFERGUIDE ENTRY IS PER-DEPLOYMENT ============
+ *
+ * One codebase serves two domains:
+ *
+ *   sanjeeda.io       the main portal — must NOT advertise OfferGuide
+ *   og.sanjeeda.io    the OfferGuide site — must advertise it
+ *
+ * That used to be handled by keeping a whole branch (`v2-no-offerguide-link`)
+ * permanently different by exactly these few lines, which meant every change had
+ * to be merged twice forever and the branches silently drifted. It is now a
+ * build-time flag instead, so the branches can converge:
+ *
+ *   NEXT_PUBLIC_SHOW_OFFERGUIDE=true    advertise it (set on og.sanjeeda.io)
+ *   anything else / unset               hide it      (the default)
+ *
+ * DEFAULTING TO HIDDEN IS DELIBERATE. Forgetting the flag on og.sanjeeda.io
+ * costs a missing link that anyone using the site notices immediately.
+ * Forgetting it the other way would put the tab back on the main portal — the
+ * exact thing this is here to prevent — and nobody would notice until someone
+ * looked. The failure modes are not symmetric, so the default guards the one
+ * that matters.
+ *
+ * This only controls whether the header ADVERTISES OfferGuide. `/offerguide`
+ * stays a public route on both domains, reachable by URL and by direct link.
+ *
+ * ================================================================
  */
 
 import {
@@ -48,8 +70,22 @@ export type NavEntry = {
   permission: Permission;
 };
 
-export const NAV_SECTIONS: readonly NavEntry[] = [
-  // ---- Public tier — visible to guests, and to everyone above them. --------
+/**
+ * Whether this deployment advertises OfferGuide in the header.
+ *
+ * Takes the flag as a parameter so both states are testable — reading
+ * `process.env` directly at module scope would pin the tests to whatever the
+ * machine running them happens to have set. The literal member expression is
+ * kept in the default so Next still inlines it at build time.
+ */
+export function offerGuideAdvertised(
+  flag: string | undefined = process.env.NEXT_PUBLIC_SHOW_OFFERGUIDE
+): boolean {
+  return flag === "true";
+}
+
+/** Public tier — visible to guests, and to everyone above them. */
+const EXPLORE_SECTIONS: readonly NavEntry[] = [
   {
     label: "Khudi Assessment",
     href: "/khudiassessment",
@@ -78,14 +114,23 @@ export const NAV_SECTIONS: readonly NavEntry[] = [
     group: "explore",
     permission: "offerguide.wizard.use",
   },
-  {
-    // Replaces the plain Sprint 2 entry. Must remain reachable with no account.
-    label: "Offer Guide",
-    href: "/offerguide",
-    icon: FileText,
-    group: "services",
-    permission: "offerguide.wizard.use",
-  },
+];
+
+/**
+ * The OfferGuide entry point. Included only where the flag says so — see the
+ * per-deployment note at the top of this file. Public, so a guest can reach the
+ * wizard with no account wherever it IS advertised.
+ */
+const OFFERGUIDE_ENTRY: NavEntry = {
+  label: "Offer Guide",
+  href: "/offerguide",
+  icon: FileText,
+  group: "services",
+  permission: "offerguide.wizard.use",
+};
+
+/** Services shown on every deployment. */
+const SERVICE_SECTIONS: readonly NavEntry[] = [
   {
     label: "Professional Growth Program",
     href: "/pgp-access",
@@ -93,25 +138,25 @@ export const NAV_SECTIONS: readonly NavEntry[] = [
     group: "services",
     permission: "offerguide.wizard.use",
   },
+];
 
-  // ---- Authenticated tier — registered accounts and admins. ---------------
+const ACCOUNT_SECTIONS: readonly NavEntry[] = [
   {
-    // The screen behind this does not exist yet (§7 backlog). The entry is
-    // declared so the tier is real and exercised rather than theoretical, and
-    // it points at the wizard, which lists a returning candidate's sessions.
+    // Authenticated tier. The screen behind this does not exist yet (§7
+    // backlog); it points at the wizard, which lists a returning candidate's
+    // sessions. Declared so the tier is real and exercised rather than
+    // theoretical.
     label: "My Evaluations",
     href: "/offerguide",
     icon: History,
     group: "account",
     permission: "offerguide.history.view",
   },
-
-  // ---- Admin tier — admins only. ------------------------------------------
   {
-    // The admin config API has no UI by design, and the admin dashboard is a
-    // future effort. /api-docs is the tier's only entry for now; adding more is
-    // a line here. NOTE: the Swagger page itself is PUBLIC — hiding this link
-    // is not access control, and the routes it documents are gated server-side.
+    // Admin tier. The admin config API has no UI by design, and the admin
+    // dashboard is a future effort, so /api-docs is the tier's only entry for
+    // now. NOTE: the Swagger page itself is PUBLIC — hiding this link is not
+    // access control, and the routes it documents are gated server-side.
     label: "API Contract",
     href: "/api-docs",
     icon: Terminal,
@@ -119,6 +164,24 @@ export const NAV_SECTIONS: readonly NavEntry[] = [
     permission: "portal.admin.access",
   },
 ];
+
+/**
+ * Builds the declaration for a given deployment.
+ *
+ * OfferGuide is spliced in BEFORE the other services rather than appended, so
+ * the Services menu reads in the same order it always has — `navEntriesInGroup`
+ * preserves this order, and appending would silently put OfferGuide last.
+ */
+export function buildNavSections(showOfferGuide: boolean): readonly NavEntry[] {
+  return [
+    ...EXPLORE_SECTIONS,
+    ...(showOfferGuide ? [OFFERGUIDE_ENTRY] : []),
+    ...SERVICE_SECTIONS,
+    ...ACCOUNT_SECTIONS,
+  ];
+}
+
+export const NAV_SECTIONS: readonly NavEntry[] = buildNavSections(offerGuideAdvertised());
 
 export function navEntriesInGroup(
   entries: readonly NavEntry[],

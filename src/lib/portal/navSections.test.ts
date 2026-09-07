@@ -3,17 +3,34 @@
 // The nav filters a declaration through the caller's permission set, so what is
 // testable here is the declaration and the filter — which is the whole of the
 // logic. The DoD's criteria map onto these almost one-for-one.
+//
+// The tier tests run against the MAIN PORTAL shape (OfferGuide not advertised),
+// because that is the deployment where a wrong entry does real damage. The
+// per-deployment block at the bottom covers both shapes explicitly.
 
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { NAV_SECTIONS, navEntriesInGroup, type NavEntry } from "./navSections";
+import {
+  buildNavSections,
+  navEntriesInGroup,
+  offerGuideAdvertised,
+  type NavEntry,
+} from "./navSections";
 import { PERMISSIONS, permissionsFor, type Permission } from "./permissions";
 
+/** The main portal: sanjeeda.io. */
+const PORTAL_SECTIONS = buildNavSections(false);
+/** The OfferGuide site: og.sanjeeda.io. */
+const OFFERGUIDE_SECTIONS = buildNavSections(true);
+
 /** What usePermissionFilter does, minus React. */
-function visibleTo(identity: { userInfoId: number; role: string } | null): NavEntry[] {
+function visibleTo(
+  identity: { userInfoId: number; role: string } | null,
+  sections: readonly NavEntry[] = PORTAL_SECTIONS
+): NavEntry[] {
   const held = permissionsFor(identity);
-  return NAV_SECTIONS.filter((entry) => held.has(entry.permission));
+  return sections.filter((entry) => held.has(entry.permission));
 }
 
 const guest = null;
@@ -30,7 +47,6 @@ describe("three tiers render correctly", () => {
         "Blogs",
         "Khudi Assessment",
         "Offer Calculator",
-        "Offer Guide",
         "Professional Growth Program",
       ].sort()
     );
@@ -54,12 +70,14 @@ describe("three tiers render correctly", () => {
   });
 
   it("the tiers strictly nest — guest ⊆ user ⊆ admin", () => {
-    const g = new Set(labels(visibleTo(guest)));
-    const u = new Set(labels(visibleTo(user)));
-    const a = new Set(labels(visibleTo(admin)));
+    for (const sections of [PORTAL_SECTIONS, OFFERGUIDE_SECTIONS]) {
+      const g = new Set(labels(visibleTo(guest, sections)));
+      const u = new Set(labels(visibleTo(user, sections)));
+      const a = new Set(labels(visibleTo(admin, sections)));
 
-    for (const label of g) expect(u.has(label), `user lost "${label}"`).toBe(true);
-    for (const label of u) expect(a.has(label), `admin lost "${label}"`).toBe(true);
+      for (const label of g) expect(u.has(label), `user lost "${label}"`).toBe(true);
+      for (const label of u) expect(a.has(label), `admin lost "${label}"`).toBe(true);
+    }
   });
 });
 
@@ -72,8 +90,10 @@ describe("the guest tier never leaks a higher tier", () => {
   // gated above public can appear in it.
   it("contains no entry requiring a permission a guest lacks", () => {
     const guestPermissions = permissionsFor(guest);
-    for (const entry of visibleTo(guest)) {
-      expect(guestPermissions.has(entry.permission), `"${entry.label}" leaked`).toBe(true);
+    for (const sections of [PORTAL_SECTIONS, OFFERGUIDE_SECTIONS]) {
+      for (const entry of visibleTo(guest, sections)) {
+        expect(guestPermissions.has(entry.permission), `"${entry.label}" leaked`).toBe(true);
+      }
     }
   });
 
@@ -84,47 +104,93 @@ describe("the guest tier never leaks a higher tier", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// One codebase, two domains. This block is what lets the branches converge:
+// `v2-no-offerguide-link` existed only to keep these few lines different.
+// ---------------------------------------------------------------------------
+describe("the OfferGuide entry is per-deployment", () => {
+  const offerGuideEntries = (sections: readonly NavEntry[]) =>
+    sections.filter((e) => e.href === "/offerguide" && e.group === "services");
+
+  it("the MAIN PORTAL does not advertise OfferGuide", () => {
+    expect(
+      offerGuideEntries(PORTAL_SECTIONS),
+      "OfferGuide was re-added to the main portal nav"
+    ).toHaveLength(0);
+  });
+
+  it("the OfferGuide site does advertise it, exactly once", () => {
+    expect(offerGuideEntries(OFFERGUIDE_SECTIONS)).toHaveLength(1);
+  });
+
+  it("where advertised, it is reachable with no account", () => {
+    const entry = offerGuideEntries(OFFERGUIDE_SECTIONS)[0];
+    expect(permissionsFor(guest).has(entry.permission)).toBe(true);
+  });
+
+  it("hiding it changes nothing else — the two shapes differ by that entry alone", () => {
+    const difference = labels([...OFFERGUIDE_SECTIONS]).filter(
+      (l) => !labels([...PORTAL_SECTIONS]).includes(l)
+    );
+    expect(difference).toEqual(["Offer Guide"]);
+  });
+
+  it("keeps the Services menu in its original order where advertised", () => {
+    expect(labels(navEntriesInGroup([...OFFERGUIDE_SECTIONS], "services"))).toEqual([
+      "Offer Guide",
+      "Professional Growth Program",
+    ]);
+  });
+
+  // Defaulting to hidden is the safe direction: a forgotten flag on
+  // og.sanjeeda.io loses a link somebody notices at once, while the other way
+  // round would silently restore the tab on the main portal.
+  it.each([
+    ["unset", undefined],
+    ["empty", ""],
+    ["false", "false"],
+    ["a typo", "ture"],
+    ["capitalised", "True"],
+    ["1", "1"],
+  ])("does not advertise OfferGuide when the flag is %s", (_label, flag) => {
+    expect(offerGuideAdvertised(flag)).toBe(false);
+  });
+
+  it('advertises OfferGuide only for exactly "true"', () => {
+    expect(offerGuideAdvertised("true")).toBe(true);
+  });
+});
+
 describe("the declaration itself", () => {
   it("gates every entry on a real permission", () => {
-    for (const entry of NAV_SECTIONS) {
+    for (const entry of OFFERGUIDE_SECTIONS) {
       expect(PERMISSIONS as readonly Permission[]).toContain(entry.permission);
     }
   });
 
-  it("keeps OfferGuide reachable with no account", () => {
-    const offerguide = NAV_SECTIONS.find((e) => e.href === "/offerguide" && e.group === "services");
-    expect(offerguide, "the OfferGuide entry point is missing").toBeDefined();
-    expect(permissionsFor(guest).has(offerguide!.permission)).toBe(true);
-  });
-
-  it("declares the Sprint 2 OfferGuide entry once, not twice", () => {
-    const inServices = NAV_SECTIONS.filter(
-      (e) => e.href === "/offerguide" && e.group === "services"
-    );
-    expect(inServices).toHaveLength(1);
-  });
-
   it("points the admin tier at /api-docs", () => {
-    const adminOnly = NAV_SECTIONS.filter((e) => e.permission === "portal.admin.access");
+    const adminOnly = PORTAL_SECTIONS.filter((e) => e.permission === "portal.admin.access");
     expect(adminOnly.map((e) => e.href)).toEqual(["/api-docs"]);
   });
 
   it("has no duplicate labels", () => {
-    const seen = NAV_SECTIONS.map((e) => e.label);
-    expect(new Set(seen).size).toBe(seen.length);
+    for (const sections of [PORTAL_SECTIONS, OFFERGUIDE_SECTIONS]) {
+      const seen = labels([...sections]);
+      expect(new Set(seen).size).toBe(seen.length);
+    }
   });
 
   it("assigns every entry to a known group", () => {
-    for (const entry of NAV_SECTIONS) {
+    for (const entry of OFFERGUIDE_SECTIONS) {
       expect(["explore", "services", "account"]).toContain(entry.group);
     }
   });
 
   it("navEntriesInGroup partitions without loss", () => {
     const groups = (["explore", "services", "account"] as const).flatMap((g) =>
-      navEntriesInGroup(NAV_SECTIONS, g)
+      navEntriesInGroup([...OFFERGUIDE_SECTIONS], g)
     );
-    expect(groups).toHaveLength(NAV_SECTIONS.length);
+    expect(groups).toHaveLength(OFFERGUIDE_SECTIONS.length);
   });
 });
 
@@ -141,6 +207,14 @@ describe("the nav components hold no hardcoded link list", () => {
   it("ModernHeader no longer declares its own arrays", () => {
     // The Sprint 2 shape: `const mainLinks = [ { label: …, href: … } ]`.
     expect(header).not.toMatch(/const\s+(mainLinks|serviceLinks)\s*=\s*\[/);
+  });
+
+  it("no nav component hardcodes an OfferGuide link past the flag", () => {
+    for (const file of ["ModernHeader.tsx", "ResponsiveNav.tsx", "Header.tsx"]) {
+      const full = path.join(process.cwd(), "src", "app", "components", "nav", file);
+      if (!fs.existsSync(full)) continue;
+      expect(fs.readFileSync(full, "utf8")).not.toMatch(/href=["']\/offerguide["']/);
+    }
   });
 
   it("no nav component branches on a role", () => {

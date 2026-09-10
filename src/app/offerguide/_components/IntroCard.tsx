@@ -1,6 +1,7 @@
 'use client';
 
 import { TOTAL_STEPS, type WizardScreen } from '../_constants/screens';
+import { useT } from '../_i18n/LocaleProvider';
 
 /**
  * Intro card — step badge, screen title, one-line purpose.
@@ -33,16 +34,23 @@ export default function IntroCard({
    */
   variant?: 'card' | 'plain';
 }) {
+  const t = useT();
+
   if (variant === 'plain') {
     return (
       <section className="border-b border-border pb-4 text-left sm:text-center">
         <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
           Step {screen.step} of {TOTAL_STEPS} — {title ?? screen.title}
         </span>
-        <h1 className="mt-2 text-lg font-semibold tracking-tight">{purpose}</h1>
+        <h1 dir="auto" className="mt-2 text-lg font-semibold tracking-tight">
+          {t(purpose)}
+        </h1>
         {requirementNote && (
-          <p className="mx-auto mt-1.5 max-w-xl text-xs leading-relaxed text-muted-foreground">
-            {requirementNote}
+          <p
+            dir="auto"
+            className="mx-auto mt-1.5 max-w-xl text-xs leading-relaxed text-muted-foreground"
+          >
+            {t(requirementNote)}
           </p>
         )}
       </section>
@@ -56,12 +64,20 @@ export default function IntroCard({
         Step {screen.step} of {TOTAL_STEPS}
         <span className="hidden sm:inline">  —  {title ?? screen.title}</span>
       </span>
-      <h1 className="mt-1.5 text-base font-sans font-bold tracking-tight">
-        {purpose}
+      {/* dir="auto" so an untranslated English sentence keeps its punctuation
+          in place inside the RTL wrapper. */}
+      <h1
+        dir="auto"
+        className="mt-1.5 text-base font-sans font-bold tracking-tight"
+      >
+        {t(purpose)}
       </h1>
       {requirementNote && (
-        <p className="mt-1 text-sm font-sans leading-snug text-muted-foreground">
-          {requirementNote}
+        <p
+          dir="auto"
+          className="mt-1 text-sm font-sans leading-snug text-muted-foreground"
+        >
+          {t(requirementNote)}
         </p>
       )}
     </section>

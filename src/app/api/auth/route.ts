@@ -4,6 +4,8 @@ import nodemailer from "nodemailer";
 import { OAuth2Client } from "google-auth-library";
 import { NextRequest, NextResponse } from "next/server";
 import { ResultSetHeader, RowDataPacket } from "mysql2";
+import { clearPortalCookie, setPortalCookie } from "@/lib/offerguide/identity";
+import { userIdOf } from "@/lib/portal/users";
 
 const googleClient = new OAuth2Client(
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
@@ -13,11 +15,14 @@ type AuthAction =
   | "login"
   | "signup"
   | "google-login"
+  | "logout"
   | "send-code"
   | "verify-code";
 
 type UserRow = RowDataPacket & {
-  id: number;
+  /** `sanjeedausers` primary key. Read it with userIdOf() — the column name varies. */
+  user_id?: number;
+  id?: number;
   name: string;
   email: string;
   password?: string | null;
@@ -90,6 +95,10 @@ export async function POST(req: NextRequest) {
       return await handleGoogleLogin(body);
     }
 
+    if (action === "logout") {
+      return handleLogout();
+    }
+
     if (action === "send-code") {
       return await handleSendCode(body);
     }
@@ -151,7 +160,7 @@ async function handleSignup(body: AuthRequestBody) {
     email: normalizedEmail,
   });
 
-  return NextResponse.json(
+  const response = NextResponse.json(
     {
       message: "User registered successfully!",
       token,
@@ -163,6 +172,8 @@ async function handleSignup(body: AuthRequestBody) {
     },
     { status: 201 }
   );
+  setPortalCookie(response, token);
+  return response;
 }
 
 async function handleLogin(body: AuthRequestBody) {
@@ -198,24 +209,39 @@ async function handleLogin(body: AuthRequestBody) {
     );
   }
 
+  const userId = userIdOf(user);
+  if (userId === null) {
+    // A row with no readable primary key would mint a claimless token — the
+    // exact failure this sprint exists to close. Fail loudly instead.
+    console.error("AUTH: sanjeedausers row has no readable id column", {
+      columns: Object.keys(user),
+    });
+    return NextResponse.json(
+      { message: "Login failed" },
+      { status: 500 }
+    );
+  }
+
   const token = createToken({
-    id: user.id,
+    id: userId,
     name: user.name,
     email: user.email,
   });
 
-  return NextResponse.json(
+  const response = NextResponse.json(
     {
       message: "Login successful!",
       token,
       user: {
-        id: user.id,
+        id: userId,
         name: user.name,
         email: user.email,
       },
     },
     { status: 200 }
   );
+  setPortalCookie(response, token);
+  return response;
 }
 
 async function handleGoogleLogin(body: AuthRequestBody) {
@@ -258,7 +284,18 @@ async function handleGoogleLogin(body: AuthRequestBody) {
   if (isExistingUser) {
     const existingUser = rows[0];
 
-    userId = existingUser.id;
+    const existingId = userIdOf(existingUser);
+    if (existingId === null) {
+      console.error("AUTH: sanjeedausers row has no readable id column", {
+        columns: Object.keys(existingUser),
+      });
+      return NextResponse.json(
+        { message: "Google authentication failed" },
+        { status: 500 }
+      );
+    }
+
+    userId = existingId;
     userName = existingUser.name || name;
 
     if (!existingUser.google_id && googleId) {
@@ -282,7 +319,7 @@ async function handleGoogleLogin(body: AuthRequestBody) {
     email,
   });
 
-  return NextResponse.json(
+  const response = NextResponse.json(
     {
       message: isExistingUser
         ? "Login successful!"
@@ -298,6 +335,25 @@ async function handleGoogleLogin(body: AuthRequestBody) {
     },
     { status: 200 }
   );
+  setPortalCookie(response, token);
+  return response;
+}
+
+/**
+ * The portal had no logout at all before Sprint 9 — the JWT was written to
+ * localStorage and simply left there. Clearing the cookie server-side is the
+ * half that matters; the client clears its own localStorage copy alongside.
+ *
+ * Unconditionally 200: logging out when already logged out is the desired end
+ * state, not an error.
+ */
+function handleLogout() {
+  const response = NextResponse.json(
+    { message: "Logged out" },
+    { status: 200 }
+  );
+  clearPortalCookie(response);
+  return response;
 }
 
 async function handleSendCode(body: AuthRequestBody) {

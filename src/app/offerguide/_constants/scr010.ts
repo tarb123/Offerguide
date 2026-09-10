@@ -84,9 +84,16 @@ export const RESULT_CATEGORIES = [
 ] as const;
 
 /**
- * Builds the plain-text download. MVP is a text file, not a PDF (PDF export is
- * explicitly backlogged). Every value written here comes from the score
- * response — this formats, it does not compute.
+ * Builds the plain-text summary.
+ *
+ * No longer the primary download — that is now the PDF in
+ * `lib/offerguide/buildSummaryPdf.ts`. This is kept as the fallback for when the
+ * jsPDF chunk fails to load, and as the readable representation the unit tests
+ * assert against. The two render the same fields from the same payload, so a
+ * change to one belongs in the other.
+ *
+ * Every value written here comes from the score response — this formats, it
+ * does not compute.
  */
 export function buildSummaryText(input: {
   offerLabel: string;

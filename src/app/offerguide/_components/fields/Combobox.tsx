@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronDown, X } from 'lucide-react';
+import { Check, ChevronDown, Plus, X } from 'lucide-react';
+import { useT } from '../../_i18n/LocaleProvider';
 
 export type ComboboxOption = { value: string; label: string };
 
@@ -29,6 +30,7 @@ export default function Combobox({
   loading = false,
   emptyMessage = 'No matches',
   clearable = true,
+  allowCustom = false,
 }: {
   id?: string;
   options: readonly ComboboxOption[];
@@ -40,10 +42,24 @@ export default function Combobox({
   loading?: boolean;
   emptyMessage?: string;
   clearable?: boolean;
+  /**
+   * Offer "use what I typed" when the query matches no option.
+   *
+   * For city, where the stored column is free text and the dropdown only ever
+   * supplied SUGGESTIONS (see the OgGeography model note). No curated list can
+   * cover every town, so without this a candidate from a smaller city simply
+   * cannot answer. Not for country or currency — those are closed ISO sets, and
+   * an invented value there would break scoring and market matching.
+   */
+  allowCustom?: boolean;
 }) {
+  const t = useT();
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState('');
 
+  // Country and currency labels arrive already localised (Intl.DisplayNames
+  // resolves them from the ISO code), so only the free-text fallback — a city
+  // the candidate typed — needs t(), and that returns it unchanged.
   const selectedLabel =
     options.find((o) => o.value === value)?.label ?? value ?? '';
 
@@ -53,8 +69,25 @@ export default function Combobox({
     return options.filter((o) => o.label.toLowerCase().includes(q));
   }, [options, query]);
 
+  const trimmedQuery = query.trim();
+
+  // Only offer the custom row when it would add something — hidden once the
+  // query exactly names an option, so there is never a "Karachi" suggestion
+  // sitting directly beneath the real Karachi.
+  const showCustomOption =
+    allowCustom &&
+    trimmedQuery.length > 0 &&
+    !options.some((o) => o.label.toLowerCase() === trimmedQuery.toLowerCase());
+
   function select(option: ComboboxOption) {
     onChange(option.value);
+    setOpen(false);
+    setQuery('');
+    onBlur?.();
+  }
+
+  function selectCustom() {
+    onChange(trimmedQuery);
     setOpen(false);
     setQuery('');
     onBlur?.();
@@ -92,8 +125,9 @@ export default function Combobox({
           role="combobox"
           aria-expanded={open}
           aria-autocomplete="list"
+          dir="auto"
           value={open ? query : selectedLabel}
-          placeholder={loading ? 'Loading…' : placeholder}
+          placeholder={loading ? t('Loading…') : t(placeholder)}
           disabled={disabled || loading}
           onFocus={() => setOpen(true)}
           onBlur={handleNativeBlur}
@@ -106,9 +140,16 @@ export default function Combobox({
               setOpen(false);
               setQuery('');
             }
-            if (e.key === 'Enter' && open && filtered.length > 0) {
-              e.preventDefault();
-              select(filtered[0]);
+            if (e.key === 'Enter' && open) {
+              // A real match always wins over the typed string, so Enter can
+              // never store free text when the candidate meant the suggestion.
+              if (filtered.length > 0) {
+                e.preventDefault();
+                select(filtered[0]);
+              } else if (showCustomOption) {
+                e.preventDefault();
+                selectCustom();
+              }
             }
           }}
           className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 pr-14 text-xs placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -140,33 +181,56 @@ export default function Combobox({
           role="listbox"
           className="absolute z-40 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-border bg-popover py-1 text-popover-foreground shadow-lg"
         >
-          {filtered.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-muted-foreground">
-              {emptyMessage}
+          {filtered.length === 0 && !showCustomOption ? (
+            <li dir="auto" className="px-3 py-2 text-sm text-muted-foreground">
+              {t(emptyMessage)}
             </li>
           ) : (
-            filtered.map((option) => {
-              const isSelected = option.value === value;
-              return (
-                <li key={option.value}>
+            <>
+              {filtered.map((option) => {
+                const isSelected = option.value === value;
+                return (
+                  <li key={option.value}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      onClick={() => select(option)}
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs hover:bg-muted"
+                    >
+                      {option.label}
+                      {isSelected && (
+                        <Check
+                          className="h-3.5 w-3.5 text-xs"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+
+              {showCustomOption && (
+                <li
+                  className={
+                    filtered.length > 0 ? 'mt-1 border-t border-border pt-1' : ''
+                  }
+                >
                   <button
                     type="button"
                     role="option"
-                    aria-selected={isSelected}
-                    onClick={() => select(option)}
-                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs hover:bg-muted"
+                    aria-selected={false}
+                    onClick={selectCustom}
+                    className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-xs text-primary hover:bg-muted"
                   >
-                    {option.label}
-                    {isSelected && (
-                      <Check
-                        className="h-3.5 w-3.5 text-xs"
-                        aria-hidden="true"
-                      />
-                    )}
+                    <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span dir="auto" className="truncate">
+                      {t('Use')} &ldquo;{trimmedQuery}&rdquo;
+                    </span>
                   </button>
                 </li>
-              );
-            })
+              )}
+            </>
           )}
         </ul>
       )}

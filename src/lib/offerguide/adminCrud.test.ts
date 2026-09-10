@@ -10,7 +10,7 @@
 // UPDATE and never a destructive call, and that is visible in the stub's
 // recorded calls.
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";
 import type { Model } from "mongoose";
 import { createItemHandlers, createCollectionHandlers } from "./adminCrud";
@@ -22,8 +22,16 @@ import { createItemHandlers, createCollectionHandlers } from "./adminCrud";
 // test hermetic in CI.
 vi.mock("@/utils/dbConnect", () => ({ default: async () => undefined }));
 
-const ADMIN_TOKEN = "sprint8-admin-token";
-const ORIGINAL_TOKEN = process.env.OFFERGUIDE_ADMIN_TOKEN;
+// Sprint 9: these handlers are gated by the real adminAuth, which reads the
+// caller's role. The identity headers below are how proxy.ts supplies it,
+// so this test authenticates the same way production does and never reaches a
+// database. (Before Sprint 9 it set an OFFERGUIDE_ADMIN_TOKEN env var, which no
+// longer exists.)
+import {
+  IDENTITY_TYPE_HEADER,
+  USER_INFO_ID_HEADER,
+  USER_ROLE_HEADER,
+} from "@/lib/portal/identityHeaders";
 
 type Call = { op: string; filter?: unknown; update?: unknown };
 
@@ -67,7 +75,11 @@ function stubModel(doc: Record<string, unknown> | null) {
 }
 
 function adminRequest(body?: unknown) {
-  const headers = new Headers({ "x-og-admin-token": ADMIN_TOKEN });
+  const headers = new Headers({
+    [IDENTITY_TYPE_HEADER]: "authenticated",
+    [USER_INFO_ID_HEADER]: "7",
+    [USER_ROLE_HEADER]: "admin",
+  });
   return new NextRequest("http://localhost/api/offerguide/admin/config/questions", {
     method: body ? "PUT" : "GET",
     headers,
@@ -76,13 +88,6 @@ function adminRequest(body?: unknown) {
 }
 
 const context = (params: Record<string, string>) => ({ params: Promise.resolve(params) });
-
-beforeEach(() => {
-  process.env.OFFERGUIDE_ADMIN_TOKEN = ADMIN_TOKEN;
-});
-afterEach(() => {
-  process.env.OFFERGUIDE_ADMIN_TOKEN = ORIGINAL_TOKEN;
-});
 
 describe("admin DELETE is a soft delete", () => {
   it("sets active:false instead of removing the document", async () => {

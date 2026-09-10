@@ -681,6 +681,8 @@ export default function CandidateProfilePage() {
             C.helpText.currentCity
           }
         >
+          {/* allowCustom: the seeded list is major cities only, and the column
+              is free text — a candidate from a smaller town types their own. */}
           <Combobox
             options={cities}
             value={form.currentCity}
@@ -688,12 +690,13 @@ export default function CandidateProfilePage() {
               set('currentCity', v)
             }
             onBlur={onBlur}
+            allowCustom
             disabled={
               !form.currentCountry
             }
             placeholder={
               form.currentCountry
-                ? 'Select a city'
+                ? 'Select or type a city'
                 : 'Select a country first'
             }
           />

@@ -61,7 +61,7 @@
 
   /* PLACEHOLDER dark theme — navy/blue, pending design sign-off (see note above). */
   .dark {
-    --background: 232 77% 10%;        /* brand navy #060b2d */
+    --background: 211 65% 34%;        /* brand blue #003f81 + 12% white = #1f5690 */
     --foreground: 210 40% 96%;
     --card: 231 45% 14%;
     --card-foreground: 210 40% 96%;

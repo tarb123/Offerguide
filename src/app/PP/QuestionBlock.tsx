@@ -132,7 +132,7 @@ function QuestionBlock({
                 ${
                   isSelected
                   ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md scale-[1.03]"
-                  : "bg-whitesmoke text-black hover:bg-blue-100"
+                  : "bg-whitesmoke dark:bg-white/10 text-black dark:text-slate-100 hover:bg-blue-100 dark:hover:bg-white/20"
                 }
               `}
             >
@@ -220,7 +220,7 @@ function QuestionBlock({
                     onChange={() => onAnswerChange(questionId, valueToStore)}
                     className="w-4 h-4"
                   />
-                  <span className="text-sm  lg:text-sm 2xl:text-base font-medium">
+                  <span className="text-sm lg:text-sm 2xl:text-base font-medium text-black dark:text-slate-100">
                     {answer.text}
                   </span>
                 </div>
@@ -230,7 +230,7 @@ function QuestionBlock({
                   <div
                     lang="ur"
                     dir="rtl"
-                    className={`${urduText} px-8 text-lg sm:text-base lg:text-base 2xl:text-xl text-left text-black font-bold animate-fadeInUp`}
+                    className={`${urduText} px-8 text-lg sm:text-base lg:text-base 2xl:text-xl text-left text-black dark:text-slate-100 font-bold animate-fadeInUp`}
                   >
                     {answer.textTranslation}
                   </div>
@@ -247,7 +247,7 @@ function QuestionBlock({
             placeholder={text}
             value={String(selectedAnswerValue || "")}
             onChange={(e) => onAnswerChange(questionId, e.target.value)}
-            className="w-full border border-gray px-3 py-2 text-sm sm:text-xs lg:text-sm 2xl:text-base"
+            className="w-full rounded-lg border border-gray dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-sm text-black dark:text-slate-100 sm:text-xs lg:text-sm 2xl:text-base"
           />
         );
 
@@ -256,7 +256,7 @@ function QuestionBlock({
           <select
             value={String(selectedAnswerValue || "")}
             onChange={(e) => onAnswerChange(questionId, e.target.value)}
-            className="w-full border border-gray px-3 py-2 text-sm sm:text-xs lg:text-sm 2xl:text-base"
+            className="w-full rounded-lg border border-gray dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-sm text-black dark:text-slate-100 sm:text-xs lg:text-sm 2xl:text-base"
           >
             <option value="">Select...</option>
             {questionData.options?.map((option) => (
@@ -268,7 +268,7 @@ function QuestionBlock({
         );
 
       default:
-        return <p>Unknown question type</p>;
+        return <p className="text-black dark:text-slate-100">Unknown question type</p>;
     }
   };
 
@@ -291,7 +291,7 @@ function QuestionBlock({
              peer-checked:bg-gradient-to-r from-[#00838F] to-pink"
           ></div>
 
-          <span className="ms-2 text-black text-xl sm:text-sm lg:text-base 2xl:text-lg font-bold">
+          <span className="ms-2 text-black dark:text-slate-100 text-xl sm:text-sm lg:text-base 2xl:text-lg font-bold">
             {showTranslation ? (
               <span lang="ur" dir="rtl" className={urduText}>
                 اردو
@@ -305,7 +305,7 @@ function QuestionBlock({
 
       {/* ✅ Question Text */}
       <div>
-        <h6 className="text-sm sm:text-sm lg:text-sm 2xl:text-xl font-medium -sm:mb-1">
+        <h6 className="text-sm sm:text-sm lg:text-sm 2xl:text-xl font-medium text-black dark:text-slate-100">
           {questionIndex + 1}. {text}
         </h6>
 
@@ -319,7 +319,7 @@ function QuestionBlock({
           <h6
             lang="ur"
             dir="rtl"
-            className={`${urduText} text-base sm:text-base lg:text-lg 2xl:text-2xl font-semibold mb-2 sm:mb-1 text-left text-black animate-fadeInUp`}
+            className={`${urduText} text-base sm:text-base lg:text-lg 2xl:text-2xl font-semibold mb-2 sm:mb-1 text-left text-black dark:text-slate-100 animate-fadeInUp`}
           >
             {questionData.textTranslation}
           </h6>

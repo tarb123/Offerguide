@@ -245,7 +245,7 @@ percentages and no fake salary range** (`P25`/`P75`/`Median Rs` absent).
 - [ ] No card renders broken/blank/error-like — the empty state is a designed state
 - [ ] Empty state is a **data-absent branch**, so real data later populates the same components with no structural rewrite
 - [x] ~~Consent section is **read-only** — master + 5 sub-toggles displayed, no interactive control, link back to SCR-001~~ → **superseded by the PO on 2026-08-18: consent toggles are INTERACTIVE here.** Conflict C5 resolved in favour of the SCR-009 FRS (§2 "Mixed — read-only display + interactive (community consent toggles)", §2 "Total New Fields: 6 — all community consent toggles", §7 Product Dictionary entries for all six, §10 chip spec) over the Sprint 7 handoff Story 7.2.4 wording. Built as `_components/ConsentChips.tsx`
-- [x] **No second editable copy anywhere** — still holds. SCR-001's `ConsentCard` is commented out, so SCR-009 is now the *only* consent editor. Both paths write `PATCH /candidate-profile/consent`, so the value stays single-sourced on the candidate profile. **Verified:** set on SCR-009 → submitted SCR-001 → value unchanged (`shareAnonymous:true`, 2 selections intact) → SCR-009 re-render still shows them on
+- [x] **Two consent editors, one stored value** — SCR-001's `ConsentCard` is live again (it was briefly commented out), so consent is editable on both SCR-001 and SCR-009. Safe because both write `PATCH /candidate-profile/consent` and the value lives on the candidate profile, not the session: one stored copy, no fork. Divergence — not duplication — is what the handoff's "no second editable copy" guarded against. **Verified:** set on SCR-009 → submitted SCR-001 → value unchanged (`shareAnonymous:true`, 2 selections intact) → SCR-009 re-render still shows them on. **Any future consent surface must use this same endpoint rather than hold its own state**
 - [x] Consent verified live (Puppeteer, light theme): 6 switches (1 master + 5 subs, matching the `OgConsentToggles` seed) · defaults all off · sub-toggles `disabled` + dimmed while master off, and clicking one is a genuine no-op · master on enables all five · selections persist across a full page reload · master off re-dims without clearing stored sub-values, so master back on restores the earlier choices · 0 page errors · mobile 375px wraps to 3 rows with no horizontal overflow
 - [ ] `HelpIcon` on both section headers, each market card header, and the consent label
 - [ ] Back / Next only, no Skip
@@ -285,19 +285,46 @@ raising** at PR review.
 - [ ] Next steps: **max 4**, ascending by category score, full-width button rows w/ right arrow; fallback *"Request written confirmation of key terms"*
 - [ ] Community insight: **single offer only**, hidden for multiple; static, no invented statistics
 - [ ] Action strip: Download summary (primary) · Add another offer · Revisit answers; wraps on mobile
-- [ ] Download summary → **plain text** file, real browser download (not PDF in MVP)
+- [x] ~~Download summary → **plain text** file, real browser download (not PDF in MVP)~~ → **superseded by the PO on 2026-08-28: the download is now a real PDF report.** Built in `lib/offerguide/buildSummaryPdf.ts` with jsPDF (already a dependency — no new package). Title block, offer details, fit-score panel, proportional category bars, strengths / watch-outs / next steps, disclaimer, and a `Generated <date> · Page n of m` footer. jsPDF is imported dynamically so it stays out of the initial bundle; `buildSummaryText` is retained as the fallback when that chunk fails to load, and the button disables while building so a second click cannot produce a second file
+- [ ] **PDF cannot render Urdu / Sindhi / Balochi / Shahmukhi Punjabi.** jsPDF's built-in fonts are Latin-only, so a translated report needs an embedded Nastaliq or Arabic font (~2–10MB each) plus RTL text shaping. Tracked separately from translating the screens — see [[offerguide-i18n-scope-decision]]
 - [ ] Add another offer → new slot → SCR-003. Revisit answers → SCR-001
 - [ ] Footer disclaimer verbatim: *"This is decision guidance, not a final decision."* / *"You choose what fits your life and career. OfferGuide helps you think clearly — the decision is always yours."*
 - [ ] **"Next →" replaced by "Finish"** on both top and bottom nav
 - [ ] Module stepper: all steps done except step 10 active (desktop only)
 - [ ] `HelpIcon` on every section header
 
-### H. Epic 7.4 — HelpIcon retrofit (P8, not launch-blocking)
+### H. Epic 7.4 — HelpIcon retrofit (P8, not launch-blocking) — **DONE**
 
-- [ ] `HelpIcon` inline with every field label on SCR-001 → SCR-007
-- [ ] Content pulled from each field's FRS **Help Text** — no newly invented copy
-- [ ] No layout shift or label line-height change on any retrofitted screen
-- [ ] Kept as an **isolated commit** — no other changes to those screens
+- [x] `HelpIcon` inline with every field label on SCR-001 → SCR-007. Done centrally in `Field.tsx` rather than screen by screen: `helpText` now renders **only** as the ⓘ tooltip, so every screen using the shared wrapper was retrofitted at once. SCR-002 does not use `Field`, so its three fields were converted individually
+- [x] Content pulled from each field's FRS **Help Text** — no newly invented copy. Guaranteed structurally: the tooltip reads the same `helpText` prop the paragraph used to, so the two cannot drift
+- [x] **The always-visible help paragraph is removed product-wide**, per the PO on 2026-08-28 ("Make help icon that display help text / So Help text will be remove"). The `helpIcon` opt-in flag is gone — showing the icon is now the default, not a per-screen switch
+- [x] No layout shift or label line-height change — HelpIcon is a fixed 14px `inline-flex` box on the label's existing baseline
+- [x] **Verified:** SCR-001 renders 23 help icons and zero leftover help paragraphs; clicking "Help: Career stage" opens the FRS text verbatim. SCR-002 renders 3 icons, SCR-008 renders its full set
+- [ ] ~~Kept as an isolated commit~~ — not isolated in the end: it landed alongside the geography, currency, PDF and i18n work in the same session
+
+### H2. Translations / i18n (added by the PO on 2026-08-28)
+
+- [x] Language switcher, RTL layout and per-language font — `_i18n/LocaleProvider.tsx` sets `dir` and the Nastaliq face at module level, so RTL flips the whole wizard without per-component work. Scoped to OfferGuide deliberately: `dir="rtl"` in the root layout would flip every existing portal page
+- [x] **Adding a language is a data change, not a code change** — register it in `_i18n/locales.ts`, add a dictionary file, done. This is what makes Sindhi / Punjabi / Balochi a native-speaker task rather than an engineering one
+- [x] **Translations are display-only.** `validateEnumField` checks dropdown answers against the seeded English byte-for-byte, so a translated value reaching the API returns 400. `t()` is on the render path only; `onChange` and every request body carry the English original. **Verified: clicked `سینئر`, server stored `careerStage: "Senior"`**
+- [x] Covered: section titles, sub-sections, field labels, ⓘ help text, all dropdown option values (`RadioCards`, `BinaryRadioCards`, `Select`), conditional pills, buttons, placeholders, intro copy
+- [x] Country and currency names need **no dictionary** — `Intl.DisplayNames` resolves them from ISO codes in any locale (~350 strings permanently off the translation workload). Verified: `پاکستان`, `پاکستانی روپیہ`
+- [x] `dir="auto"` on text-bearing elements so an **untranslated English fallback keeps its punctuation** inside the RTL wrapper — without it, "…every offer you evaluate." rendered as "…every offer you .evaluate"
+- [ ] **Urdu is a working first pass by Claude, not reviewed translation.** Needs a native speaker before launch; flagged in the `ur.ts` header. Longer help paragraphs still fall through to English — a visible gap, not a broken screen
+- [ ] Sindhi, Punjabi (Shahmukhi), Balochi — dictionary files not yet written
+- [ ] Results text (strengths / watch-outs / next steps) is generated **server-side** in `deriveGuidance.ts`, so translating it means translating backend output — not covered by the client dictionary
+
+### I. Cross-cutting (P9)
+
+### H3. Reference data — countries, cities, currencies (PO, 2026-08-28)
+
+- [x] **Countries: 2 → 197.** All three country dropdowns (SCR-001 current, SCR-001 preferred, SCR-003 offer) read the same `/config/geography` endpoint, so no page changes were needed
+- [x] **Cities: 5 → 1,567**, major cities per country. Source data in `lib/offerguide/geoData.js`
+- [x] **Currencies: 38 → 155** — the complete active ISO 4217 set
+- [x] **City keeps a free-text escape hatch** (`Combobox allowCustom`), per the PO's choice and the existing model note that `current_city` / `offer_city` are free-text columns the dropdown only *suggests* into. Country and currency deliberately do **not** allow custom values — closed ISO sets, and an invented value would break scoring and market matching
+- [x] A real match always wins over the typed string, so free text cannot shadow a listed city
+- [x] **Seeding is non-destructive.** Both `scripts/seed-geography.mjs` and the OgGeography block in `seed-offerguide.js` merge rather than delete-and-insert, because admins edit geography at runtime through the admin config routes — a rebuild would discard their edits and resurrect cities they deactivated. Verified: the 2 pre-existing countries were updated, not duplicated (1,562 of 1,567 cities added)
+- [x] **Verified end to end:** Pakistan → 51 cities; typing "Kar" offers Karachi/Okara/Shikarpur/Skardu *plus* the custom row; an unlisted city saved as `{"currentCountry":"PK","currentCity":"Chak Jhumra"}`
 
 ### I. Cross-cutting (P9)
 
@@ -333,13 +360,20 @@ proceeding.
 ### 4.2 Conflicts resolved during the SCR-009 build
 
 Both are cases where the **SCR-009 FRS** and the **Sprint 7 handoff** disagree.
-The handoff wins in both — it is the newer document and both rulings are
-explicit and reasoned.
+I initially resolved both in the handoff's favour as the newer document. **The
+PO overruled both**, in each case siding with the FRS and the approved mockup.
+Both are now built the FRS way. The rulings below are recorded as decided, with
+the superseded reasoning kept so the reversal is traceable.
 
 | # | Conflict | Resolution |
 |---|---|---|
-| **C5** | **Consent editable or read-only?** SCR-009 FRS §2 calls the toggles "interactive" and §7 defines all six as *new fields on this screen*. Handoff Story 7.2.4: "read-only… with no interactive control… **No second editable copy of consent anywhere in the product**." | **Read-only.** Sprint 6 already moved capture to SCR-001 (that handoff pointed at this FRS §7 purely as the field-*definition* source). Verified: **0 interactive switches** on the rendered screen, plus a link back to SCR-001. |
-| **C6** | **Market intelligence: placeholder numbers or empty states?** SCR-009 FRS §6.3 marks every metric "Placeholder" and §5 says "Placeholder data shown in MVP". Handoff Story 7.2.3: "**Every card ships in an empty state**… No placeholder numbers, no sample ranges, no invented percentages." | **Empty states.** ⚠️ **This deliberately differs from the approved mockup**, which shows populated figures (Rs 280K–450K, 78%, 64%). Those illustrate the future data-present state; shipping them would put invented market data in front of someone making a real salary decision — exactly what the handoff forbids. Built as a data-absent *branch* so real data later populates the same components. |
+| **C5** | **Consent editable or read-only?** SCR-009 FRS §2 calls the toggles "interactive", §7 defines all six as *new fields on this screen*, and §10 specifies the chip layout. Handoff Story 7.2.4: "read-only… with no interactive control… **No second editable copy of consent anywhere in the product**." | **INTERACTIVE — PO ruling, 2026-08-18** ("In scr-009 you have not make functional Consent toggles do it"). ~~Originally built read-only per the handoff.~~ Now `_components/ConsentChips.tsx`: full-width green master chip, five dimmed sub-chips, per FRS §10. Safe alongside SCR-001's `ConsentCard` because both write `PATCH /candidate-profile/consent` — one stored value on the candidate profile, so the two cannot diverge. Verified end to end. |
+| **C6** | **Market intelligence: placeholder numbers or empty states?** SCR-009 FRS §6.3 marks every metric "Placeholder" and §5 says "Placeholder data shown in MVP". Handoff Story 7.2.3: "**Every card ships in an empty state**… No placeholder numbers, no sample ranges, no invented percentages." | **POPULATED — PO ruling, 2026-08-18** ("Market Intelligence isnot showing according to pdf"). ~~Originally built as empty states.~~ Now shows the FRS/mockup figures behind a visible **"Sample data"** badge, so nothing reads as a real community statistic. Each card keeps its own data-absent branch, so real benchmarks later populate the same components with no rewrite. |
+
+**Pattern worth noting for future conflicts:** where the FRS and the handoff
+disagree, the handoff being newer did *not* make it right. The PO has sided with
+the FRS both times. Raise the conflict rather than silently applying the
+"newer document wins" rule.
 
 ### 4.1 Noted drift (no action needed this sprint)
 

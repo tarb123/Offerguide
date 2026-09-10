@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { ShieldCheck } from 'lucide-react';
 import type { ConsentToggle } from '../_state/api';
+import { useT } from '../_i18n/LocaleProvider';
 
 /**
  * Consent card — bottom of SCR-001, above the bottom nav.
@@ -42,6 +43,10 @@ export default function ConsentCard({
   onSelectionChange: (toggleId: string, value: boolean) => void;
   loading?: boolean;
 }) {
+  // `translate`, not `t` — the toggle callbacks below already bind `t` as the
+  // loop variable, and shadowing it here would silently translate nothing.
+  const translate = useT();
+
   const master = toggles.find((t) => t.isMaster);
   const subToggles = toggles.filter((t) => !t.isMaster);
 
@@ -57,9 +62,9 @@ export default function ConsentCard({
 
   return (
     <section className="mt-5 rounded-lg border border-border bg-card p-4">
-      <h2 className="flex items-center gap-2 text-sm font-semibold">
+      <h2 dir="auto" className="flex items-center gap-2 text-sm font-semibold">
         <ShieldCheck className="h-4 w-4 text-primary" aria-hidden="true" />
-        Sharing &amp; privacy
+        {translate('Sharing & privacy')}
       </h2>
 
       {/* Master toggle. When off, the sub-toggles below are dimmed and their
@@ -85,8 +90,8 @@ export default function ConsentCard({
           aria-disabled={!shareAnonymous || undefined}
         >
           {!shareAnonymous && (
-            <p className="text-xs text-muted-foreground">
-              Turn on {master?.label ?? 'sharing'} to choose what you contribute.
+            <p dir="auto" className="text-xs text-muted-foreground">
+              {translate('Turn on sharing to choose what you contribute.')}
             </p>
           )}
           {subToggles.map((toggle) => (
@@ -103,8 +108,8 @@ export default function ConsentCard({
         </div>
       )}
 
-      <p className="mt-3 text-[11px] leading-snug text-muted-foreground">
-        {ANONYMISATION_NOTE}
+      <p dir="auto" className="mt-3 text-[11px] leading-snug text-muted-foreground">
+        {translate(ANONYMISATION_NOTE)}
       </p>
     </section>
   );
@@ -125,15 +130,24 @@ function ConsentRow({
   onChange: (value: boolean) => void;
   disabled?: boolean;
 }) {
+  const translate = useT();
+
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
-        <label htmlFor={`consent-${id}`} className="text-xs font-medium">
-          {label}
+        <label
+          htmlFor={`consent-${id}`}
+          dir="auto"
+          className="text-xs font-medium"
+        >
+          {translate(label)}
         </label>
         {helpText && (
-          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-            {helpText}
+          <p
+            dir="auto"
+            className="mt-0.5 text-[11px] leading-snug text-muted-foreground"
+          >
+            {translate(helpText)}
           </p>
         )}
       </div>

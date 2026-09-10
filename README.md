@@ -60,9 +60,70 @@ outcome in its response `message` rather than failing.
 
 The six admin-editable Mongo collections (`OgQuestions`, `OgScoringConfig`,
 `OgGeography`, `OgMarketBenchmarks`, `OgFunctionalDomains`, `OgConsentToggles`)
-are edited through Swagger, `curl`, or a script. No admin interface exists, and
-none is planned before Sprint 9. Everything under `/admin/config/*` is a
-26-operation surface intended for operators, not end users.
+are edited through Swagger, `curl`, or a script. No admin interface exists.
+Everything under `/admin/config/*` is a **30-operation** surface intended for
+operators, not end users. (Earlier documents say 26 — that count predates the two
+`/geography/{countryCode}/cities` operations Sprint 8 added.)
+
+### One codebase, two domains — the OfferGuide nav entry
+
+The same deployment code serves two sites:
+
+| Domain | Advertises OfferGuide in the header |
+|---|---|
+| `sanjeeda.io` — the main portal | **no** |
+| `og.sanjeeda.io` — the OfferGuide site | **yes** |
+
+That is a build-time flag, not a code difference:
+
+```
+NEXT_PUBLIC_SHOW_OFFERGUIDE=true      # set ONLY on the og.sanjeeda.io project
+```
+
+Unset or anything else hides it. **Defaulting to hidden is deliberate** — forgetting
+the flag on `og.sanjeeda.io` loses a link someone notices immediately, whereas the
+other default would silently put the tab back on the main portal, which is the exact
+thing this exists to prevent.
+
+Set it in `.env.local` if you are working on OfferGuide locally and want the header
+link. `/offerguide` stays a public route either way — the flag only controls whether
+the header advertises it.
+
+This replaced a branch (`v2-no-offerguide-link`) that was kept permanently different
+by exactly those few lines, which meant every change had to be merged twice and the
+branches drifted apart unnoticed. `navSections.test.ts` pins both shapes.
+
+### Managing admins — there is no UI, use the script
+
+Roles are set by script and operational action only. There is no self-service
+promotion, no admin UI, and **no API endpoint that changes a role** — deliberately
+(Sprint 9 §6), so nobody can escalate themselves. `/api-docs` is the API contract;
+it does not show who the admins are.
+
+**Everything you need is four commands:**
+
+```bash
+npm run admins                                        # who are the admins?
+npm run roles -- --emails=someone@example.com         # add an admin
+npm run roles -- --demote=someone@example.com         # remove an admin
+npm run roles -- --list --prod                        # same, against production
+```
+
+Add `--prod` to any of them to target production instead of local, and `--check`
+to preview a change without writing. Multiple addresses are comma-separated. The
+admin list may also come from `OFFERGUIDE_ADMIN_EMAILS`; it is never hardcoded in
+the script and never committed.
+
+`--demote` **refuses to remove the last admin**, because that locks everyone out
+of `/admin/config/*` and is only recoverable by running the script again — fine on
+a laptop, an incident in production. Promote a replacement first, or pass `--force`
+if you genuinely mean it.
+
+The same script adds the `role` column and baselines every existing account to
+`user` on first run. It is idempotent — running it twice produces the same result —
+and reversible with `--rollback`, which drops the column and restores the exact
+pre-migration state. Roll the application back too if you do that; it reads the
+column.
 
 ### The admin gate is temporary and is replaced in Sprint 9
 

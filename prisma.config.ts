@@ -18,6 +18,19 @@ export default defineConfig({
   // migration for, reports "Drift detected", and offers to reset the database
   // — which would drop the portal's real data. Listing them here tells Prisma
   // they are not its business: it will neither migrate nor diff them.
+  //
+  // SPRINT 9 modelled `sanjeedausers` as the read-only UserInfo model, and it
+  // STAYS external. Being external is what makes the model safe: it can be read
+  // through Prisma while Prisma stays out of its DDL.
+  //
+  // Verified, do not undo: with `sanjeedausers` off this list,
+  // `prisma migrate diff` proposes
+  //     ALTER TABLE `sanjeedausers` DROP COLUMN `google_id`, DROP COLUMN `password`,
+  //       DROP COLUMN `reset_code`, DROP COLUMN `reset_code_expiry`, …
+  // plus dropping four email indexes — because UserInfo deliberately models only
+  // the columns permission checks need. A `migrate dev` run in that state would
+  // destroy the portal's credentials. The `role` column is therefore added by
+  // scripts/migrate-roles.mjs, not by a Prisma migration.
   experimental: {
     externalTables: true,
   },

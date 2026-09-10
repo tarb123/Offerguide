@@ -32,13 +32,13 @@ const journey = [
 
 export default function ModernHomepage() {
   return (
-    <main className="overflow-hidden bg-[#fbf7f1] text-[#0b163f] dark:bg-[#070d2b] dark:text-white">
+    <main className="overflow-hidden bg-[#fbf7f1] text-[#0b163f] dark:bg-blue-950 dark:text-white">
    
-      <ModernServices />
+      <ModernServices/>
 
       <section
         id="career-pathway"
-        className="relative bg-[#fbf7f1] py-10 dark:bg-[#070d2b] sm:py-24 lg:py-32"
+        className="relative bg-[#fbf7f1] py-10 dark:bg-darkBlue sm:py-24 lg:py-32"
       >
         <div className="mx-auto max-w-[1200px] px-5 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-3xl text-center">
@@ -63,7 +63,8 @@ export default function ModernHomepage() {
             {journey.map(({ number, title, description, icon: Icon }) => (
               <article
                 key={number}
-                className="relative overflow-hidden rounded-[20px] bg-[#4183d4] p-6 shadow-[0_18px_55px_rgba(11,22,63,0.07)] dark:border-white/10 dark:bg-white/[0.05] sm:p-8"
+                className="relative overflow-hidden rounded-[20px] 
+                bg-[#4183d4] p-6 shadow-[0_18px_55px_rgba(11,22,63,0.07)] dark:border-white/10 dark:bg-white/[0.05] sm:p-8"
               >
                 <div className="pointer-events-none absolute inset-0 opacity-100">
                   <div className="absolute -right-5 -bottom-5 h-16 w-16 rounded-full bg-[#fbf7f1]" />

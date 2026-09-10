@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Lock } from 'lucide-react';
 import HelpIcon from '@/components/shared/HelpIcon';
 import type { ConsentToggle } from '../_state/api';
+import { useT } from '../_i18n/LocaleProvider';
 
 /**
  * SCR-009's interactive community-consent controls.
@@ -13,12 +14,17 @@ import type { ConsentToggle } from '../_state/api';
  * toggles — Smaller chips below master toggle. Dimmed when master toggle is
  * Off."
  *
- * THE ONLY EDITABLE COPY. SCR-001's row-style ConsentCard is currently commented
- * out, so this is the single place in the product where consent is set — which
- * is what the Sprint 7 handoff's "no second editable copy of consent anywhere"
- * asks for. It still writes through `PATCH /candidate-profile/consent`, the same
- * endpoint SCR-001 submits on Next, so re-enabling that card would keep both in
- * sync rather than forking the value.
+ * TWO EDITORS, ONE STORED VALUE. SCR-001's row-style ConsentCard is also live,
+ * so consent can be set from either screen. That is only safe because both write
+ * through `PATCH /candidate-profile/consent` and the value lives on the
+ * candidate profile, not the session — there is exactly one stored copy, and
+ * editing here then opening SCR-001 shows the change (and vice versa).
+ *
+ * Divergence, not duplication, is what the Sprint 7 handoff's "no second
+ * editable copy" was protecting against, and sharing the endpoint is what
+ * prevents it. Verified: set on SCR-009 → submit SCR-001 → both toggles and
+ * `shareAnonymous` came back unchanged. If a third consent surface is ever
+ * added, it must use this same endpoint rather than holding its own state.
  *
  * Master Off means every sub-toggle is disregarded regardless of its stored
  * value (FRS §7). The stored sub-values are deliberately NOT cleared when the
@@ -48,6 +54,9 @@ export default function ConsentChips({
   heading: string;
   privacyNote: string;
 }) {
+  // `translate`, not `t` — the filters below bind `t` as the toggle variable.
+  const translate = useT();
+
   const master = toggles.find((t) => t.isMaster);
   const subToggles = toggles.filter((t) => !t.isMaster);
 
@@ -55,12 +64,12 @@ export default function ConsentChips({
 
   return (
     <div className="mt-4">
-      <h3 className="flex items-center text-xs font-semibold">
-        {heading}
-        <HelpIcon text={MASTER_HELP} label={heading} />
+      <h3 dir="auto" className="flex items-center text-xs font-semibold">
+        {translate(heading)}
+        <HelpIcon text={translate(MASTER_HELP)} label={heading} />
         {saving && (
           <span className="ml-2 text-[11px] font-normal text-muted-foreground">
-            Saving…
+            {translate('Saving…')}
           </span>
         )}
       </h3>
@@ -80,7 +89,7 @@ export default function ConsentChips({
           ].join(' ')}
         >
           <Track on={shareAnonymous} />
-          {master.label}
+          {translate(master.label)}
         </button>
       )}
 
@@ -113,7 +122,7 @@ export default function ConsentChips({
                 ].join(' ')}
               >
                 <Track on={on} />
-                {t.label}
+                {translate(t.label)}
               </button>
             );
           })}
@@ -121,14 +130,14 @@ export default function ConsentChips({
       )}
 
       {!shareAnonymous && (
-        <p className="mt-1.5 text-[11px] text-muted-foreground">
-          Sharing is off, so nothing is contributed to the community.
+        <p dir="auto" className="mt-1.5 text-[11px] text-muted-foreground">
+          {translate('Sharing is off, so nothing is contributed to the community.')}
         </p>
       )}
 
       <p className="mt-3 flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
         <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        <span>{privacyNote}</span>
+        <span dir="auto">{translate(privacyNote)}</span>
       </p>
     </div>
   );

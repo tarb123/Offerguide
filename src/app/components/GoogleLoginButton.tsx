@@ -6,50 +6,31 @@ import {
   GoogleLogin,
   CredentialResponse,
 } from "@react-oauth/google";
-import { useRouter } from "next/navigation";
 
 export interface GoogleLoginButtonProps {
   onSuccess: (credentialResponse: CredentialResponse) => Promise<void>;
   onFailure: () => void;
 }
 
+/**
+ * Thin wrapper over Google's button. The credential is handed straight to the
+ * caller's `onSuccess`, which is the only thing that exchanges it for a portal
+ * session (see `auth/page.tsx` → `POST /api/auth` with `action: "google-login"`).
+ *
+ * Sprint 9 removed a second exchange that used to run here first: it posted to
+ * `/api/google-login`, a route that does not exist, so it 404'd on every sign-in
+ * and its `localStorage.setItem("token", …)` never ran. That dead write was the
+ * portal's second JWT storage key.
+ */
 const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
   onSuccess,
   onFailure,
 }) => {
-  const router = useRouter();
-
   const handleSuccess = async (response: CredentialResponse) => {
     if (!response.credential) {
       console.error("No credential found in response");
       onFailure();
       return;
-    }
-
-    try {
-      const res = await fetch("/api/google-login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          credential: response.credential,
-        }),
-      });
-
-const data = await res.json();
-
-console.log("Server Response:", data);
-console.log("Google ID:", data.user?.google_id);
-
-if (res.ok && data.token) {
-  localStorage.setItem("token", data.token);
-  router.push("/");
-} else {
-  console.error("Login failed:", data.message);
-}
-    } catch (error) {
-      console.error("Login Error:", error);
     }
 
     await onSuccess(response);

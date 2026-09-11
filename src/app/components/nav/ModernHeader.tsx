@@ -20,6 +20,7 @@ import { NAV_SECTIONS, navEntriesInGroup } from "@/lib/portal/navSections";
 export default function ModernHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const { authenticated, logout } = useAuth();
 
   // OfferGuide paints its own near-black surface (see offerguide/layout.tsx). This
@@ -115,7 +116,7 @@ export default function ModernHeader() {
               )}
             </div>
 
-            {[...mainLinks, ...accountLinks].map(({ label, href }) => (
+            {mainLinks.map(({ label, href }) => (
               <Link
                 key={label}
                 href={href}
@@ -124,6 +125,46 @@ export default function ModernHeader() {
                 {label}
               </Link>
             ))}
+
+            {/* The account tier folds into one dropdown, mirroring Services.
+                Laid out inline it pushed the desktop bar to ~750px at the `lg`
+                breakpoint once an admin held three entries, and the nav rendered
+                over the logo. A guest has nothing in this group, so for them the
+                bar is exactly as it was. */}
+            {accountLinks.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setAccountOpen((open) => !open)}
+                  aria-expanded={accountOpen}
+                  className="inline-flex h-11 items-center gap-1.5 rounded-full px-4 text-sm font-bold text-[#0b163f] transition hover:bg-[#f2eee8] dark:text-white dark:hover:bg-white/10"
+                >
+                  Account
+                  <ChevronDown
+                    size={15}
+                    className={`transition ${accountOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {accountOpen && (
+                  <div className="absolute right-0 top-[calc(100%+12px)] w-64 overflow-hidden rounded-2xl border border-[#0b163f]/10 bg-white p-2 shadow-[0_24px_60px_rgba(11,22,63,0.16)] dark:border-white/10 dark:bg-[#101a3f]">
+                    {accountLinks.map(({ label, href, icon: Icon }) => (
+                      <Link
+                        key={label}
+                        href={href}
+                        onClick={() => setAccountOpen(false)}
+                        className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold text-[#0b163f] transition hover:bg-[#f4f0ea] dark:text-white dark:hover:bg-white/10"
+                      >
+                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e8f6ee] text-[#0f8a4d] dark:bg-white/10 dark:text-[#6ee7a8]">
+                          <Icon size={17} />
+                        </span>
+                        {label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </nav>
 
           <div className="flex items-center gap-2">

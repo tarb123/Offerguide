@@ -66,7 +66,12 @@ describe("three tiers render correctly", () => {
     const forAdmin = labels(visibleTo(admin));
 
     expect(forAdmin).toEqual(expect.arrayContaining(forUser));
+    expect(forAdmin).toContain("Admin");
     expect(forAdmin).toContain("API Contract");
+  });
+
+  it("a registered user does not see the admin area", () => {
+    expect(labels(visibleTo(user))).not.toContain("Admin");
   });
 
   it("the tiers strictly nest — guest ⊆ user ⊆ admin", () => {
@@ -168,9 +173,17 @@ describe("the declaration itself", () => {
     }
   });
 
-  it("points the admin tier at /api-docs", () => {
+  // Sprint 10, Story 10.1.3: the admin tier gained a real destination. /api-docs
+  // is deliberately kept alongside it, not replaced — it is still the reference
+  // for what the API accepts.
+  it("points the admin tier at the admin area AND keeps /api-docs", () => {
     const adminOnly = PORTAL_SECTIONS.filter((e) => e.permission === "portal.admin.access");
-    expect(adminOnly.map((e) => e.href)).toEqual(["/api-docs"]);
+    expect(adminOnly.map((e) => e.href)).toEqual(["/offerguide/admin", "/api-docs"]);
+  });
+
+  it("lists the admin area before the raw contract", () => {
+    const hrefs = navEntriesInGroup([...PORTAL_SECTIONS], "account").map((e) => e.href);
+    expect(hrefs.indexOf("/offerguide/admin")).toBeLessThan(hrefs.indexOf("/api-docs"));
   });
 
   it("has no duplicate labels", () => {

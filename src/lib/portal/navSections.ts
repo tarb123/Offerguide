@@ -53,6 +53,7 @@ import {
   GraduationCap,
   History,
   Layers3,
+  ShieldCheck,
   Sparkles,
   Terminal,
   type LucideIcon,
@@ -153,10 +154,21 @@ const ACCOUNT_SECTIONS: readonly NavEntry[] = [
     permission: "offerguide.history.view",
   },
   {
-    // Admin tier. The admin config API has no UI by design, and the admin
-    // dashboard is a future effort, so /api-docs is the tier's only entry for
-    // now. NOTE: the Swagger page itself is PUBLIC — hiding this link is not
-    // access control, and the routes it documents are gated server-side.
+    // Admin tier. Sprint 10 gave `portal.admin.access` a real destination —
+    // the admin configuration area — where Sprint 9 could only point at the
+    // raw contract. The area's own layout re-checks the permission server-side
+    // and redirects non-admins, so this link is a convenience, not the gate.
+    label: "Admin",
+    href: "/offerguide/admin",
+    icon: ShieldCheck,
+    group: "account",
+    permission: "portal.admin.access",
+  },
+  {
+    // Kept alongside the admin area rather than replaced by it — it is still
+    // the reference for what the API accepts. NOTE: the Swagger page itself is
+    // PUBLIC — hiding this link is not access control, and the routes it
+    // documents are gated server-side.
     label: "API Contract",
     href: "/api-docs",
     icon: Terminal,

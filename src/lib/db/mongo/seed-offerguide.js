@@ -27,10 +27,11 @@
 //   wording tightened) and a genuinely distinct Culture-facing version (new),
 //   instead of one answer counting in two categories at once.
 //
-// The generic "yesno" scoreType is retired. Every field that was previously
-// "yesno" is now "enum" with that field's own literal FRS allowed values and
-// explicit per-option scores — no field's score depends on the scoring engine
-// guessing which bucket an arbitrary string belongs to.
+// The generic "yesno" scoreType has been removed (Sprint 10, Epic 10.6 — the
+// enum and its yesNoScores sub-schema are gone from OgQuestions.js). Every field
+// that was previously "yesno" is "enum" with that field's own literal FRS
+// allowed values and explicit per-option scores — no field's score depends on
+// the scoring engine guessing which bucket an arbitrary string belongs to.
 //
 // Score scale: every enum field uses one consistent set of anchor scores —
 // 100 (best) / 65 (moderate/second-tier) / 45 (genuine uncertainty — "Not

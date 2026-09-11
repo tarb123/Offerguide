@@ -13,7 +13,11 @@ export type NumericBand = { upTo?: number; score: number };
 export type ScoringQuestionDoc = {
   fieldId: string;
   category: string;
-  scoreType: "enum" | "yesno" | "rating" | "numeric";
+  // "yesno" was removed in Sprint 10, Epic 10.6 — the writable types are these
+  // three. The engine still guards against a stale "yesno" document at runtime
+  // (see scoreField): Mongo data is not compile-time checked, so a legacy row
+  // must fail loudly rather than be silently mis-scored.
+  scoreType: "enum" | "rating" | "numeric";
   options?: QuestionOption[];
   ratingMultiplier?: number;
   numericBands?: NumericBand[];
@@ -32,6 +36,16 @@ export function scoreField(
   question: ScoringQuestionDoc,
   answer: ScoreableAnswer
 ): number {
+  // Runtime guard, ahead of the switch: "yesno" is off the type now (Epic 10.6),
+  // so a document still carrying it is stale data. Caught here with its own
+  // message rather than falling to the generic "unknown scoreType" branch, since
+  // a mis-scored offer misleads a candidate silently.
+  if ((question.scoreType as string) === "yesno") {
+    throw new ScoringDataError(
+      `Field "${question.fieldId}" is tagged scoreType "yesno", which was removed in Sprint 10 — this is a data bug, not a type the engine handles.`
+    );
+  }
+
   switch (question.scoreType) {
     case "enum":
       return scoreEnum(question, answer);
@@ -39,14 +53,6 @@ export function scoreField(
       return scoreRating(question, answer);
     case "numeric":
       return scoreNumeric(question, answer);
-    case "yesno":
-      // There is no yesno type per the Sprint 5 handoff — the generic
-      // "yesno" scoreType was retired when the seed data was rewritten to
-      // give every field its own literal enum options. Encountering one
-      // live is stale data, not a case the engine should silently handle.
-      throw new ScoringDataError(
-        `Field "${question.fieldId}" is tagged scoreType "yesno", which was retired — this is a data bug, not a type the engine handles.`
-      );
     default:
       throw new ScoringDataError(
         `Field "${question.fieldId}" has unknown scoreType "${question.scoreType}".`

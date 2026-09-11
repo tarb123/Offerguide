@@ -89,13 +89,15 @@ describe("scoreField — numeric", () => {
   });
 });
 
-describe("scoreField — retired yesno scoreType", () => {
-  it("throws a ScoringDataError instead of silently guessing", () => {
-    const yesnoQuestion: ScoringQuestionDoc = {
+describe("scoreField — removed yesno scoreType (Epic 10.6)", () => {
+  it("throws a ScoringDataError for a stale yesno document instead of silently guessing", () => {
+    // "yesno" is off the type now, so a document still carrying it can only come
+    // from stale data — the cast mimics exactly that untyped Mongo row.
+    const yesnoQuestion = {
       fieldId: "offer_stale_field",
       category: "Culture",
       scoreType: "yesno",
-    };
+    } as unknown as ScoringQuestionDoc;
     expect(() => scoreField(yesnoQuestion, "Yes")).toThrow(ScoringDataError);
   });
 });

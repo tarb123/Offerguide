@@ -58,17 +58,15 @@ const OgQuestionsSchema = new Schema(
     scoreType: {
       type: String,
       required: true,
-      enum: ["enum", "yesno", "rating", "numeric"],
+      // Sprint 10, Epic 10.6: "yesno" removed. It was retired in Sprint 5 and no
+      // field has used it since the Sprint 3 seed — confirmed 0 documents via
+      // scripts/check-yesno-count.mjs before this narrowed. The yesNoScores
+      // sub-schema went with it. Rebuilding the Questions admin editor was the
+      // natural point to drop a type nothing constructs rather than teach a new
+      // editor to account for it.
+      enum: ["enum", "rating", "numeric"],
     },
     options: [OgQuestionOptionSchema], // scoreType: "enum" — ordered, content + score together
-
-    // scoreType: "yesno" — Yes/Somewhat/No/Not clear style fields, matches yesScore()
-    yesNoScores: {
-      yes: { type: Number, default: 100 },
-      somewhat: { type: Number, default: 65 },
-      unknown: { type: Number, default: 45 },
-      no: { type: Number, default: 20 },
-    },
 
     // scoreType: "rating" — 1-5 numeric fields, matches ratingScore(): value * multiplier
     ratingMultiplier: { type: Number, default: 20 },

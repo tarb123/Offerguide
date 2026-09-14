@@ -31,6 +31,19 @@ export async function computeAndPersistOfferScore(
   });
   if (!offer) throw new OfferNotFoundError(`Offer ${offerId} not found.`);
 
+  // Split the relations off the base row. `offerBaseFields` is every scalar
+  // column on `offers` itself, and it is an answer source in its own right —
+  // see the note above `scoreOffer()` below.
+  const {
+    evaluationSession,
+    compensation: offerCompensation,
+    benefitsSecurity,
+    workLife,
+    growth,
+    culture,
+    ...offerBaseFields
+  } = offer;
+
   await dbConnect();
   const [questions, benchmarks, config] = await Promise.all([
     OgQuestions.find({ active: true }).lean<ScoringQuestionDoc[]>(),
@@ -41,30 +54,47 @@ export async function computeAndPersistOfferScore(
     // Reads the exact version this offer's session was pinned to at
     // creation time — never "whatever is currently active" — so retuning
     // weights later never silently shifts an already-computed score.
-    loadScoringConfigByVersion(offer.evaluationSession.scoringConfigVersion),
+    loadScoringConfigByVersion(evaluationSession.scoringConfigVersion),
   ]);
 
-  const compensation = offer.compensation
+  const compensation = offerCompensation
     ? {
-        offerBaseSalary: offer.compensation.offerBaseSalary.toNumber(),
-        offerPayPeriod: offer.compensation.offerPayPeriod,
-        offerNegotiationRoom: offer.compensation.offerNegotiationRoom,
+        offerBaseSalary: offerCompensation.offerBaseSalary.toNumber(),
+        offerPayPeriod: offerCompensation.offerPayPeriod,
+        offerNegotiationRoom: offerCompensation.offerNegotiationRoom,
       }
     : null;
 
+  // Sprint 10, Epic 10.7 — the base Offer row is an answer source too.
+  //
+  // Two scored fields live on `offers` itself rather than on any sub-model:
+  // `offer_employment_type` and `offer_probation`, both Stability. Verified
+  // exhaustively — they are the only 2 of the seed's 48 scored fieldIds that do.
+  // Until this was added, `flattenAnswers()` never saw them, so both always fell
+  // through to `nullScore` (45) and every candidate's Stability score ignored
+  // what they actually answered on SCR-003.
+  //
+  // `offerBaseFields` rather than `offer` whole: `flattenAnswers` spreads every
+  // own key, so passing the relations too would inject `evaluation_session`,
+  // `compensation` and friends as object-valued "answers". Nothing reads those
+  // today, but only because no fieldId happens to collide with a relation name.
+  //
+  // Order matters. The base row goes FIRST so the four sub-models still win any
+  // key collision — this can only add fields that were previously invisible,
+  // never change one that already resolved.
   const result = scoreOffer({
     compensation,
-    roleTitle: offer.roleTitle,
-    offerCity: offer.offerCity,
-    offerCountry: offer.offerCountry,
-    answerSources: [offer.benefitsSecurity, offer.workLife, offer.growth, offer.culture],
+    roleTitle: offerBaseFields.roleTitle,
+    offerCity: offerBaseFields.offerCity,
+    offerCountry: offerBaseFields.offerCountry,
+    answerSources: [offerBaseFields, benefitsSecurity, workLife, growth, culture],
     session: {
-      evaluationPriorities: (offer.evaluationSession.evaluationPriorities as string[] | null) ?? [],
-      evaluationType: offer.evaluationSession.evaluationType,
+      evaluationPriorities: (evaluationSession.evaluationPriorities as string[] | null) ?? [],
+      evaluationType: evaluationSession.evaluationType,
     },
     questions,
     config,
-    configVersion: offer.evaluationSession.scoringConfigVersion,
+    configVersion: evaluationSession.scoringConfigVersion,
     benchmarks,
   });
 
@@ -82,12 +112,12 @@ export async function computeAndPersistOfferScore(
       purposeScore: result.purposeScore,
     },
     {
-      offerAnnualBonusType: offer.compensation?.offerAnnualBonusType ?? null,
-      offerAnnualBonus: offer.compensation?.offerAnnualBonus?.toNumber() ?? null,
-      offerNegotiationRoom: offer.compensation?.offerNegotiationRoom ?? null,
-      offerOvertimeCompensation: offer.workLife?.offerOvertimeCompensation ?? null,
-      offerRestrictiveClause: offer.benefitsSecurity?.offerRestrictiveClause ?? null,
-      offerRedFlags: offer.culture?.offerRedFlags ?? null,
+      offerAnnualBonusType: offerCompensation?.offerAnnualBonusType ?? null,
+      offerAnnualBonus: offerCompensation?.offerAnnualBonus?.toNumber() ?? null,
+      offerNegotiationRoom: offerCompensation?.offerNegotiationRoom ?? null,
+      offerOvertimeCompensation: workLife?.offerOvertimeCompensation ?? null,
+      offerRestrictiveClause: benefitsSecurity?.offerRestrictiveClause ?? null,
+      offerRedFlags: culture?.offerRedFlags ?? null,
     },
   );
 

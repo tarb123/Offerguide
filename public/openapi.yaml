@@ -907,6 +907,82 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /api/offerguide/admin/config/scoring/{version}/activate:
+    parameters:
+      - name: version
+        in: path
+        required: true
+        schema: { type: integer }
+        description: The version to make active.
+    post:
+      tags: [Admin Config]
+      summary: Activate a scoring config version
+      description: >
+        adminAuth. Sprint 10. Flips `isActive` on exactly one version, in a
+        transaction — every other version off, this one on. Does NOT modify a
+        version's scoring content: versions remain immutable, this moves only
+        the active pointer that `POST /evaluation-sessions` reads. Re-activating
+        the already-active version is a no-op that still returns 200.
+      security: [{ AdminAuth: [] }]
+      responses:
+        "200":
+          description: The newly-active config.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScoringConfig" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/offerguide/admin/config/scoring/{version}/preview:
+    parameters:
+      - name: version
+        in: path
+        required: true
+        schema: { type: integer }
+        description: The version to preview against the currently active one.
+    get:
+      tags: [Admin Config]
+      summary: Preview a scoring version against the golden fixtures
+      description: >
+        adminAuth. Sprint 10. Scores the five golden fixtures under the
+        currently active config and under {version}, side by side, so an admin
+        can see the impact before activating. Read-only — never writes an
+        `offer_scores` row, hence GET despite doing real computation. Works for
+        any version, not just drafts. 404 if the version does not exist, or if
+        no active version exists to compare against.
+      security: [{ AdminAuth: [] }]
+      responses:
+        "200":
+          description: Both scored results per fixture; the client computes deltas.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [activeVersion, previewVersion, fixtures]
+                properties:
+                  activeVersion: { type: integer }
+                  previewVersion: { type: integer }
+                  fixtures:
+                    type: array
+                    items:
+                      type: object
+                      required: [fixtureId, label, active, preview]
+                      properties:
+                        fixtureId: { type: string, example: A }
+                        label: { type: string }
+                        active: { $ref: "#/components/schemas/FixtureScore" }
+                        preview: { $ref: "#/components/schemas/FixtureScore" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   # ===========================================================================
   # Admin config — geography — operations 37–42
   # ===========================================================================
@@ -1908,6 +1984,18 @@ components:
         sampleSize: { type: integer, default: 0 }
         effectiveFrom: { type: string, format: date-time }
         active: { type: boolean, default: true }
+
+    FixtureScore:
+      type: object
+      description: One fixture scored under one config — the unit the preview diffs.
+      required: [categoryScores, overallScore, recommendationLabel]
+      properties:
+        categoryScores:
+          type: object
+          description: Score per category (Salary, Benefits, Stability, Work-Life, Growth, Culture, Purpose).
+          additionalProperties: { type: number }
+        overallScore: { type: number }
+        recommendationLabel: { type: string, example: "Excellent fit — strong offer" }
 
     FunctionalDomain:
       type: object

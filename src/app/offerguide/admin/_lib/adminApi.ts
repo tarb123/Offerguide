@@ -131,4 +131,14 @@ export const adminApi = {
       { method: "PATCH", body: JSON.stringify(patch) }
     );
   },
+
+  // Scoring's two Sprint-10 additions. activate flips the active pointer;
+  // preview is a read-only dry run against the golden fixtures.
+  activateScoring<T>(version: number) {
+    return request<T>(`/scoring/${version}/activate`, { method: "POST" });
+  },
+
+  previewScoring<T>(version: number) {
+    return request<T>(`/scoring/${version}/preview`);
+  },
 };

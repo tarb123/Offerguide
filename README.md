@@ -56,14 +56,16 @@ to link, so the guest profile stays unlinked and their history is effectively
 lost to them. **There is no email-based linking.** The endpoint reports this
 outcome in its response `message` rather than failing.
 
-### The admin config API has no UI
+### The admin config surface
 
 The six admin-editable Mongo collections (`OgQuestions`, `OgScoringConfig`,
 `OgGeography`, `OgMarketBenchmarks`, `OgFunctionalDomains`, `OgConsentToggles`)
-are edited through Swagger, `curl`, or a script. No admin interface exists.
-Everything under `/admin/config/*` is a **30-operation** surface intended for
-operators, not end users. (Earlier documents say 26 — that count predates the two
-`/geography/{countryCode}/cities` operations Sprint 8 added.)
+are edited at **`/offerguide/admin`** (Sprint 10) — a permission-gated UI for
+each collection, with a golden-fixture preview before a scoring version is
+activated. The same operations remain available through Swagger, `curl`, or a
+script for raw access. Everything under `/admin/config/*` is a **32-operation**
+surface (30 through Sprint 9, plus the scoring `activate` and `preview` endpoints
+Sprint 10 added) intended for operators, not end users.
 
 ### One codebase, two domains — the OfferGuide nav entry
 
@@ -125,17 +127,15 @@ and reversible with `--rollback`, which drops the column and restores the exact
 pre-migration state. Roll the application back too if you do that; it reads the
 column.
 
-### The admin gate is temporary and is replaced in Sprint 9
+### The admin gate is real RBAC (since Sprint 9)
 
-`/admin/config/*` is protected by a single env-configured token
-(`OFFERGUIDE_ADMIN_TOKEN`, sent as the `x-og-admin-token` header). **This is not
-RBAC.** There is no `role` column, no `usePermission()`, and no per-user admin
-identity — those land in Sprint 9. The gate fails closed: if the env var is
-unset, no request passes.
-
-Because the admin API has no UI, this gate is the only thing protecting
-configuration integrity, which is why it is treated as launch-blocking despite
-being interim.
+`/admin/config/*` is protected by `requireAdmin`: a valid portal JWT whose
+account's stored `role` is `admin`, resolved through the permission map
+(`portal.admin.access`). The Sprint 5 interim `OFFERGUIDE_ADMIN_TOKEN` header
+gate is gone. The gate fails closed — no token, an unreadable role, or a
+database error all resolve to the public tier, which is not an admin. Roles are
+assigned by script only (see "Managing admins" above); there is no self-service
+promotion.
 
 ### Weighting layers ship at their defaults, untuned
 

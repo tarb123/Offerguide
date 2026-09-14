@@ -18,7 +18,14 @@ const OgScoringConfigSchema = new Schema(
   {
     version: { type: Number, required: true, unique: true },
     effectiveFrom: { type: Date, required: true, default: Date.now },
-    isActive: { type: Boolean, default: true }, // exactly one version should be active at a time
+    // Sprint 10, Epic 10.2.1: defaults to FALSE. A version created via
+    // POST /admin/config/scoring is a draft until explicitly activated through
+    // POST .../{version}/activate, which flips exactly one version on in a
+    // transaction. Before this, POST defaulted a new version to active and
+    // nothing ever turned an old one off — "exactly one active" held only by the
+    // accident of the session-creation query sorting version descending. Not a
+    // change to any stored document: existing versions keep their current flag.
+    isActive: { type: Boolean, default: false },
 
     categoryBaseWeights: {
       Salary: { type: Number, default: 1 },

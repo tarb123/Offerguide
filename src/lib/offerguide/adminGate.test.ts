@@ -231,8 +231,9 @@ describe("Story 9.1.4 — the interim gate is gone, not disabled", () => {
     );
     expect(contract).not.toMatch(/x-og-admin-token/);
     expect(contract).not.toMatch(/OFFERGUIDE_ADMIN_TOKEN/);
-    // Still gated — all 30 operations, under the renamed scheme.
-    expect(contract.match(/AdminAuth: \[\]/g) ?? []).toHaveLength(30);
+    // Still gated, under the renamed scheme. 30 in Sprint 9; Sprint 10 added
+    // the scoring activate + preview endpoints, both adminAuth, so 32.
+    expect(contract.match(/AdminAuth: \[\]/g) ?? []).toHaveLength(32);
   });
 
   it("the gate is no longer flagged as a placeholder", () => {

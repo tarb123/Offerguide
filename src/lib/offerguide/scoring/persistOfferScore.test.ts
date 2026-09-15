@@ -20,7 +20,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { activeScoringConfig, seedQuestions, seedBenchmarks } from "./goldenFixtures";
 
 const findUnique = vi.hoisted(() => vi.fn());
-const upsert = vi.hoisted(() => vi.fn(async () => ({})));
+// Declares the single argument Prisma's upsert receives. Without it vi.fn infers
+// a zero-argument signature, `mock.calls[0]` types as an empty tuple, and the
+// assertion below cannot read `[0]` off it.
+const upsert = vi.hoisted(() => vi.fn(async (_args: unknown) => ({})));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: { offer: { findUnique }, offerScore: { upsert } },

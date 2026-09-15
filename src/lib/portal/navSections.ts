@@ -69,6 +69,12 @@ export type NavEntry = {
   icon: LucideIcon;
   group: NavGroup;
   permission: Permission;
+  /**
+   * A short sticker rendered beside the label ("New"). Declared here, like
+   * visibility, so a launch callout is one line in this file — not a special
+   * case in the header. Drop the field when the feature is no longer new.
+   */
+  badge?: string;
 };
 
 /**
@@ -85,29 +91,15 @@ export function offerGuideAdvertised(
   return flag === "true";
 }
 
-/** Public tier — visible to guests, and to everyone above them. */
+/**
+ * Public tier — visible to guests, and to everyone above them.
+ *
+ * The top-level bar is deliberately short: OfferGuide (where advertised) and
+ * Blogs. The assessment, calculator and CV tools moved into the Services
+ * dropdown alongside PGP — they are services, and grouping them there keeps
+ * the bar from crowding the logo at the `lg` breakpoint.
+ */
 const EXPLORE_SECTIONS: readonly NavEntry[] = [
-  {
-    label: "Khudi Assessment",
-    href: "/khudiassessment",
-    icon: Sparkles,
-    group: "explore",
-    permission: "offerguide.wizard.use",
-  },
-  {
-    label: "Offer Calculator",
-    href: "/FinancialOffer",
-    icon: Calculator,
-    group: "explore",
-    permission: "offerguide.wizard.use",
-  },
-  {
-    label: "3D CVs",
-    href: "/cv",
-    icon: Layers3,
-    group: "explore",
-    permission: "offerguide.wizard.use",
-  },
   {
     label: "Blogs",
     href: "/Blogs/",
@@ -121,17 +113,44 @@ const EXPLORE_SECTIONS: readonly NavEntry[] = [
  * The OfferGuide entry point. Included only where the flag says so — see the
  * per-deployment note at the top of this file. Public, so a guest can reach the
  * wizard with no account wherever it IS advertised.
+ *
+ * Sits in the top-level bar rather than the Services dropdown, first, with a
+ * "New" sticker: it is the site's newly launched service, and a callout hidden
+ * behind a dropdown click advertises nothing. Sprint 10 shipped the admin area
+ * that completes it, which is the launch moment.
  */
 const OFFERGUIDE_ENTRY: NavEntry = {
   label: "Offer Guide",
   href: "/offerguide",
   icon: FileText,
-  group: "services",
+  group: "explore",
   permission: "offerguide.wizard.use",
+  badge: "New",
 };
 
-/** Services shown on every deployment. */
+/** Services shown on every deployment, in dropdown order. */
 const SERVICE_SECTIONS: readonly NavEntry[] = [
+  {
+    label: "Khudi Assessment",
+    href: "/khudiassessment",
+    icon: Sparkles,
+    group: "services",
+    permission: "offerguide.wizard.use",
+  },
+  {
+    label: "Offer Calculator",
+    href: "/FinancialOffer",
+    icon: Calculator,
+    group: "services",
+    permission: "offerguide.wizard.use",
+  },
+  {
+    label: "3D CVs",
+    href: "/cv",
+    icon: Layers3,
+    group: "services",
+    permission: "offerguide.wizard.use",
+  },
   {
     label: "Professional Growth Program",
     href: "/pgp-access",
@@ -180,14 +199,15 @@ const ACCOUNT_SECTIONS: readonly NavEntry[] = [
 /**
  * Builds the declaration for a given deployment.
  *
- * OfferGuide is spliced in BEFORE the other services rather than appended, so
- * the Services menu reads in the same order it always has — `navEntriesInGroup`
- * preserves this order, and appending would silently put OfferGuide last.
+ * OfferGuide is spliced in FIRST rather than appended: `navEntriesInGroup`
+ * preserves declaration order, so this is what puts it at the front of the
+ * top-level bar where a launch callout belongs. The other groups read exactly
+ * as they always have.
  */
 export function buildNavSections(showOfferGuide: boolean): readonly NavEntry[] {
   return [
-    ...EXPLORE_SECTIONS,
     ...(showOfferGuide ? [OFFERGUIDE_ENTRY] : []),
+    ...EXPLORE_SECTIONS,
     ...SERVICE_SECTIONS,
     ...ACCOUNT_SECTIONS,
   ];

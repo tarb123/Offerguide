@@ -114,8 +114,10 @@ describe("the guest tier never leaks a higher tier", () => {
 // `v2-no-offerguide-link` existed only to keep these few lines different.
 // ---------------------------------------------------------------------------
 describe("the OfferGuide entry is per-deployment", () => {
+  // Top-level bar (`explore`), not the Services dropdown: it carries the launch
+  // sticker, and a callout behind a dropdown click advertises nothing.
   const offerGuideEntries = (sections: readonly NavEntry[]) =>
-    sections.filter((e) => e.href === "/offerguide" && e.group === "services");
+    sections.filter((e) => e.href === "/offerguide" && e.group === "explore");
 
   it("the MAIN PORTAL does not advertise OfferGuide", () => {
     expect(
@@ -140,11 +142,22 @@ describe("the OfferGuide entry is per-deployment", () => {
     expect(difference).toEqual(["Offer Guide"]);
   });
 
-  it("keeps the Services menu in its original order where advertised", () => {
-    expect(labels(navEntriesInGroup([...OFFERGUIDE_SECTIONS], "services"))).toEqual([
+  it("where advertised, leads the top-level bar and leaves the other groups untouched", () => {
+    expect(labels(navEntriesInGroup([...OFFERGUIDE_SECTIONS], "explore"))).toEqual([
       "Offer Guide",
-      "Professional Growth Program",
+      ...labels(navEntriesInGroup([...PORTAL_SECTIONS], "explore")),
     ]);
+    expect(labels(navEntriesInGroup([...OFFERGUIDE_SECTIONS], "services"))).toEqual(
+      labels(navEntriesInGroup([...PORTAL_SECTIONS], "services"))
+    );
+  });
+
+  it("carries the launch sticker, and is the only entry that does", () => {
+    expect(offerGuideEntries(OFFERGUIDE_SECTIONS)[0].badge).toBe("New");
+    expect(OFFERGUIDE_SECTIONS.filter((e) => e.badge)).toHaveLength(1);
+    // The sticker is part of the entry, so hiding the entry hides the sticker —
+    // the main portal never shows a "New" callout for a service it doesn't list.
+    expect(PORTAL_SECTIONS.filter((e) => e.badge)).toHaveLength(0);
   });
 
   // Defaulting to hidden is the safe direction: a forgotten flag on

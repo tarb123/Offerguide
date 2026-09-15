@@ -11,6 +11,21 @@ import { usePermissionFilter } from "@/lib/portal/usePermission";
 import { NAV_SECTIONS, navEntriesInGroup } from "@/lib/portal/navSections";
 
 /**
+ * The "New" sticker a nav entry can declare (`NavEntry.badge`). Rendered by
+ * every surface an entry appears on — desktop pill, both dropdowns, the mobile
+ * drawer — so a declared badge cannot show in one menu and not another.
+ * Brand red so it reads as a callout against the navy/blue links, and
+ * `uppercase` + tight tracking so a one-word sticker stays sticker-sized.
+ */
+function NavBadge({ children }: { children: string }) {
+  return (
+    <span className="ml-1.5 inline-flex items-center rounded-full bg-[#e83444] px-1.5 py-0.5 text-[9px] font-black uppercase leading-none tracking-[0.12em] text-white shadow-[0_1px_4px_rgba(232,52,68,0.4)]">
+      {children}
+    </span>
+  );
+}
+
+/**
  * Sprint 9: the two hardcoded arrays that used to live here (`mainLinks` and
  * `serviceLinks`) moved to `lib/portal/navSections.ts`, where each entry names
  * the permission it needs. This component now renders whatever survives
@@ -99,7 +114,7 @@ export default function ModernHeader() {
 
               {servicesOpen && (
                 <div className="absolute left-0 top-[calc(100%+12px)] w-72 overflow-hidden rounded-2xl border border-[#0b163f]/10 bg-white p-2 shadow-[0_24px_60px_rgba(11,22,63,0.16)] dark:border-white/10 dark:bg-[#101a3f]">
-                  {serviceLinks.map(({ label, href, icon: Icon }) => (
+                  {serviceLinks.map(({ label, href, icon: Icon, badge }) => (
                     <Link
                       key={label}
                       href={href}
@@ -110,19 +125,21 @@ export default function ModernHeader() {
                         <Icon size={17} />
                       </span>
                       {label}
+                      {badge && <NavBadge>{badge}</NavBadge>}
                     </Link>
                   ))}
                 </div>
               )}
             </div>
 
-            {mainLinks.map(({ label, href }) => (
+            {mainLinks.map(({ label, href, badge }) => (
               <Link
                 key={label}
                 href={href}
                 className="inline-flex h-11 items-center rounded-full px-4 text-sm font-bold text-[#0b163f] transition hover:bg-[#f2eee8] dark:text-white dark:hover:bg-white/10"
               >
                 {label}
+                {badge && <NavBadge>{badge}</NavBadge>}
               </Link>
             ))}
 
@@ -148,7 +165,7 @@ export default function ModernHeader() {
 
                 {accountOpen && (
                   <div className="absolute right-0 top-[calc(100%+12px)] w-64 overflow-hidden rounded-2xl border border-[#0b163f]/10 bg-white p-2 shadow-[0_24px_60px_rgba(11,22,63,0.16)] dark:border-white/10 dark:bg-[#101a3f]">
-                    {accountLinks.map(({ label, href, icon: Icon }) => (
+                    {accountLinks.map(({ label, href, icon: Icon, badge }) => (
                       <Link
                         key={label}
                         href={href}
@@ -159,6 +176,7 @@ export default function ModernHeader() {
                           <Icon size={17} />
                         </span>
                         {label}
+                        {badge && <NavBadge>{badge}</NavBadge>}
                       </Link>
                     ))}
                   </div>
@@ -236,7 +254,7 @@ export default function ModernHeader() {
           <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
             Explore
           </p>
-          {mainLinks.map(({ label, href, icon: Icon }) => (
+          {mainLinks.map(({ label, href, icon: Icon, badge }) => (
             <Link
               key={label}
               href={href}
@@ -247,13 +265,14 @@ export default function ModernHeader() {
                 <Icon size={17} />
               </span>
               {label}
+              {badge && <NavBadge>{badge}</NavBadge>}
             </Link>
           ))}
 
           <p className="mt-5 px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
             Services
           </p>
-          {serviceLinks.map(({ label, href, icon: Icon }) => (
+          {serviceLinks.map(({ label, href, icon: Icon, badge }) => (
             <Link
               key={label}
               href={href}
@@ -264,6 +283,7 @@ export default function ModernHeader() {
                 <Icon size={17} />
               </span>
               {label}
+              {badge && <NavBadge>{badge}</NavBadge>}
             </Link>
           ))}
 
@@ -274,7 +294,7 @@ export default function ModernHeader() {
               <p className="mt-5 px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                 Your account
               </p>
-              {accountLinks.map(({ label, href, icon: Icon }) => (
+              {accountLinks.map(({ label, href, icon: Icon, badge }) => (
                 <Link
                   key={label}
                   href={href}
@@ -285,6 +305,7 @@ export default function ModernHeader() {
                     <Icon size={17} />
                   </span>
                   {label}
+                  {badge && <NavBadge>{badge}</NavBadge>}
                 </Link>
               ))}
             </>

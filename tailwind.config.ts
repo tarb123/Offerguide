@@ -156,6 +156,9 @@ const config: Config = {
       },
 
       spacing: {
+        // The fixed site header's height (globals.css --header-h): h-header on
+        // the bar, top-header on anything sticky beneath it.
+        header: 'var(--header-h)',
         72: '18rem',
         84: '21rem',
         96: '24rem',

@@ -61,7 +61,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen">
         <aside
           className={cn(
-            "sticky top-20 hidden h-[calc(100vh-5rem)] shrink-0 self-start overflow-y-auto border-r border-[#0b163f]/10 bg-[#fbf7f1] shadow-[0_8px_35px_rgba(11,22,63,0.06)] dark:border-white/10 dark:bg-[#003f81] lg:block",
+            "sticky top-header hidden h-[calc(100vh-var(--header-h))] shrink-0 self-start overflow-y-auto border-r border-[#0b163f]/10 bg-[#fbf7f1] shadow-[0_8px_35px_rgba(11,22,63,0.06)] dark:border-white/10 dark:bg-[#003f81] lg:block",
             collapsed ? "w-16" : "w-56"
           )}
         >
@@ -99,7 +99,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         )}
 
         <section className="min-w-0 flex-1">
-          <header className="sticky top-20 z-10 flex h-14 items-center gap-3 border-b border-[#0b163f]/10 bg-white/80 px-4 backdrop-blur dark:border-white/10 dark:bg-[#070d2b]/80 sm:px-6">
+          <header className="sticky top-header z-10 flex h-14 items-center gap-3 border-b border-[#0b163f]/10 bg-white/80 px-4 backdrop-blur dark:border-white/10 dark:bg-[#070d2b]/80 sm:px-6">
             <button
               type="button"
               aria-label="Open navigation"

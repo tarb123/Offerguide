@@ -89,6 +89,16 @@
   }
 }
 
+/* Layout: the fixed site header's height, declared once. The bar, the spacer
+   that pushes page content below it, and every sticky sidebar/toolbar that
+   pins beneath it read this — they used to be three hand-typed numbers in
+   three files, and changing one opened a gap under the header until the other
+   two were found. Tailwind exposes it as h-header / top-header / pt-header
+   (spacing.header in tailwind.config.ts). */
+:root {
+  --header-h: 4rem; /* 64px */
+}
+
 /* ===========================================================================
    Palettes — the header's palette picker (PalettePicker) sets
    `data-palette` on <html>; these tokens are what it changes.

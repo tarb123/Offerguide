@@ -6,7 +6,9 @@
  * and four colour chips. Choosing one applies site-wide at once (see
  * PaletteProvider).
  *
- * Desktop header only: the mobile drawer carries just the light/dark toggle.
+ * `placement="up"` opens the menu above the button — the mobile drawer puts
+ * this control on its bottom row, where a menu opening downward would run off
+ * the screen.
  * `ghost` (no border) so the toggle + picker read as one quiet cluster of
  * icons, as in the reference design.
  */
@@ -33,7 +35,7 @@ function Swatches({ palette }: { palette: PaletteDef }) {
   );
 }
 
-export function PalettePicker() {
+export function PalettePicker({ placement = "down" }: { placement?: "down" | "up" }) {
   const { palette, setPalette } = usePalette();
   const [open, setOpen] = React.useState(false);
   const rootRef = React.useRef<HTMLDivElement>(null);
@@ -76,7 +78,7 @@ export function PalettePicker() {
         <div
           role="menu"
           aria-label="Choose a colour palette"
-          className="absolute right-0 top-[calc(100%+10px)] z-50 w-64 overflow-hidden rounded-2xl border border-brand-ink/10 bg-white p-2 shadow-[0_24px_60px_rgba(11,22,63,0.16)] dark:border-white/10 dark:bg-[#101a3f]"
+          className={`absolute right-0 z-50 w-64 overflow-hidden rounded-2xl border border-brand-ink/10 bg-white p-2 shadow-[0_24px_60px_rgba(11,22,63,0.16)] dark:border-white/10 dark:bg-[#101a3f] ${placement === "up" ? "bottom-[calc(100%+10px)]" : "top-[calc(100%+10px)]"}`}
         >
           {PALETTES.map((p) => {
             const selected = p.id === palette;

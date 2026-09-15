@@ -38,7 +38,7 @@ export default function ModernHomepage() {
 
       <section
         id="career-pathway"
-        className="relative bg-brand-paper py-10 dark:bg-darkBlue sm:py-24 lg:py-32"
+        className="relative bg-brand-paper dark:bg-darkBlue sm:py-24 lg:py-32"
       >
         <div className="mx-auto max-w-[1200px] px-5 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-3xl text-center">

@@ -192,11 +192,15 @@ export default function ModernHeader() {
               <ThemeToggle />
               <PalettePicker />
             </div>
+            {/* Sign in / out use the same borderless treatment as the theme
+                toggle and palette picker beside them — one quiet cluster, no
+                filled pill competing with the nav. The word stays: a bare icon
+                for sign-in is not discoverable. Same in the drawer below. */}
             {authenticated ? (
               <button
                 type="button"
                 onClick={() => void logout()}
-                className="hidden h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-brand-ink px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-brand-blue dark:bg-white dark:text-brand-ink dark:hover:bg-[#dfe8ff] sm:inline-flex"
+                className="hidden h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-sm font-bold text-brand-ink transition hover:bg-brand-ink/5 dark:text-white dark:hover:bg-white/10 sm:inline-flex"
               >
                 <LogOut size={16} />
                 Log out
@@ -204,7 +208,7 @@ export default function ModernHeader() {
             ) : (
               <Link
                 href="/auth"
-                className="hidden h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-brand-ink px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-brand-blue dark:bg-white dark:text-brand-ink dark:hover:bg-[#dfe8ff] sm:inline-flex"
+                className="hidden h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-sm font-bold text-brand-ink transition hover:bg-brand-ink/5 dark:text-white dark:hover:bg-white/10 sm:inline-flex"
               >
                 <LogIn size={16} />
                 Log in
@@ -222,7 +226,6 @@ export default function ModernHeader() {
         </div>
       </header>
 
-      <div className="h-20" aria-hidden="true" />
 
       <button
         type="button"
@@ -327,7 +330,7 @@ export default function ModernHeader() {
                 setMenuOpen(false);
                 void logout();
               }}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand-accent text-sm font-black text-white"
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-full text-sm font-bold text-brand-ink transition hover:bg-brand-ink/5 dark:text-white dark:hover:bg-white/10"
             >
               <LogOut size={17} />
               Log out
@@ -336,7 +339,7 @@ export default function ModernHeader() {
             <Link
               href="/auth"
               onClick={() => setMenuOpen(false)}
-              className="flex h-12 items-center justify-center gap-2 rounded-full bg-brand-accent text-sm font-black text-white"
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-full text-sm font-bold text-brand-ink transition hover:bg-brand-ink/5 dark:text-white dark:hover:bg-white/10"
             >
               <LogIn size={17} />
               Log in

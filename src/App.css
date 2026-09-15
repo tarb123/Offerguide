@@ -1,5 +1,9 @@
 body {
-    font-family: "Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", sans-serif;
+    /* Routed through the palette token (globals.css). This used to name the
+       Urdu faces, which are loaded by next/font as --font-jameel and applied via
+       .font-urdu — not installed system-wide — so body text silently fell back
+       to the OS sans-serif, and the Roboto in globals.css never applied. */
+    font-family: var(--font-brand, sans-serif);
     line-height: 1.6;
     /* padding: 20px; */
     background-color: whitesmoke;

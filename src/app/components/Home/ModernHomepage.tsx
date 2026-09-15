@@ -32,19 +32,19 @@ const journey = [
 
 export default function ModernHomepage() {
   return (
-    <main className="overflow-hidden bg-[#fbf7f1] text-[#0b163f] dark:bg-blue-950 dark:text-white">
+    <main className="overflow-hidden bg-brand-paper text-brand-ink dark:bg-blue-950 dark:text-white">
    
       <ModernServices/>
 
       <section
         id="career-pathway"
-        className="relative bg-[#fbf7f1] py-10 dark:bg-darkBlue sm:py-24 lg:py-32"
+        className="relative bg-brand-paper py-10 dark:bg-darkBlue sm:py-24 lg:py-32"
       >
         <div className="mx-auto max-w-[1200px] px-5 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-3xl text-center">
           </div>
 
-          <div className="-mt-3 mb-2 overflow-hidden rounded-[24px] bg-[#e83444] p-6
+          <div className="-mt-3 mb-2 overflow-hidden rounded-[24px] bg-brand-accent p-6
           text-white shadow-[0_25px_70px_rgba(232,52,68,0.22)] 
           sm:-mt-16 sm:rounded-[34px] sm:p-10 lg:flex lg:items-center lg:justify-between lg:px-12">
             <div className="max-w-2xl">
@@ -59,15 +59,15 @@ export default function ModernHomepage() {
           </div>
 
           <div className="relative mt-14 grid gap-5 md:grid-cols-3 lg:mt-18">
-            <div className="absolute left-[16%] right-[16%] top-10 hidden border-t border-dashed border-[#1746b5]/25 md:block" />
+            <div className="absolute left-[16%] right-[16%] top-10 hidden border-t border-dashed border-brand-blue/25 md:block" />
             {journey.map(({ number, title, description, icon: Icon }) => (
               <article
                 key={number}
                 className="relative overflow-hidden rounded-[20px] 
-                bg-[#4183d4] p-6 shadow-[0_18px_55px_rgba(11,22,63,0.07)] dark:border-white/10 dark:bg-white/[0.05] sm:p-8"
+                bg-brand-sky p-6 shadow-[0_18px_55px_rgba(11,22,63,0.07)] dark:border-white/10 dark:bg-white/[0.05] sm:p-8"
               >
                 <div className="pointer-events-none absolute inset-0 opacity-100">
-                  <div className="absolute -right-5 -bottom-5 h-16 w-16 rounded-full bg-[#fbf7f1]" />
+                  <div className="absolute -right-5 -bottom-5 h-16 w-16 rounded-full bg-brand-paper" />
                 </div>
 
                 <div className="relative z-10 flex items-center justify-between">
@@ -90,12 +90,12 @@ export default function ModernHomepage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-[#4183d4] py-20 text-white transition-colors sm:py-24 lg:py-28 
+      <section className="relative overflow-hidden bg-brand-sky py-20 text-white transition-colors sm:py-24 lg:py-28 
       dark:bg-[#1c87b5] dark:text-white">
         {/* Red + white blurred circle decorations */}
         
       <div className="pointer-events-none absolute inset-0 opacity-70">
-        <div className="absolute -left-28 top-10 h-72 w-72 rounded-full bg-[#ff0015] blur-5xl" />
+        <div className="absolute -left-28 top-10 h-72 w-72 rounded-full bg-brand-accent blur-5xl" />
         <div className="absolute -right-44 bottom-6 h-80 w-80 rounded-full bg-[#ffffff] blur-5xl" />
       </div>
 
@@ -114,7 +114,7 @@ export default function ModernHomepage() {
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2 text-xs font-sans
                   text-white sm:text-base dark:text-white/85">
-                  <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#e83444]">
+                  <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-accent">
                     <Check size={14} strokeWidth={3} />
                   </span>
                   {item}
@@ -125,7 +125,7 @@ export default function ModernHomepage() {
           </div>
 
           <div className="relative">
-            <div className="absolute -inset-4 rounded-[36px] bg-gradient-to-br from-[#1746b5]/50 to-[#e83444]/35 blur-2xl" />
+            <div className="absolute -inset-4 rounded-[36px] bg-gradient-to-br from-brand-blue/50 to-brand-accent/35 blur-2xl" />
             <div className="relative overflow-hidden rounded-[30px] border border-black/10 bg-black/5 p-2 shadow-2xl dark:border-white/15 dark:bg-black/20">
               <video
                 src="/Video1.mp4"

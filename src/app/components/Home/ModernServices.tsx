@@ -58,10 +58,10 @@ export default function ModernServices() {
     <section
       id="services"
       aria-labelledby="services-heading"
-      className="relative overflow-hidden bg-[#4183d4] py-20 text-white sm:py-24 lg:py-16"
+      className="relative overflow-hidden bg-brand-sky py-20 text-white sm:py-24 lg:py-16"
     >
       <div className="pointer-events-none absolute inset-0 opacity-70">
-        <div className="absolute -left-28 top-10 h-72 w-72 rounded-full bg-[#ff0015] blur-5xl" />
+        <div className="absolute -left-28 top-10 h-72 w-72 rounded-full bg-brand-accent blur-5xl" />
         <div className="absolute -right-44 bottom-6 h-80 w-80 rounded-full bg-[#ffffff] blur-5xl" />
       </div>
 
@@ -84,14 +84,14 @@ export default function ModernServices() {
             <button
               type="button"
               aria-label="Previous service"
-              className="service-prev grid h-12 w-12 place-items-center rounded-full border border-white/20 bg-white/5 transition hover:border-white/50 hover:bg-white hover:text-[#0b163f] focus:outline-none focus:ring-2 focus:ring-white/70"
+              className="service-prev grid h-12 w-12 place-items-center rounded-full border border-white/20 bg-white/5 transition hover:border-white/50 hover:bg-white hover:text-brand-ink focus:outline-none focus:ring-2 focus:ring-white/70"
             >
               <ChevronLeft size={21} />
             </button>
             <button
               type="button"
               aria-label="Next service"
-              className="service-next grid h-12 w-12 place-items-center rounded-full border border-white/20 bg-white/5 transition hover:border-white/50 hover:bg-white hover:text-[#0b163f] focus:outline-none focus:ring-2 focus:ring-white/70"
+              className="service-next grid h-12 w-12 place-items-center rounded-full border border-white/20 bg-white/5 transition hover:border-white/50 hover:bg-white hover:text-brand-ink focus:outline-none focus:ring-2 focus:ring-white/70"
             >
               <ChevronRight size={21} />
             </button>
@@ -125,13 +125,13 @@ export default function ModernServices() {
                     sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 320px"
                     className="object-cover"
                   />
-                  <span className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-[#0b163f] text-xs font-bold text-white">
+                  <span className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-brand-ink text-xs font-bold text-white">
                     {service.number}
                   </span>
                 </div>
 
                 <div className="pt-4">
-                  <p className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#0b163f]">
+                  <p className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-brand-ink">
                     {service.eyebrow}
                   </p>
                   <h3 className="mb-1 text-base font-black tracking-[-0.02em] text-white">

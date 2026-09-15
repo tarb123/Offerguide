@@ -1,17 +1,25 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "../App.css";
-import { jameelNoori } from "./fonts";
+import { jameelNoori, shantellSans } from "./fonts";
 import ResponsiveNav from "./components/nav/ResponsiveNav";
 import ModernFooter from "./footer/ModernFooter";
 import { Toaster } from "react-hot-toast";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ThemeProvider, THEME_STORAGE_KEY } from "@/components/theme-provider";
+import { PaletteProvider } from "@/components/palette-provider";
 import { AuthProvider } from "@/lib/portal/AuthProvider";
+import { DEFAULT_PALETTE, PALETTES, PALETTE_STORAGE_KEY } from "@/lib/portal/palettes";
 
 // Applied before paint to avoid a flash of the wrong theme. Must stay in sync
 // with ThemeProvider (same storage key, same resolution of 'system').
 const themeInitScript = `(function(){try{var k='${THEME_STORAGE_KEY}';var t=localStorage.getItem(k);var d=t==='dark'||((t==='system'||!t)&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})();`;
+
+// Same idea for the colour palette: read the stored id, fall back to the
+// default for anything unknown (mirrors normalizePalette), set `data-palette`
+// before first paint. The list of valid ids is baked in from the registry so
+// this and PaletteProvider cannot disagree about what counts as a palette.
+const paletteInitScript = `(function(){try{var ok=${JSON.stringify(PALETTES.map((p) => p.id))};var v=localStorage.getItem('${PALETTE_STORAGE_KEY}');document.documentElement.setAttribute('data-palette',ok.indexOf(v)>-1?v:'${DEFAULT_PALETTE}');}catch(e){document.documentElement.setAttribute('data-palette','${DEFAULT_PALETTE}');}})();`;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://sanjeeda.io"),
@@ -50,9 +58,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-     <html lang="en" className="h-full w-full" suppressHydrationWarning>
+     <html lang="en" className={`h-full w-full ${shantellSans.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: paletteInitScript }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -68,6 +77,7 @@ export default function RootLayout({
       </head>
       <body className={`${jameelNoori.variable} antialiased min-h-screen w-full overflow-x-hidden`}>
         <ThemeProvider>
+         <PaletteProvider>
           {/*
             AuthProvider wraps the whole portal because the nav does — it is
             portal infrastructure, not an OfferGuide concern, and offerguide/
@@ -86,6 +96,7 @@ export default function RootLayout({
             <ModernFooter/>
             <Toaster/>
           </AuthProvider>
+         </PaletteProvider>
         </ThemeProvider>
       </body>
     </html>

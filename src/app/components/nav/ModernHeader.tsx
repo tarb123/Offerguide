@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, LogIn, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PalettePicker } from "@/components/palette-picker";
 import { useAuth } from "@/lib/portal/AuthProvider";
 import { usePermissionFilter } from "@/lib/portal/usePermission";
 import { NAV_SECTIONS, navEntriesInGroup } from "@/lib/portal/navSections";
@@ -19,7 +20,7 @@ import { NAV_SECTIONS, navEntriesInGroup } from "@/lib/portal/navSections";
  */
 function NavBadge({ children }: { children: string }) {
   return (
-    <span className="ml-1.5 inline-flex items-center rounded-full bg-[#e83444] px-1.5 py-0.5 text-[9px] font-black uppercase leading-none tracking-[0.12em] text-white shadow-[0_1px_4px_rgba(232,52,68,0.4)]">
+    <span className="ml-1.5 inline-flex items-center rounded-full bg-brand-accent px-1.5 py-0.5 text-[9px] font-black uppercase leading-none tracking-[0.12em] text-white shadow-[0_1px_4px_rgb(var(--brand-accent)/0.4)]">
       {children}
     </span>
   );
@@ -63,7 +64,7 @@ export default function ModernHeader() {
 
   return (
     <>
-      <header className={`fixed inset-x-0 top-0 z-50 border-b border-[#0b163f]/10 bg-white/90 bg-opacity-20 shadow-[0_8px_35px_rgba(11,22,63,0.06)] backdrop-blur-xl dark:border-white/10 ${darkBarBg}`}>
+      <header className={`fixed inset-x-0 top-0 z-50 border-b border-brand-ink/10 bg-white/90 bg-opacity-20 shadow-[0_8px_35px_rgba(11,22,63,0.06)] backdrop-blur-xl dark:border-white/10 ${darkBarBg}`}>
         <div className="mx-auto flex h-20 max-w-[1300px] items-center justify-between px-5 sm:px-8 lg:px-12">
           <div className="flex min-w-0 items-center gap-3 lg:gap-4">
             <Link href="/" aria-label="Sanjeeda home" className="shrink-0">
@@ -103,7 +104,7 @@ export default function ModernHeader() {
                 type="button"
                 onClick={() => setServicesOpen((open) => !open)}
                 aria-expanded={servicesOpen}
-                className="inline-flex h-11 items-center gap-1.5 rounded-full px-4 text-sm font-bold text-[#0b163f] transition hover:bg-[#f2eee8] dark:text-white dark:hover:bg-white/10"
+                className="inline-flex h-11 items-center gap-1.5 rounded-full px-4 text-sm font-bold text-brand-ink transition hover:bg-brand-ink/5 dark:text-white dark:hover:bg-white/10"
               >
                 Services
                 <ChevronDown
@@ -113,15 +114,15 @@ export default function ModernHeader() {
               </button>
 
               {servicesOpen && (
-                <div className="absolute left-0 top-[calc(100%+12px)] w-72 overflow-hidden rounded-2xl border border-[#0b163f]/10 bg-white p-2 shadow-[0_24px_60px_rgba(11,22,63,0.16)] dark:border-white/10 dark:bg-[#101a3f]">
+                <div className="absolute left-0 top-[calc(100%+12px)] w-72 overflow-hidden rounded-2xl border border-brand-ink/10 bg-white p-2 shadow-[0_24px_60px_rgba(11,22,63,0.16)] dark:border-white/10 dark:bg-[#101a3f]">
                   {serviceLinks.map(({ label, href, icon: Icon, badge }) => (
                     <Link
                       key={label}
                       href={href}
                       onClick={() => setServicesOpen(false)}
-                      className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold text-[#0b163f] transition hover:bg-[#f4f0ea] dark:text-white dark:hover:bg-white/10"
+                      className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold text-brand-ink transition hover:bg-brand-ink/5 dark:text-white dark:hover:bg-white/10"
                     >
-                      <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e9efff] text-[#1746b5] dark:bg-white/10 dark:text-[#8eb4ff]">
+                      <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-blue-soft text-brand-blue dark:bg-white/10 dark:text-brand-blue-bright">
                         <Icon size={17} />
                       </span>
                       {label}
@@ -136,7 +137,7 @@ export default function ModernHeader() {
               <Link
                 key={label}
                 href={href}
-                className="inline-flex h-11 items-center rounded-full px-4 text-sm font-bold text-[#0b163f] transition hover:bg-[#f2eee8] dark:text-white dark:hover:bg-white/10"
+                className="inline-flex h-11 items-center rounded-full px-4 text-sm font-bold text-brand-ink transition hover:bg-brand-ink/5 dark:text-white dark:hover:bg-white/10"
               >
                 {label}
                 {badge && <NavBadge>{badge}</NavBadge>}
@@ -154,7 +155,7 @@ export default function ModernHeader() {
                   type="button"
                   onClick={() => setAccountOpen((open) => !open)}
                   aria-expanded={accountOpen}
-                  className="inline-flex h-11 items-center gap-1.5 rounded-full px-4 text-sm font-bold text-[#0b163f] transition hover:bg-[#f2eee8] dark:text-white dark:hover:bg-white/10"
+                  className="inline-flex h-11 items-center gap-1.5 rounded-full px-4 text-sm font-bold text-brand-ink transition hover:bg-brand-ink/5 dark:text-white dark:hover:bg-white/10"
                 >
                   Account
                   <ChevronDown
@@ -164,13 +165,13 @@ export default function ModernHeader() {
                 </button>
 
                 {accountOpen && (
-                  <div className="absolute right-0 top-[calc(100%+12px)] w-64 overflow-hidden rounded-2xl border border-[#0b163f]/10 bg-white p-2 shadow-[0_24px_60px_rgba(11,22,63,0.16)] dark:border-white/10 dark:bg-[#101a3f]">
+                  <div className="absolute right-0 top-[calc(100%+12px)] w-64 overflow-hidden rounded-2xl border border-brand-ink/10 bg-white p-2 shadow-[0_24px_60px_rgba(11,22,63,0.16)] dark:border-white/10 dark:bg-[#101a3f]">
                     {accountLinks.map(({ label, href, icon: Icon, badge }) => (
                       <Link
                         key={label}
                         href={href}
                         onClick={() => setAccountOpen(false)}
-                        className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold text-[#0b163f] transition hover:bg-[#f4f0ea] dark:text-white dark:hover:bg-white/10"
+                        className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold text-brand-ink transition hover:bg-brand-ink/5 dark:text-white dark:hover:bg-white/10"
                       >
                         <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e8f6ee] text-[#0f8a4d] dark:bg-white/10 dark:text-[#6ee7a8]">
                           <Icon size={17} />
@@ -186,14 +187,16 @@ export default function ModernHeader() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <div className="hidden sm:block">
+            {/* Appearance cluster: light/dark beside the colour palette. */}
+            <div className="hidden items-center gap-2 sm:flex">
               <ThemeToggle />
+              <PalettePicker />
             </div>
             {authenticated ? (
               <button
                 type="button"
                 onClick={() => void logout()}
-                className="hidden h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[#0b163f] px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[#1746b5] dark:bg-white dark:text-[#0b163f] dark:hover:bg-[#dfe8ff] sm:inline-flex"
+                className="hidden h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-brand-ink px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-brand-blue dark:bg-white dark:text-brand-ink dark:hover:bg-[#dfe8ff] sm:inline-flex"
               >
                 <LogOut size={16} />
                 Log out
@@ -201,7 +204,7 @@ export default function ModernHeader() {
             ) : (
               <Link
                 href="/auth"
-                className="hidden h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[#0b163f] px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[#1746b5] dark:bg-white dark:text-[#0b163f] dark:hover:bg-[#dfe8ff] sm:inline-flex"
+                className="hidden h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-brand-ink px-5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-brand-blue dark:bg-white dark:text-brand-ink dark:hover:bg-[#dfe8ff] sm:inline-flex"
               >
                 <LogIn size={16} />
                 Log in
@@ -211,7 +214,7 @@ export default function ModernHeader() {
               type="button"
               onClick={() => setMenuOpen(true)}
               aria-label="Open navigation"
-              className="grid h-11 w-11 place-items-center rounded-full border border-[#0b163f]/10 text-[#0b163f] transition hover:bg-[#f2eee8] dark:border-white/10 dark:text-white dark:hover:bg-white/10 lg:hidden"
+              className="grid h-11 w-11 place-items-center rounded-full border border-brand-ink/10 text-brand-ink transition hover:bg-brand-ink/5 dark:border-white/10 dark:text-white dark:hover:bg-white/10 lg:hidden"
             >
               <span className="text-2xl font-black leading-none" aria-hidden="true">☰</span>
             </button>
@@ -236,7 +239,7 @@ export default function ModernHeader() {
           menuOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between border-b border-[#0b163f]/10 pb-5 dark:border-white/10">
+        <div className="flex items-center justify-between border-b border-brand-ink/10 pb-5 dark:border-white/10">
           <span className="text-2xl font-black tracking-[-0.04em] text-[#1559bd] dark:text-white">
             Sanjeed<span className="text-[#ef3340] dark:text-[#ff7b86]">a!</span>
           </span>
@@ -244,7 +247,7 @@ export default function ModernHeader() {
             type="button"
             onClick={() => setMenuOpen(false)}
             aria-label="Close navigation"
-            className="grid h-10 w-10 place-items-center rounded-full bg-[#ece7df] text-[#0b163f] dark:bg-white/10 dark:text-white"
+            className="grid h-10 w-10 place-items-center rounded-full bg-[#ece7df] text-brand-ink dark:bg-white/10 dark:text-white"
           >
             <span className="text-2xl font-medium leading-none" aria-hidden="true">×</span>
           </button>
@@ -259,9 +262,9 @@ export default function ModernHeader() {
               key={label}
               href={href}
               onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-3 rounded-2xl px-3 py-3.5 text-sm font-black text-[#0b163f] transition hover:bg-white dark:text-white dark:hover:bg-white/10"
+              className="flex items-center gap-3 rounded-2xl px-3 py-3.5 text-sm font-black text-brand-ink transition hover:bg-white dark:text-white dark:hover:bg-white/10"
             >
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e8efff] text-[#1746b5] dark:bg-white/10 dark:text-[#8eb4ff]">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-blue-soft text-brand-blue dark:bg-white/10 dark:text-brand-blue-bright">
                 <Icon size={17} />
               </span>
               {label}
@@ -277,9 +280,9 @@ export default function ModernHeader() {
               key={label}
               href={href}
               onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-3 rounded-2xl px-3 py-3.5 text-sm font-black text-[#0b163f] transition hover:bg-white dark:text-white dark:hover:bg-white/10"
+              className="flex items-center gap-3 rounded-2xl px-3 py-3.5 text-sm font-black text-brand-ink transition hover:bg-white dark:text-white dark:hover:bg-white/10"
             >
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#fff0e8] text-[#e83444] dark:bg-white/10 dark:text-[#ff707a]">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-accent-soft text-brand-accent dark:bg-white/10 dark:text-brand-accent-bright">
                 <Icon size={17} />
               </span>
               {label}
@@ -299,7 +302,7 @@ export default function ModernHeader() {
                   key={label}
                   href={href}
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-2xl px-3 py-3.5 text-sm font-black text-[#0b163f] transition hover:bg-white dark:text-white dark:hover:bg-white/10"
+                  className="flex items-center gap-3 rounded-2xl px-3 py-3.5 text-sm font-black text-brand-ink transition hover:bg-white dark:text-white dark:hover:bg-white/10"
                 >
                   <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e8f6ee] text-[#0f8a4d] dark:bg-white/10 dark:text-[#6ee7a8]">
                     <Icon size={17} />
@@ -312,10 +315,13 @@ export default function ModernHeader() {
           )}
         </nav>
 
-        <div className="mt-auto space-y-4 border-t border-[#0b163f]/10 pt-5 dark:border-white/10">
+        <div className="mt-auto space-y-4 border-t border-brand-ink/10 pt-5 dark:border-white/10">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 dark:text-white/50">Appearance</span>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <PalettePicker />
+            </div>
           </div>
           {authenticated ? (
             <button
@@ -324,7 +330,7 @@ export default function ModernHeader() {
                 setMenuOpen(false);
                 void logout();
               }}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#e83444] text-sm font-black text-white"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand-accent text-sm font-black text-white"
             >
               <LogOut size={17} />
               Log out
@@ -333,7 +339,7 @@ export default function ModernHeader() {
             <Link
               href="/auth"
               onClick={() => setMenuOpen(false)}
-              className="flex h-12 items-center justify-center gap-2 rounded-full bg-[#e83444] text-sm font-black text-white"
+              className="flex h-12 items-center justify-center gap-2 rounded-full bg-brand-accent text-sm font-black text-white"
             >
               <LogIn size={17} />
               Log in

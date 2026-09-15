@@ -89,6 +89,89 @@
   }
 }
 
+/* ===========================================================================
+   Palettes — the header's palette picker (PalettePicker) sets
+   `data-palette` on <html>; these tokens are what it changes.
+
+   Colours are RGB triplets, not hex, so Tailwind's opacity modifiers keep
+   working (`border-brand-ink/10` → `rgb(var(--brand-ink) / 0.1)`). The
+   Tailwind side is `colors.brand` in tailwind.config.ts.
+
+   MODERN is the site's existing look — its values are the hex codes that were
+   typed into the header and homepage before this layer existed, so selecting
+   it (or having no attribute) renders pixel-identical to before. Each other
+   palette shifts the ACCENT family and, for Playful, the font; ink and paper
+   move only slightly. Semantic colours (the green account tier, warnings)
+   are deliberately not palette tokens.
+
+   Tokens:
+     ink            headings / body text
+     accent         primary callout — the "New" sticker, hero bubbles, blobs
+     accent-soft    tint behind an accent icon
+     accent-bright  the accent readable on a dark surface
+     blue           secondary — icon tiles, dashed rules
+     blue-soft      tint behind a blue icon
+     blue-bright    the blue readable on a dark surface
+     sky            large hero surfaces
+     paper          warm page background
+     font-brand     body font stack; Playful swaps in Shantell Sans, whose
+                    variable next/font defines on <html> (see layout.tsx —
+                    it must live on <html>, not <body>, or the var() below
+                    fails to resolve where the token is declared)
+   =========================================================================== */
+:root,
+[data-palette="modern"] {
+  --brand-ink: 11 22 63;             /* #0b163f */
+  --brand-accent: 232 52 68;         /* #e83444 */
+  --brand-accent-soft: 255 240 232;  /* #fff0e8 */
+  --brand-accent-bright: 255 112 122;/* #ff707a */
+  --brand-blue: 23 70 181;           /* #1746b5 */
+  --brand-blue-soft: 233 239 255;    /* #e9efff */
+  --brand-blue-bright: 142 180 255;  /* #8eb4ff */
+  --brand-sky: 65 131 212;           /* #4183d4 */
+  --brand-paper: 251 247 241;        /* #fbf7f1 */
+  --font-brand: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+[data-palette="playful"] {
+  --brand-ink: 31 17 71;             /* #1f1147 deep plum */
+  --brand-accent: 214 36 110;        /* #d6246e */
+  --brand-accent-soft: 253 231 241;  /* #fde7f1 */
+  --brand-accent-bright: 249 168 212;/* #f9a8d4 */
+  --brand-blue: 124 58 237;          /* #7c3aed violet */
+  --brand-blue-soft: 241 232 255;    /* #f1e8ff */
+  --brand-blue-bright: 196 181 253;  /* #c4b5fd */
+  --brand-sky: 109 92 231;           /* #6d5ce7 */
+  --brand-paper: 255 246 251;        /* #fff6fb */
+  --font-brand: var(--font-shantell), ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-palette="minimal"] {
+  --brand-ink: 9 9 11;               /* #09090b */
+  --brand-accent: 24 24 27;          /* #18181b */
+  --brand-accent-soft: 244 244 245;  /* #f4f4f5 */
+  --brand-accent-bright: 228 228 231;/* #e4e4e7 */
+  --brand-blue: 63 63 70;            /* #3f3f46 */
+  --brand-blue-soft: 244 244 245;    /* #f4f4f5 */
+  --brand-blue-bright: 212 212 216;  /* #d4d4d8 */
+  --brand-sky: 39 39 42;             /* #27272a */
+  --brand-paper: 250 250 250;        /* #fafafa */
+  --font-brand: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+[data-palette="mono"] {
+  --brand-ink: 30 27 75;             /* #1e1b4b */
+  --brand-accent: 79 57 246;         /* #4f39f6 */
+  --brand-accent-soft: 238 242 255;  /* #eef2ff */
+  --brand-accent-bright: 165 180 252;/* #a5b4fc */
+  --brand-blue: 67 56 202;           /* #4338ca */
+  --brand-blue-soft: 224 231 255;    /* #e0e7ff */
+  --brand-blue-bright: 165 180 252;  /* #a5b4fc */
+  --brand-sky: 67 56 202;            /* #4338ca */
+  --brand-paper: 245 243 255;        /* #f5f3ff */
+  --font-brand: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
 * {
   padding: 0;
   margin: 0;
@@ -96,7 +179,7 @@
 }
 
 body {
-  font-family: "Roboto", sans-serif;
+  font-family: var(--font-brand, "Roboto", sans-serif);
   background-color:#efefef;
 }
 

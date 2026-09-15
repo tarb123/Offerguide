@@ -28,6 +28,22 @@ const config: Config = {
 
     extend: {
       colors: {
+        // Palette-aware brand tokens. Each resolves to a CSS variable that the
+        // header's palette picker swaps (see the Palettes block in globals.css),
+        // so `text-brand-ink` follows whichever palette the visitor chose.
+        // `<alpha-value>` keeps `/10`-style opacity modifiers working.
+        brand: {
+          ink: 'rgb(var(--brand-ink) / <alpha-value>)',
+          accent: 'rgb(var(--brand-accent) / <alpha-value>)',
+          'accent-soft': 'rgb(var(--brand-accent-soft) / <alpha-value>)',
+          'accent-bright': 'rgb(var(--brand-accent-bright) / <alpha-value>)',
+          blue: 'rgb(var(--brand-blue) / <alpha-value>)',
+          'blue-soft': 'rgb(var(--brand-blue-soft) / <alpha-value>)',
+          'blue-bright': 'rgb(var(--brand-blue-bright) / <alpha-value>)',
+          sky: 'rgb(var(--brand-sky) / <alpha-value>)',
+          paper: 'rgb(var(--brand-paper) / <alpha-value>)',
+        },
+
         // 🔵 Brand Colors
         customBlue: '#00838F',
         darkBlue: '#1f5690',

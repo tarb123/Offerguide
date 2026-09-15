@@ -1,20 +1,37 @@
 "use client";
 
 /**
- * PalettePicker — the palette icon beside the light/dark toggle. Opens a menu
- * of the palettes in lib/portal/palettes.ts, each with its name and four
- * colour chips; choosing one applies it site-wide at once (see PaletteProvider).
+ * PalettePicker — a borderless palette icon beside the light/dark toggle that
+ * opens a menu of the palettes in lib/portal/palettes.ts, each with its name
+ * and four colour chips. Choosing one applies site-wide at once (see
+ * PaletteProvider).
  *
- * Styled to sit beside ThemeToggle (same outline icon button) and to match the
- * header's own dropdowns — the same rounded panel, shadow and row hover — so
- * the two controls read as one cluster.
+ * Desktop header only: the mobile drawer carries just the light/dark toggle.
+ * `ghost` (no border) so the toggle + picker read as one quiet cluster of
+ * icons, as in the reference design.
  */
 
 import * as React from "react";
 import { Check, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePalette } from "@/components/palette-provider";
-import { PALETTES, paletteById } from "@/lib/portal/palettes";
+import { PALETTES, paletteById, type Palette as PaletteDef } from "@/lib/portal/palettes";
+
+function Swatches({ palette }: { palette: PaletteDef }) {
+  // Fixed hex, not tokens: each row previews ITS palette while a different
+  // one is active.
+  return (
+    <span className="flex shrink-0 gap-1" aria-hidden>
+      {palette.swatches.map((hex, i) => (
+        <span
+          key={i}
+          className="h-3.5 w-3.5 rounded-[4px] ring-1 ring-inset ring-black/10 dark:ring-white/15"
+          style={{ backgroundColor: hex }}
+        />
+      ))}
+    </span>
+  );
+}
 
 export function PalettePicker() {
   const { palette, setPalette } = usePalette();
@@ -43,13 +60,14 @@ export function PalettePicker() {
   return (
     <div ref={rootRef} className="relative">
       <Button
-        variant="outline"
+        variant="ghost"
         size="icon"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`Colour palette: ${current.label}. Click to change.`}
         title={`Palette: ${current.label}`}
+        className="rounded-full text-brand-ink hover:bg-brand-ink/5 dark:text-white dark:hover:bg-white/10"
       >
         <Palette size={18} />
       </Button>
@@ -83,17 +101,7 @@ export function PalettePicker() {
                     {p.description}
                   </span>
                 </span>
-                {/* The four chips: fixed hex, not tokens, so each row previews
-                    ITS palette while a different one is active. */}
-                <span className="flex shrink-0 gap-1" aria-hidden>
-                  {p.swatches.map((hex, i) => (
-                    <span
-                      key={i}
-                      className="h-4 w-4 rounded-[5px] ring-1 ring-inset ring-black/10 dark:ring-white/15"
-                      style={{ backgroundColor: hex }}
-                    />
-                  ))}
-                </span>
+                <Swatches palette={p} />
               </button>
             );
           })}

@@ -40,18 +40,6 @@ export const PALETTES: readonly Palette[] = [
     description: "Pink and violet, with a rounder hand-drawn type",
     swatches: ["#fff6fb", "#fde7f1", "#7c3aed", "#d6246e"],
   },
-  {
-    id: "minimal",
-    label: "Minimal",
-    description: "Near-black on white, nothing to distract",
-    swatches: ["#fafafa", "#f4f4f5", "#3f3f46", "#18181b"],
-  },
-  {
-    id: "mono",
-    label: "Mono",
-    description: "One indigo, every shade",
-    swatches: ["#f5f3ff", "#e0e7ff", "#4338ca", "#4f39f6"],
-  },
 ] as const;
 
 export type PaletteId = (typeof PALETTES)[number]["id"];

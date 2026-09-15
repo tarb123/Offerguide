@@ -65,7 +65,7 @@ export default function ModernHeader() {
   return (
     <>
       <header className={`fixed inset-x-0 top-0 z-50 border-b border-brand-ink/10 bg-white/90 bg-opacity-20 shadow-[0_8px_35px_rgba(11,22,63,0.06)] backdrop-blur-xl dark:border-white/10 ${darkBarBg}`}>
-        <div className="mx-auto flex h-20 max-w-[1300px] items-center justify-between px-5 sm:px-8 lg:px-12">
+        <div className="mx-auto flex h-16 max-w-[1300px] items-center justify-between px-5 sm:px-8 lg:px-12">
           <div className="flex min-w-0 items-center gap-3 lg:gap-4">
             <Link href="/" aria-label="Sanjeeda home" className="shrink-0">
               {/* Was `hidden sm:block`, which left the mobile bar with nothing but
@@ -84,7 +84,7 @@ export default function ModernHeader() {
                   width={621}
                   height={129}
                   priority
-                  className="h-10 w-auto lg:h-12 dark:hidden"
+                  className="h-10 w-auto lg:h-10 dark:hidden"
                 />
                 <Image
                   src="/sanjeeda-logo-dark.png"
@@ -92,7 +92,7 @@ export default function ModernHeader() {
                   width={466}
                   height={95}
                   priority
-                  className="hidden h-10 w-auto lg:h-12 dark:block"
+                  className="hidden h-10 w-auto lg:h-10 dark:block"
                 />
               </span>
             </Link>
@@ -318,10 +318,7 @@ export default function ModernHeader() {
         <div className="mt-auto space-y-4 border-t border-brand-ink/10 pt-5 dark:border-white/10">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 dark:text-white/50">Appearance</span>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <PalettePicker />
-            </div>
+            <ThemeToggle />
           </div>
           {authenticated ? (
             <button

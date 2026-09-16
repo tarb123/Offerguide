@@ -156,6 +156,33 @@
   --font-brand: var(--font-shantell), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Playful also recolours the shadcn text tokens, which is what the OfferGuide
+   pages are built on (layout.tsx sets `text-foreground`; copy is
+   `text-muted-foreground`; icons and the CTA are `primary`). Headings and icons
+   go vivid pink, body copy a softer pink — the lightest that still clears
+   4.5:1 on white; a true pastel would be unreadable as running text.
+
+   Scoped to light and dark SEPARATELY. These blocks are unlayered, so they
+   would beat the `.dark` values inside @layer base regardless of order — a
+   plain [data-palette="playful"] would have painted the same mid pink over
+   the night-blue surface. Dark gets the light pinks instead. */
+[data-palette="playful"]:not(.dark) {
+  --foreground: 335 71% 49%;         /* #d6246e — headings, main text */
+  --muted-foreground: 331 51% 51%;   /* #c2417f — body copy, softer */
+  --primary: 335 71% 49%;            /* icons, the CTA */
+  --primary-foreground: 0 0% 100%;
+}
+.dark[data-palette="playful"],
+.dark[data-palette="playful"] .og-surface {
+  /* Both selectors: offerguide/layout.tsx re-declares these two tokens for
+     dark mode on its own wrapper (`dark:[--foreground:…]`), which would
+     otherwise shadow the <html> values for every OfferGuide page. */
+  --foreground: 327 87% 82%;         /* #f9a8d4 — light pink on night blue */
+  --muted-foreground: 327 60% 75%;   /* softer light pink */
+  --primary: 329 86% 70%;            /* #f472b6 */
+  --primary-foreground: 335 71% 15%;
+}
+
 * {
   padding: 0;
   margin: 0;

@@ -72,7 +72,11 @@ export default function OfferGuideLayout({
 }) {
   return (
     <div
-      className={`min-h-screen bg-background text-foreground ${OFFERGUIDE_DARK_SURFACE}`}
+      // `og-surface` is a hook for globals.css: the Playful palette recolours the
+      // dark-mode text tokens for this surface, and needs a selector that beats
+      // the `dark:[--foreground:…]` classes above — those live on this element,
+      // so a value set on <html> alone cannot win the cascade here.
+      className={`og-surface min-h-screen bg-background text-foreground ${OFFERGUIDE_DARK_SURFACE}`}
     >
       <LocaleProvider>{children}</LocaleProvider>
     </div>

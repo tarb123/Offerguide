@@ -54,13 +54,24 @@ export default function ModernHeader() {
   const darkBarBg = isNightSurface ? "dark:bg-nightBlue" : "dark:bg-darkBlue";
   const darkDrawerBg = isNightSurface ? "dark:bg-nightBlue" : "dark:bg-[#003f81]";
 
+  // The PGP mentor and candidate portals (and the sign-in page that leads to
+  // them) authenticate against their OWN collections, with their own logout in
+  // the dashboard sidebar. The portal account here — the Account dropdown and
+  // Log in / Log out — belongs to the `sanjeedausers` session from /auth, and
+  // a mentor with no such session has no business seeing it. It DID show up:
+  // an admin who signed in at /auth and then signed in as a mentor in the same
+  // browser still carried the portal cookie, so the header kept offering
+  // "Account" on /mentor/dashboard. Hidden on these routes regardless.
+  const PGP_PORTAL_ROUTES = ["/mentor", "/candidate", "/pgp-access"];
+  const isPgpPortal = PGP_PORTAL_ROUTES.some((r) => pathname?.startsWith(r));
+
   // One filter, both render passes. Starts as the public tier and widens once
   // identity resolves — never the reverse, so a guest cannot glimpse a
   // higher-tier link. See AuthProvider's header comment.
   const visible = usePermissionFilter(NAV_SECTIONS);
   const mainLinks = navEntriesInGroup(visible, "explore");
   const serviceLinks = navEntriesInGroup(visible, "services");
-  const accountLinks = navEntriesInGroup(visible, "account");
+  const accountLinks = isPgpPortal ? [] : navEntriesInGroup(visible, "account");
 
   return (
     <>
@@ -196,7 +207,7 @@ export default function ModernHeader() {
                 toggle and palette picker beside them — one quiet cluster, no
                 filled pill competing with the nav. The word stays: a bare icon
                 for sign-in is not discoverable. Same in the drawer below. */}
-            {authenticated ? (
+            {isPgpPortal ? null : authenticated ? (
               <button
                 type="button"
                 onClick={() => void logout()}
@@ -328,7 +339,7 @@ export default function ModernHeader() {
               <PalettePicker placement="up" />
             </div>
           </div>
-          {authenticated ? (
+          {isPgpPortal ? null : authenticated ? (
             <button
               type="button"
               onClick={() => {

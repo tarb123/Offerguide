@@ -47,13 +47,13 @@ export default function OfferGuideLandingPage() {
       {/* 1 — Hero. Full width above the fold; CTA visible without scrolling on
           both desktop and mobile, so this block stays short by design. */}
       <section className="pt-6 pb-6 sm:pt-8 sm:pb-7">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+        <p className="text-lg font-semibold uppercase tracking-[0.10em] text-black">
           {LANDING_PRODUCT_NAME}
         </p>
-        <h1 className="mt-2 max-w-3xl text-2xl font-bold leading-snug tracking-tight sm:text-3xl">
+        <h1 className="mt-2 max-w-3xl text-2xl font-bold leading-snug tracking-tight sm:text-xl">
           {LANDING_HERO.headline}
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+        <p className="mt-4 max-w-4xl text-sm leading-relaxed text-black">
           {LANDING_HERO.subHeadline}
         </p>
         <div className="mt-4">
@@ -85,8 +85,8 @@ export default function OfferGuideLandingPage() {
                     aria-hidden="true"
                   />
                 </div>
-                <h3 className="mt-2 text-sm font-semibold">{item.title}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                <h3 className="mt-2 text-sm font-semibold text-muted-foreground">{item.title}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-black">
                   {item.description}
                 </p>
               </li>
@@ -103,9 +103,7 @@ export default function OfferGuideLandingPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           {LANDING_SECTION_HEADINGS.whoItsFor}
         </h2>
-        <p className="mt-2.5 max-w-4xl text-base font-medium leading-snug">
-          {LANDING_WHO_ITS_FOR.positioningStatement}
-        </p>
+
         <ul className="mt-3 grid grid-cols-1 gap-2.5 lg:grid-cols-3">
           {LANDING_WHO_ITS_FOR.useCases.map((useCase) => (
             <li
@@ -124,42 +122,18 @@ export default function OfferGuideLandingPage() {
 
       <hr className="border-border" />
 
-      {/* 4 — What you get. Three cards, 3-column grid on desktop, stacked on mobile. */}
-      <section className="py-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          {LANDING_SECTION_HEADINGS.whatYouGet}
-        </h2>
-        <div className="mt-3 grid grid-cols-1 gap-2.5 lg:grid-cols-3">
-          {LANDING_WHAT_YOU_GET.map((card, index) => {
-            const Icon = WHAT_YOU_GET_ICONS[index];
-            return (
-              <div
-                key={card.title}
-                className="rounded-lg border border-border bg-card p-3.5 text-card-foreground"
-              >
-                <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
-                <h3 className="mt-2 text-sm font-semibold">{card.title}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {card.description}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
       {/* 5 — Privacy strip. Full-width single line with a lock icon, above the
           footer disclaimer. Consistent with the privacy note on SCR-009. */}
-      <section className="rounded-lg border border-border bg-muted/50 px-3.5 py-2.5">
-        <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+      {/* <section className="rounded-lg border border-border bg-muted/50 px-3.5 py-2.5"> */}
+        <p className="flex items-start gap-2 text-xs leading-relaxed ">
           <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span>{LANDING_PRIVACY_STRIP}</span>
+          <span className="text-slate-500 dark:text-slate-400">{LANDING_PRIVACY_STRIP}</span>
         </p>
-      </section>
+      {/* </section> */}
 
       {/* 6 — Footer disclaimer. Muted, visually distinct from the content above.
           Consistent with the SCR-010 footer disclaimer. */}
-      <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
+      <p className="mt-4 text-center text-xs leading-relaxed text-slate-500 dark:text-slate-400">
         {LANDING_FOOTER_DISCLAIMER}
       </p>
     </main>

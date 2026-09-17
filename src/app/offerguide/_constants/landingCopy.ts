@@ -13,7 +13,7 @@ export const LANDING_PRODUCT_NAME = 'OfferGuide';
 export const LANDING_HERO = {
   headline: 'Understand how well an offer fits your needs before you say yes.',
   subHeadline:
-    "OfferGuide scores a job offer across seven things that shape your life — salary, benefits, stability, work-life, growth, culture, and purpose — and shows you where it's strong and where to push back.",
+    "— Scores a job offer across seven things that shape your life — salary, benefits, stability, work-life, growth, culture, purpose — and shows you where it's strong and where to push back.",
   /** First visit. */
   ctaFirstVisit: 'Start your evaluation',
   /** An evaluation is already in progress (saved WizardDraft). */
@@ -53,7 +53,9 @@ export const LANDING_WHO_ITS_FOR = {
   positioningStatement:
     "Built for candidates. No employer sees your answers, and there's no HR dashboard — this is your side of the table.",
   useCases: [
-    "Weighing a single offer and unsure whether it's actually good",
+    "Built for candidates.",
+    'No employer sees your answers',
+    'No HR dashboard',"Weighing a single offer and unsure whether it's actually good",
     'Comparing two or more offers against each other',
     'Deciding on a promotion, an internal transfer, or a counteroffer',
   ],

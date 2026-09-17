@@ -1,22 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/offerguide/adminAuth";
 import mongoose from "mongoose";
 import dbConnect from "@/utils/dbConnect";
-
-const MentorUserSchema = new mongoose.Schema(
-  {
-    fullName: String,
-    email: { type: String, lowercase: true },
-    education: String,
-    expertise: String,
-    phone: String,
-    // Kept in sync with the mentor auth route's schema so login queries keep
-    // `password` regardless of which route registers the model first.
-    password: String,
-    role: String,
-    status: String,
-  },
-  { timestamps: true }
-);
+import MentorUser, { isMentorActive } from "@/models/MentorUser";
 
 const ProgramSchema = new mongoose.Schema(
   {
@@ -49,13 +35,13 @@ const ProgramSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const MentorUser =
-  mongoose.models.MentorUser || mongoose.model("MentorUser", MentorUserSchema);
-
 const PGPProgram =
   mongoose.models.PGPProgram || mongoose.model("PGPProgram", ProgramSchema);
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const denied = await requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await dbConnect();
 
@@ -63,7 +49,9 @@ export async function GET() {
     const programs = await PGPProgram.find().sort({ createdAt: -1 }).lean();
 
     return NextResponse.json({
-      mentors: mentors.map((m) => ({
+      // Only mentors who can actually sign in are offered for assignment; a
+      // Pending signup has to be marked Active on the Mentors tab first.
+      mentors: mentors.filter((m) => isMentorActive(m.status)).map((m) => ({
         mentorId: String(m._id),
         fullName: m.fullName || "",
         email: m.email || "",
@@ -83,7 +71,10 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const denied = await requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await dbConnect();
 
@@ -113,7 +104,10 @@ export async function POST(request: Request) {
   }
 }
 
-export async function PATCH(request: Request) {
+export async function PATCH(request: NextRequest) {
+  const denied = await requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await dbConnect();
 

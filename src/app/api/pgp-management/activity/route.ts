@@ -1,33 +1,19 @@
-import { NextResponse } from "next/server";
-import mongoose from "mongoose";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/offerguide/adminAuth";
 import dbConnect from "@/utils/dbConnect";
-
-const ActivityLogSchema = new mongoose.Schema(
-  {
-    programId: String,
-    programName: String,
-    mentorId: String,
-    mentorName: String,
-    mentorEmail: { type: String, lowercase: true },
-    section: String,
-    itemLabel: String,
-    fromStatus: String,
-    toStatus: String,
-  },
-  { timestamps: true }
-);
-
-const ActivityLog =
-  mongoose.models.ActivityLog ||
-  mongoose.model("ActivityLog", ActivityLogSchema);
+import ActivityLog, { ACCOUNT_SECTION } from "@/models/ActivityLog";
 
 const SECTION_LABEL: Record<string, string> = {
   weeklySchedule: "Weekly Session",
   capstoneTimeline: "Capstone",
   portfolioChecklist: "Portfolio",
+  [ACCOUNT_SECTION]: "Account",
 };
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const denied = await requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await dbConnect();
 

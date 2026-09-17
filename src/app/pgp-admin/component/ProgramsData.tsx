@@ -7,10 +7,12 @@ import {
   Edit2,
   X,
   BookOpen,
-  CalendarDays, ClipboardCheck, Trash2,
+  CalendarDays, ClipboardCheck, Trash2, RefreshCw,
+  ExternalLink,
 } from "lucide-react";
 import AssessmentWeightageChart from "./AssessmentWeightageChart";
 import ProgramView from "./ProgramView";
+import { MentorAvatar } from "@/components/portal/CandidateAvatar";
 import {
   PGP_EVALUATION_TEMPLATE,
   PGP_PORTFOLIO_TEMPLATE,
@@ -43,6 +45,7 @@ export default function ProgramsData() {
   const [editData, setEditData] = useState<Program>(emptyProgram);
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState("");
   const [tab, setTab] = useState<DetailTab>("overview");
 
@@ -225,6 +228,12 @@ function loadEvaluationTemplate() {
     void loadData();
   }, []);
 
+  async function refresh() {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  }
+
   const assignedCount = useMemo(
     () => programs.filter((p) => p.assignedMentorId).length,
     [programs]
@@ -306,7 +315,7 @@ async function saveProgram() {
 }
 
   return (
-    <div className="mt-24 text-sm">
+    <div className="text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-white/10 px-3 py-2">
         <div className="flex items-center gap-3 text-xs">
           <span className="flex items-center gap-1.5 text-lg font-black text-slate-900 dark:text-white">
@@ -318,14 +327,25 @@ async function saveProgram() {
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={createNew}
-          className="flex items-center gap-1.5 rounded-lg text-xs font-bold"
->
-          <Plus size={13} />
-          New 
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={createNew}
+            className="flex items-center gap-1.5 rounded-lg text-xs font-bold"
+          >
+            <Plus size={13} />
+            New
+          </button>
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={refreshing}
+            title="Refresh"
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10"
+          >
+            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+          </button>
+        </div>
       </div>
 
       {message && (
@@ -338,23 +358,26 @@ async function saveProgram() {
         <p className="p-4 text-slate-500">Loading programs...</p>
       ) : (
         <>
+          <div className="p-3">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-xs">
-              <thead className="border-b border-slate-200 bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400">
+            <table className="w-full border-collapse text-left text-[11px]">
+              <thead className="bg-[#0b2f5b] text-[9px] uppercase tracking-wider text-white">
                 <tr>
-                  <th className="px-3 py-2 font-bold">Program</th>
-                  <th className="px-3 py-2 font-bold">Mentor</th>
-                  <th className="px-3 py-2 text-center font-bold">Weeks</th>
-                  <th className="px-3 py-2 text-center font-bold">Portfolio</th>
-                  <th className="px-3 py-2 text-center font-bold">Capstone</th>
-                  <th className="px-3 py-2 font-bold">Status</th>
+                  <th className="px-2.5 py-1.5 font-bold">Program</th>
+                  <th className="px-2.5 py-1.5 font-bold">Mentor</th>
+                  <th className="px-2.5 py-1.5 text-center font-bold">Weeks</th>
+                  <th className="px-2.5 py-1.5 text-center font-bold">Portfolio</th>
+                  <th className="px-2.5 py-1.5 text-center font-bold">Capstone</th>
+                  <th className="px-2.5 py-1.5 font-bold">Status</th>
+                  <th className="px-2.5 py-1.5 font-bold"></th>
                 </tr>
               </thead>
 
               <tbody>
                 {programs.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-3 py-4 text-center text-slate-500">
+                    <td colSpan={7} className="px-3 py-4 text-center text-slate-500">
                       No programs created.
                     </td>
                   </tr>
@@ -370,25 +393,50 @@ async function saveProgram() {
                           active ? "bg-blue-50 dark:bg-white/10" : "hover:bg-slate-50 dark:hover:bg-white/5"
                         }`}
                       >
-                        <td className="px-3 py-2 font-bold text-slate-900 dark:text-slate-100">
+                        <td className="px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100">
                           {program.programName || "Untitled program"}
                         </td>
-                        <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
-                          {program.assignedMentorName || (
-                            <span className="text-slate-400">Not assigned</span>
-                          )}
+                        <td className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300">
+                          <span className="flex items-center gap-2">
+                            {program.assignedMentorName && (
+                              <MentorAvatar
+                                email={program.assignedMentorEmail}
+                                name={program.assignedMentorName}
+                                size={22}
+                              />
+                            )}
+                            {program.assignedMentorName || (
+                              <span className="text-slate-400">Not assigned</span>
+                            )}
+                          </span>
                         </td>
-                        <td className="px-3 py-2 text-center text-slate-600 dark:text-slate-300">
+                        <td className="px-2.5 py-1.5 text-center text-slate-600 dark:text-slate-300">
                           {program.weeklySchedule?.length || 0}
                         </td>
-                        <td className="px-3 py-2 text-center text-slate-600 dark:text-slate-300">
+                        <td className="px-2.5 py-1.5 text-center text-slate-600 dark:text-slate-300">
                           {program.portfolioChecklist?.length || 0}
                         </td>
-                        <td className="px-3 py-2 text-center text-slate-600 dark:text-slate-300">
+                        <td className="px-2.5 py-1.5 text-center text-slate-600 dark:text-slate-300">
                           {program.capstoneTimeline?.length || 0}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2.5 py-1.5">
                           <ProgramStatusPill status={program.status} />
+                        </td>
+                        <td className="px-2.5 py-1.5 text-right">
+                          {/* Opens the program on its own page, in a new browser
+                              tab — independent of this table (see
+                              /pgp-admin/program/[id]). */}
+                          <a
+                            href={`/pgp-admin/program/${program.programId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Open program in a new tab"
+                            aria-label={`Open ${program.programName || "program"} in a new tab`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex rounded-lg p-1.5 text-slate-400 transition hover:bg-blue-50 hover:text-blue-900 dark:hover:bg-white/10 dark:hover:text-white"
+                          >
+                            <ExternalLink size={14} />
+                          </a>
                         </td>
                       </tr>
                     );
@@ -396,6 +444,8 @@ async function saveProgram() {
                 )}
               </tbody>
             </table>
+          </div>
+          </div>
           </div>
 
           {(selected || editing) && (

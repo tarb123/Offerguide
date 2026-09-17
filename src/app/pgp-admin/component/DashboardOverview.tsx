@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -21,6 +21,7 @@ import {
   ListChecks,
   Trophy,
   CalendarDays,
+  RefreshCw,
 } from "lucide-react";
 import type { Program } from "./pgpProgram";
 
@@ -53,32 +54,39 @@ export default function DashboardOverview() {
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const [cRes, mRes, pRes] = await Promise.all([
+        fetch("/api/pgp-management/candidates-pgp"),
+        fetch("/api/pgp-management/mentors-pgp"),
+        fetch("/api/pgp-management/programs-pgp"),
+      ]);
+      const [c, m, p] = await Promise.all([cRes.json(), mRes.json(), pRes.json()]);
+      setCandidates(c.candidates || []);
+      setMentors(m.mentors || []);
+      setPrograms(p.programs || []);
+    } catch (error) {
+      console.error("Dashboard overview load error:", error);
+    }
+  }, []);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const [cRes, mRes, pRes] = await Promise.all([
-          fetch("/api/pgp-management/candidates-pgp"),
-          fetch("/api/pgp-management/mentors-pgp"),
-          fetch("/api/pgp-management/programs-pgp"),
-        ]);
-        const [c, m, p] = await Promise.all([cRes.json(), mRes.json(), pRes.json()]);
-        setCandidates(c.candidates || []);
-        setMentors(m.mentors || []);
-        setPrograms(p.programs || []);
-      } catch (error) {
-        console.error("Dashboard overview load error:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    void load();
-  }, []);
+    void load().finally(() => setLoading(false));
+  }, [load]);
+
+  async function refresh() {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }
 
   const stats = useMemo(() => {
     const submitted = candidates.filter((c) => c.applicationStatus === "Submitted").length;
     const pending = candidates.length - submitted;
-    const approvedMentors = mentors.filter((m) => m.status === "Approved").length;
+    const activeMentors = mentors.filter((m) => m.status === "Active").length;
+    const pendingMentors = mentors.filter((m) => m.status === "Pending").length;
     const activePrograms = programs.filter((p) => p.status === "Active").length;
 
     let totalItems = 0;
@@ -109,7 +117,8 @@ export default function DashboardOverview() {
     return {
       submitted,
       pending,
-      approvedMentors,
+      activeMentors,
+      pendingMentors,
       activePrograms,
       avgCompletion,
       programStatus,
@@ -163,12 +172,12 @@ export default function DashboardOverview() {
   };
 
   const mentorData: ChartData<"bar"> = {
-    labels: ["Approved", "Other"],
+    labels: ["Active", "Pending", "Other"],
     datasets: [
       {
         label: "Mentors",
-        data: [stats.approvedMentors, mentors.length - stats.approvedMentors],
-        backgroundColor: ["#8b5cf6", "#cbd5e1"],
+        data: [stats.activeMentors, stats.pendingMentors, mentors.length - stats.activeMentors - stats.pendingMentors],
+        backgroundColor: ["#8b5cf6", "#f59e0b", "#cbd5e1"],
         borderRadius: 6,
         maxBarThickness: 54,
       },
@@ -177,12 +186,30 @@ export default function DashboardOverview() {
 
   return (
     <div className="space-y-4">
-      {/* KPI tiles */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-6 mt-28 w-50 h-42">
-        <Kpi icon={<Users size={40} />} label="Candidates" value={candidates.length} from="from-blue-500" to="to-blue-700" />
-         <Kpi icon={<UserCog size={40} />} label="Mentors" value={mentors.length} sub={`${stats.approvedMentors} approved`} from="from-violet-500" to="to-violet-700" />
-        <Kpi icon={<GraduationCap size={40} />} label="Programs" value={programs.length} from="from-amber-500" to="to-amber-600" />
-        <Kpi icon={<Activity size={40} />} label="Active" value={stats.activePrograms} from="from-cyan-500" to="to-cyan-700" />
+      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2 dark:border-white/10">
+        <span className="flex items-center gap-1.5 text-lg font-black text-slate-900 dark:text-white">
+          <Activity size={18} className="text-blue-900" />
+          Dashboard
+        </span>
+        <button
+          type="button"
+          onClick={refresh}
+          disabled={refreshing || loading}
+          title="Refresh"
+          className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10"
+        >
+          <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+        </button>
+      </div>
+
+      {/* KPI tiles — one compact card, four small stats inside */}
+      <div className="w-full max-w-xs rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-white/10 dark:bg-white/5">
+        <div className="grid grid-cols-2 gap-1.5">
+          <Kpi icon={<Users size={15} />} label="Candidates" value={candidates.length} from="from-blue-500" to="to-blue-700" />
+          <Kpi icon={<UserCog size={15} />} label="Mentors" value={mentors.length} sub={stats.pendingMentors > 0 ? `${stats.activeMentors} active · ${stats.pendingMentors} awaiting approval` : `${stats.activeMentors} active`} from="from-violet-500" to="to-violet-700" />
+          <Kpi icon={<GraduationCap size={15} />} label="Programs" value={programs.length} from="from-amber-500" to="to-amber-600" />
+          <Kpi icon={<Activity size={15} />} label="Active" value={stats.activePrograms} from="from-cyan-500" to="to-cyan-700" />
+        </div>
       </div>
 
       {/* Doughnut charts */}
@@ -225,16 +252,16 @@ function Kpi({
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${from} ${to} p-3 text-white shadow-sm`}
+      className={`relative overflow-hidden rounded-lg bg-gradient-to-br ${from} ${to} p-1.5 text-white shadow-sm`}
     >
-      <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/10" />
+      <div className="absolute -right-2 -top-2 h-8 w-8 rounded-full bg-white/10" />
       <div className="relative">
-        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-white/80">
-          {icon}
+        <div className="text-white/80">{icon}</div>
+        <p className="mt-0.5 text-base font-black leading-none">{value}</p>
+        <p className="mt-0.5 text-[8px] font-bold uppercase leading-tight tracking-wide text-white/80">
           {label}
-        </div>
-        <p className="mt-1 text-2xl font-black leading-none">{value}</p>
-        {sub && <p className="mt-1 text-[10px] font-semibold text-white/75">{sub}</p>}
+        </p>
+        {sub && <p className="text-[8px] font-semibold text-white/75">{sub}</p>}
       </div>
     </div>
   );

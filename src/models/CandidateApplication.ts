@@ -35,10 +35,17 @@ const CandidateApplicationSchema = new mongoose.Schema(
     confirmation: Boolean,
     termsAgreement: Boolean,
 
-    // Enrollment link — which program (and therefore which mentor) the
-    // candidate is registered under.
+    // Enrollment link — the candidate's *active* program (and therefore which
+    // mentor) they are registered under. Attendance, the mentor roster and the
+    // admin candidate list all read this single field.
     assignedProgramId: String,
     assignedProgramName: String,
+
+    // Every program the candidate has joined from the Programs tab. The active
+    // one above is always the most recently joined (or an explicit "Make
+    // active" pick) and stays a member of this list. Kept separate so the
+    // single-program consumers above never have to change.
+    enrolledProgramIds: { type: [String], default: [] },
   },
   { timestamps: true }
 );

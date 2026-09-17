@@ -168,21 +168,19 @@ export default function CandidateApplicationForm() {
   const isLast = step === STEPS.length - 1;
 
   return (
-    <div className="mx-auto mt-4 max-w-4xl border border-slate-200 dark:border-white/10 
+    <div className="mx-auto max-w-4xl border border-slate-200 dark:border-white/10
     bg-white dark:bg-white/5 shadow-sm">
       {/* Header */}
-      <div className="border-b   border-slate-200 dark:border-white/10 px-5 py-6">
-        <h2 className="text-base font-black text-slate-900 dark:text-white">
-          PGP Application Form
-        </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+      <h2 className="border-b border-slate-200 py-2 text-center text-sm font-black text-slate-900 dark:border-white/10 dark:text-white">
+        PGP Application Form
+      </h2>
+        {/* <p className="text-xs text-slate-500 dark:text-slate-400">
           Complete all {STEPS.length} steps carefully. Fields marked required must be
           filled to continue.
-        </p>
-      </div>
-
+        </p> */}
+ 
       {/* Stepper */}
-      <div className="border-b border-slate-200 dark:border-white/10 px-4 py-4 sm:px-6">
+      <div className="border-b border-slate-200 dark:border-white/10 px-4 py-2.5 sm:px-6">
         <ol className="flex items-start">
           {STEPS.map((s, i) => {
             const done = completed.has(i);
@@ -195,7 +193,7 @@ export default function CandidateApplicationForm() {
               >
                 {i > 0 && (
                   <span
-                    className={`absolute right-1/2 top-4 h-[2px] w-full ${
+                    className={`absolute right-1/2 top-[9px] h-[2px] w-full ${
                       completed.has(i - 1) ? "bg-emerald-500" : "bg-zinc-200 dark:bg-white/15"
                     }`}
                   />
@@ -204,18 +202,18 @@ export default function CandidateApplicationForm() {
                   type="button"
                   onClick={() => goTo(i)}
                   disabled={!clickable}
-                  className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full text-xs font-black transition ${
+                  className={`relative z-10 flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-black transition ${
                     done
                       ? "bg-emerald-600 text-white"
                       : current
-                      ? "bg-zinc-500 text-white ring-4 ring-zinc-200 dark:ring-white/10"
+                      ? "bg-zinc-500 text-white ring-2 ring-zinc-200 dark:ring-white/10"
                       : "bg-zinc-100 dark:bg-white/10 text-zinc-400"
                   } ${clickable ? "cursor-pointer" : "cursor-not-allowed"}`}
                 >
-                  {done ? <Check size={15} /> : i + 1}
+                  {done ? <Check size={11} /> : i + 1}
                 </button>
                 <span
-                  className={`mt-1.5 max-w-[70px] truncate text-center text-[9px] font-bold uppercase tracking-wide sm:text-[10px] ${
+                  className={`mt-1 max-w-[70px] truncate text-center text-[8px] font-bold uppercase tracking-wide sm:text-[9px] ${
                     current
                       ? "text-slate-900 dark:text-white"
                       : done
@@ -233,7 +231,7 @@ export default function CandidateApplicationForm() {
 
       {/* Body */}
       <form onSubmit={handleSubmit}>
-        <div className="min-h-[280px] px-5 py-5 sm:px-6">
+        <div className="min-h-[20px] px-5 py-5 sm:px-6">
           {step === 0 && (
             <Section title="Basic Information">
               <Field label="Email" name="email" value={form.email} onChange={handleChange} readOnly />
@@ -243,7 +241,7 @@ export default function CandidateApplicationForm() {
               <Field label="CNIC" name="cnic" value={form.cnic} onChange={handleChange} required />
               <Field label="Date of Birth" name="dob" type="date" value={form.dob} onChange={handleChange} required />
               <Field label="Contact Number" name="contactNumber" value={form.contactNumber} onChange={handleChange} required />
-              <TextareaField label="Full Address" name="address" value={form.address} onChange={handleChange} required />
+              <TextareaField label="Full Address" name="address" value={form.address} onChange={handleChange} required full={false} />
             </Section>
           )}
 
@@ -427,18 +425,18 @@ export default function CandidateApplicationForm() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="mb-4 text-sm font-black uppercase tracking-wide text-[#0b2f5b] dark:text-sky-300">
+      <h3 className="mb-3 text-sm font-black uppercase tracking-wide text-[#0b2f5b] dark:text-sky-300">
         {title}
       </h3>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{children}</div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">{children}</div>
     </div>
   );
 }
 
 const LABEL =
-  "mb-1 block text-[12px] font-bold  text-slate-500 dark:text-slate-300";
+  "mb-0.5 block text-[10px] font-bold  text-slate-500 dark:text-slate-300";
 const CONTROL =
-  "w-full rounded-md border border-slate-300 dark:border-white/15 bg-white dark:bg-white/5 px-3 py-2 text-sm font-medium text-slate-900 dark:text-white outline-none transition focus:border-[#0b2f5b] focus:ring-2 focus:ring-blue-100 dark:focus:ring-white/10 read-only:bg-slate-100 read-only:text-slate-500";
+  "w-full rounded-md border border-slate-300 dark:border-white/15 bg-white dark:bg-white/5 px-2 py-1 text-[11px] font-medium text-slate-900 dark:text-white outline-none transition focus:border-[#0b2f5b] focus:ring-2 focus:ring-blue-100 dark:focus:ring-white/10 read-only:bg-slate-100 read-only:text-slate-500";
 
 function Field({
   label,
@@ -512,15 +510,17 @@ function TextareaField({
   value,
   onChange,
   required = false,
+  full = true,
 }: {
   label: string;
   name: string;
   value: string;
   required?: boolean;
+  full?: boolean;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
 }) {
   return (
-    <label className="block md:col-span-2">
+    <label className={`${full ? "col-span-2" : ""} block`}>
       <span className={LABEL}>
         {label} {required && <span className="text-rose-500">*</span>}
       </span>
@@ -528,7 +528,7 @@ function TextareaField({
         name={name}
         value={value}
         onChange={onChange}
-        rows={3}
+        rows={2}
         className={`${CONTROL} resize-y`}
       />
     </label>

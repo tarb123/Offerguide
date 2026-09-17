@@ -15,8 +15,9 @@ import {
 } from "lucide-react";
 import ProgramView, {
   type ViewTab,
-} from "@/app/management/component/ProgramView";
-import type { Program } from "@/app/management/component/pgpProgram";
+} from "@/app/pgp-admin/component/ProgramView";
+import type { Program } from "@/app/pgp-admin/component/pgpProgram";
+import CandidateAvatar from "@/components/portal/CandidateAvatar";
 
 type Student = {
   fullName: string;
@@ -582,7 +583,10 @@ function StudentsTable({ students }: { students: Student[] }) {
             >
               <td className="px-3 py-2 text-slate-400">{i + 1}</td>
               <td className="px-3 py-2 font-bold text-slate-900 dark:text-slate-100">
-                {s.fullName || "-"}
+                <span className="flex items-center gap-2">
+                  <CandidateAvatar email={s.email} name={s.fullName} size={26} />
+                  {s.fullName || "-"}
+                </span>
               </td>
               <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
                 <span className="inline-flex items-center gap-1">

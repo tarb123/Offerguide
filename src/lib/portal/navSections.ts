@@ -184,6 +184,17 @@ const ACCOUNT_SECTIONS: readonly NavEntry[] = [
     permission: "portal.admin.access",
   },
   {
+    // The PGP admin area — what used to be the "Management Portal" with its
+    // own self-service login. It now sits behind the same portal role as the
+    // OfferGuide admin area, so it is advertised in the same tier. Its layout
+    // re-checks server-side; this link is a convenience, not the gate.
+    label: "PGP Admin",
+    href: "/pgp-admin",
+    icon: GraduationCap,
+    group: "account",
+    permission: "portal.admin.access",
+  },
+  {
     // Kept alongside the admin area rather than replaced by it — it is still
     // the reference for what the API accepts. NOTE: the Swagger page itself is
     // PUBLIC — hiding this link is not access control, and the routes it

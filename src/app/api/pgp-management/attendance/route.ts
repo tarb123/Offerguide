@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/offerguide/adminAuth";
 import mongoose from "mongoose";
 import dbConnect from "@/utils/dbConnect";
 import CandidateApplication from "@/models/CandidateApplication";
@@ -23,7 +24,10 @@ const Attendance =
 const PGPProgram =
   mongoose.models.PGPProgram || mongoose.model("PGPProgram", ProgramSchema);
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const denied = await requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await dbConnect();
 

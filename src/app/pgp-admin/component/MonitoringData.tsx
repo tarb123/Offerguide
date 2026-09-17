@@ -21,6 +21,12 @@ const STATUS_STYLE: Record<string, string> = {
   Completed: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   Deferred: "bg-amber-50 text-amber-700 ring-amber-200",
   Delayed: "bg-rose-50 text-rose-700 ring-rose-200",
+  // Mentor account lifecycle rows (section "Account"): signup and activation.
+  Pending: "bg-amber-50 text-amber-700 ring-amber-200",
+  Active: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  Rejected: "bg-rose-50 text-rose-700 ring-rose-200",
+  Blocked: "bg-rose-50 text-rose-700 ring-rose-200",
+  Deleted: "bg-slate-200 text-slate-700 ring-slate-300",
 };
 
 function StatusTag({ status }: { status: string }) {
@@ -37,24 +43,28 @@ function StatusTag({ status }: { status: string }) {
 export default function MonitoringData() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState("");
 
   async function load() {
-    setLoading(true);
     try {
       const res = await fetch("/api/pgp-management/activity");
       const data = await res.json();
       setLogs(data.logs || []);
     } catch (error) {
       console.error("Monitoring load error:", error);
-    } finally {
-      setLoading(false);
     }
   }
 
   useEffect(() => {
-    void load();
+    void load().finally(() => setLoading(false));
   }, []);
+
+  async function refresh() {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -71,7 +81,7 @@ export default function MonitoringData() {
 
   return (
     <div className="text-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-white/10 px-3 py-2 mt-24">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-white/10 px-2.5 py-1.5">
         <span className="flex items-center gap-1.5 text-lg font-black text-slate-900 dark:text-white">
           <Activity size={18} className="text-blue-900" />
           Mentor Activity Monitor
@@ -83,16 +93,17 @@ export default function MonitoringData() {
           </span>
           <button
             type="button"
-            onClick={load}
+            onClick={refresh}
+            disabled={refreshing}
             title="Refresh"
-            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 dark:hover:bg-white/10"
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10"
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
           </button>
         </div>
       </div>
 
-      <div className="border-b border-slate-200 dark:border-white/10 px-3 py-2">
+      <div className="border-b border-slate-200 dark:border-white/10 px-2.5 py-1.5">
         <div className="flex items-center gap-2 rounded-lg bg-slate-50 dark:bg-white/5 px-3 py-1.5 ring-1 ring-inset ring-slate-200 dark:ring-white/10">
           <Search size={14} className="text-slate-400" />
           <input
@@ -114,20 +125,22 @@ export default function MonitoringData() {
           </p>
           <p className="mt-1 text-xs text-slate-400">
             {logs.length === 0
-              ? "Status changes made by mentors will appear here, newest first."
+              ? "Mentor signups, approvals and status changes will appear here, newest first."
               : "Try a different search term."}
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-xs">
-            <thead className="border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-[10px] uppercase tracking-wider text-slate-400">
+        <div className="p-3">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left text-[11px]">
+            <thead className="bg-[#0b2f5b] text-[9px] uppercase tracking-wider text-white">
               <tr>
-                <th className="px-3 py-2 font-bold">When</th>
-                <th className="px-3 py-2 font-bold">Mentor</th>
-                <th className="px-3 py-2 font-bold">Program</th>
-                <th className="px-3 py-2 font-bold">Item</th>
-                <th className="px-3 py-2 font-bold">Change</th>
+                <th className="px-2.5 py-1.5 font-bold">When</th>
+                <th className="px-2.5 py-1.5 font-bold">Mentor</th>
+                <th className="px-2.5 py-1.5 font-bold">Program</th>
+                <th className="px-2.5 py-1.5 font-bold">Item</th>
+                <th className="px-2.5 py-1.5 font-bold">Change</th>
               </tr>
             </thead>
             <tbody>
@@ -136,25 +149,25 @@ export default function MonitoringData() {
                   key={l.id}
                   className="border-b border-slate-100 dark:border-white/5"
                 >
-                  <td className="whitespace-nowrap px-3 py-2 text-slate-500 dark:text-slate-400">
+                  <td className="whitespace-nowrap px-2.5 py-1.5 text-slate-500 dark:text-slate-400">
                     {l.at ? new Date(l.at).toLocaleString() : "—"}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-2.5 py-1.5">
                     <div className="font-bold text-slate-900 dark:text-slate-100">
                       {l.mentorName || "—"}
                     </div>
                     <div className="text-[10px] text-slate-400">{l.mentorEmail}</div>
                   </td>
-                  <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
-                    {l.programName || "—"}
+                  <td className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300">
+                    {l.programName || (l.section === "Account" ? "Mentor account" : "—")}
                   </td>
-                  <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                  <td className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300">
                     <span className="text-[9px] font-bold uppercase text-slate-400">
                       {l.section}
                     </span>
                     <div className="max-w-[240px] truncate">{l.itemLabel || "—"}</div>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-2.5 py-1.5">
                     <span className="inline-flex items-center gap-1.5">
                       <StatusTag status={l.fromStatus} />
                       <ArrowRight size={12} className="text-slate-400" />
@@ -165,6 +178,8 @@ export default function MonitoringData() {
               ))}
             </tbody>
           </table>
+        </div>
+        </div>
         </div>
       )}
     </div>

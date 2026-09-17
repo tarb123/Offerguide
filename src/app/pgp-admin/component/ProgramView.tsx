@@ -1,15 +1,15 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
   ChevronDown,
+  ChevronRight,
   Clock,
   FileText,
   Flag,
   GraduationCap,
-  Hash,
   Layers,
   Link2,
   ListChecks,
@@ -24,10 +24,13 @@ import {
   Zap,
 } from "lucide-react";
 import AssessmentWeightageChart from "./AssessmentWeightageChart";
+import { MentorAvatar } from "@/components/portal/CandidateAvatar";
 import {
   compareWeeks,
   totalScheduledHours,
   totalWeightage,
+  type CapstoneTimeline,
+  type PortfolioItem,
   type Program,
   type SessionFlow,
 } from "./pgpProgram";
@@ -215,6 +218,99 @@ function ExpandableRow({
   );
 }
 
+/* --------------------------- Expandable table ---------------------------- */
+
+type ExpandableColumn<T> = {
+  key: string;
+  label: string;
+  render: (row: T, index: number) => React.ReactNode;
+  /** Header/cell classes — widths and alignment. */
+  className?: string;
+};
+
+/**
+ * A compact table that opens SIDEWAYS. Only the base columns show at first, so
+ * the table is as narrow as its content; the ">" beside the trigger column's
+ * heading reveals the detail columns to its right (purpose, deliverable,
+ * remarks…) and folds them away again on the next click. Nothing ever
+ * appears underneath a row.
+ *
+ * Column names are the caller's, so a view can rename them without touching
+ * this component.
+ */
+function ExpandableTable<T>({
+  columns,
+  detailColumns,
+  rows,
+  emptyLabel,
+}: {
+  /** Always visible. The LAST one carries the ">" that opens the rest. */
+  columns: ExpandableColumn<T>[];
+  /** Revealed to the right of the base columns when opened. */
+  detailColumns: ExpandableColumn<T>[];
+  rows: T[];
+  emptyLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const trigger = columns[columns.length - 1];
+  const visible = open ? [...columns, ...detailColumns] : columns;
+
+  const Toggle = (
+    <button
+      type="button"
+      aria-expanded={open}
+      aria-label={open ? "Hide details" : "Show details"}
+      title={open ? "Hide details" : "Show details"}
+      onClick={() => setOpen((v) => !v)}
+      className="ml-1 inline-grid h-4 w-4 place-items-center text-slate-600 hover:text-black dark:text-slate-300 dark:hover:text-white"
+    >
+      <ChevronRight size={12} className={`transition ${open ? "rotate-90" : ""}`} />
+    </button>
+  );
+
+  // Plain, bordered table: grey header, one border per cell, nothing else.
+  const cell = "border border-slate-300 px-2 py-1 align-top dark:border-white/20";
+
+  return (
+    <div className="max-w-full overflow-x-auto">
+      <table className="w-auto border-collapse text-left text-[11px] text-slate-800 dark:text-slate-100">
+        <thead>
+          <tr className="bg-slate-100 dark:bg-white/10">
+            {visible.map((column) => (
+              <th key={column.key} className={`${cell} whitespace-nowrap font-bold ${column.className ?? ""}`}>
+                <span className="inline-flex items-center">
+                  {column.label}
+                  {column.key === trigger.key && Toggle}
+                </span>
+              </th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody>
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={visible.length} className={`${cell} text-center text-slate-500`}>
+                {emptyLabel}
+              </td>
+            </tr>
+          ) : (
+            rows.map((row, index) => (
+              <tr key={index}>
+                {visible.map((column) => (
+                  <td key={column.key} className={`${cell} ${column.className ?? ""}`}>
+                    {column.render(row, index)}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function DetailBlock({
   icon,
   label,
@@ -317,14 +413,24 @@ function OverviewView({ program }: { program: Program }) {
 
   return (
     <div className="space-y-2">
-      <div className=" bg-[#0b2f5b] px-4 py-3 text-white">
+      <div className="flex items-start gap-4 bg-[#0b2f5b] px-4 py-3 text-white">
+        {program.assignedMentorName && (
+          <MentorAvatar
+            email={program.assignedMentorEmail}
+            name={program.assignedMentorName}
+            size={44}
+            className="ring-2 ring-white/40"
+          />
+        )}
+
+        <div className="min-w-0">
         <div className="flex flex-wrap  items-center gap-7
       ">
           <h2 className="text-lg font-black tracking-tight"> {program.programName || "Untitled program"} </h2>
           <StatusPill status={program.status} />
         </div>
 
- 
+
 
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-semibold text-blue-100">
           {program.assignedMentorName && (
@@ -347,6 +453,7 @@ function OverviewView({ program }: { program: Program }) {
               {dateRange}
             </span>
           )}
+        </div>
         </div>
       </div>
 
@@ -587,52 +694,48 @@ function CapstoneView({ program }: { program: Program }) {
 
   if (!rows.length) return <Empty label="No capstone deliverable added yet." />;
 
-  const completed = rows.filter((row) => row.status === "Completed").length;
-
   return (
-    <A4Sheet
-      title="Capstone Timeline"
-      stats={[
-        { icon: <Trophy size={13} />, value: rows.length, label: "Components" },
-        { icon: <CheckCircle2 size={13} />, value: completed, label: "Delivered" },
-      ]}
-    >
-      <ul>
-        {rows.map((row, index) => (
-          <ExpandableRow
-            key={index}
-            badge={<WeekBadge week={row.week} />}
-            title={row.component || "Untitled component"}
-            status={row.status}
-            meta={
-              <Meta
-                icon={<CalendarDays size={11} />}
-                value={formatDate(row.due)}
-                label="Due"
-              />
-            }
-            details={
-              row.deliverable || row.notes ? (
-                <div className="space-y-2">
-                  <DetailBlock
-                    icon={<FileText size={12} />}
-                    label="Deliverable"
-                    value={row.deliverable}
-                    accent
-                  />
-
-                  <DetailBlock
-                    icon={<MessageSquare size={12} />}
-                    label="Facilitator notes"
-                    value={row.notes}
-                  />
-                </div>
-              ) : null
-            }
-          />
-        ))}
-      </ul>
-    </A4Sheet>
+    <div className="p-3">
+      {/* Column names are the caller's to rename — see ExpandableTable. */}
+      <ExpandableTable<CapstoneTimeline>
+        rows={rows}
+        emptyLabel="No capstone deliverable added yet."
+        columns={[
+          {
+            key: "week",
+            label: "Week",
+            className: "whitespace-nowrap",
+            render: (row) => <WeekBadge week={row.week} />,
+          },
+          {
+            key: "component",
+            label: "Component",
+            className: "font-bold text-slate-900 dark:text-white",
+            render: (row) => row.component || "Untitled component",
+          },
+        ]}
+        detailColumns={[
+          {
+            key: "due",
+            label: "Due",
+            className: "whitespace-nowrap",
+            render: (row) => formatDate(row.due) || <span className="text-slate-300">—</span>,
+          },
+          {
+            key: "deliverable",
+            label: "Deliverable",
+            className: "min-w-[12rem] max-w-[18rem]",
+            render: (row) => row.deliverable || <span className="text-slate-300">—</span>,
+          },
+          {
+            key: "notes",
+            label: "Facilitator notes",
+            className: "min-w-[12rem] max-w-[18rem]",
+            render: (row) => row.notes || <span className="text-slate-300">—</span>,
+          },
+        ]}
+      />
+    </div>
   );
 }
 
@@ -643,92 +746,60 @@ function PortfolioView({ program }: { program: Program }) {
 
   if (!rows.length) return <Empty label="No portfolio item added yet." />;
 
-  const completed = rows.filter((row) => row.status === "Completed").length;
-  const percent = Math.round((completed / rows.length) * 100);
-
   return (
-    <A4Sheet
-      title="Portfolio Checklist"
-      stats={[
-        { icon: <ListChecks size={13} />, value: rows.length, label: "Items" },
-        { icon: <CheckCircle2 size={13} />, value: completed, label: "Completed" },
-        { icon: <Percent size={13} />, value: percent, label: "Complete" },
-      ]}
-    >
-      <div
-        title={`${completed} of ${rows.length} complete`}
-        className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/10"
-      >
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-blue-900 to-cyan-500 transition-all"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-
-      <ul>
-        {rows.map((row, index) => (
-          <ExpandableRow
-            key={index}
-            badge={
-              <span
-                title={row.status}
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-black ${
-                  row.status === "Completed"
-                    ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                    : "bg-slate-100 dark:bg-white/10 text-slate-500"
-                }`}
-              >
-                {row.status === "Completed" ? (
-                  <CheckCircle2 size={13} />
-                ) : (
-                  index + 1
-                )}
-              </span>
-            }
-            title={row.item || "Untitled item"}
-            status={row.status}
-            meta={
+    <div className="p-3">
+      {/* Column names are the caller's to rename — see ExpandableTable. */}
+      <ExpandableTable<PortfolioItem>
+        rows={rows}
+        emptyLabel="No portfolio item added yet."
+        columns={[
+          {
+            key: "week",
+            label: "Week",
+            className: "whitespace-nowrap",
+            render: (row) =>
+              row.relatedWeek ? (
+                <WeekBadge week={row.relatedWeek} />
+              ) : (
+                <span className="text-slate-300">—</span>
+              ),
+          },
+          {
+            key: "item",
+            label: "Portfolio Items",
+            className: "font-bold text-slate-900 dark:text-white",
+            render: (row) => (
               <>
-                <Meta
-                  icon={<Hash size={11} />}
-                  value={row.relatedWeek}
-                  label="Related week"
-                />
+                {row.item || "Untitled item"}
                 {row.evidenceLink && (
-                  <span title="Evidence attached" className="text-blue-800">
-                    <Link2 size={11} />
-                  </span>
+                  <Link2 size={11} className="ml-1.5 inline text-blue-800 dark:text-sky-300" aria-label="Evidence attached" />
                 )}
               </>
-            }
-            details={
-              row.purpose || row.evidenceLink || row.facilitatorRemarks ? (
-                <div className="space-y-2">
-                  <DetailBlock
-                    icon={<Target size={12} />}
-                    label="Purpose"
-                    value={row.purpose}
-                  />
-
-                  <DetailBlock
-                    icon={<Link2 size={12} />}
-                    label="Evidence / link"
-                    value={row.evidenceLink}
-                    accent
-                  />
-
-                  <DetailBlock
-                    icon={<MessageSquare size={12} />}
-                    label="Facilitator remarks"
-                    value={row.facilitatorRemarks}
-                  />
-                </div>
-              ) : null
-            }
-          />
-        ))}
-      </ul>
-    </A4Sheet>
+            ),
+          },
+        ]}
+        detailColumns={[
+          {
+            key: "purpose",
+            label: "Purpose",
+            className: "min-w-[12rem] max-w-[18rem]",
+            render: (row) => row.purpose || <span className="text-slate-300">—</span>,
+          },
+          {
+            key: "evidence",
+            label: "Evidence / link",
+            className: "min-w-[10rem] max-w-[16rem] break-all",
+            render: (row) => row.evidenceLink || <span className="text-slate-300">—</span>,
+          },
+          {
+            key: "remarks",
+            label: "Facilitator remarks",
+            className: "min-w-[12rem] max-w-[18rem]",
+            render: (row) => row.facilitatorRemarks || <span className="text-slate-300">—</span>,
+          },
+        ]}
+      />
+    </div>
   );
 }
 

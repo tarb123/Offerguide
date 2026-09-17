@@ -30,8 +30,19 @@ export async function GET(request: Request) {
       ? await CandidateApplication.findOne({ email }).lean()
       : null;
 
+    // Back-fill: a candidate enrolled before the multi-select field existed
+    // still has assignedProgramId but an empty list.
+    const activeId = application?.assignedProgramId || "";
+    const enrolledIds: string[] = Array.isArray(application?.enrolledProgramIds)
+      ? application.enrolledProgramIds
+      : [];
+    const allEnrolled = Array.from(
+      new Set([...enrolledIds, ...(activeId ? [activeId] : [])])
+    );
+
     return NextResponse.json({
-      enrolledProgramId: application?.assignedProgramId || "",
+      activeProgramId: activeId,
+      enrolledProgramIds: allEnrolled,
       programs: programs.map((p) => ({
         programId: String(p._id),
         programName: p.programName || "Untitled program",
@@ -52,12 +63,19 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * action:
+ *   "join"      (default) — add the program to enrolledProgramIds and make it active
+ *   "setActive"           — point the single active field at an already-joined program
+ *   "leave"               — remove the program; if it was active, promote another
+ */
 export async function POST(request: Request) {
   try {
     await dbConnect();
     const body = await request.json();
     const email = String(body.email || "").toLowerCase();
     const programId = String(body.programId || "");
+    const action = String(body.action || "join");
 
     if (!email || !programId) {
       return NextResponse.json(
@@ -69,34 +87,92 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Invalid program." }, { status: 400 });
     }
 
-    const program = await PGPProgram.findById(programId).select("programName").exec();
+    const program = await PGPProgram.findById(programId)
+      .select("programName")
+      .lean();
     if (!program) {
       return NextResponse.json({ message: "Program not found." }, { status: 404 });
     }
+    const programName = (program as { programName?: string }).programName || "";
 
+    const application = await CandidateApplication.findOne({ email }).lean();
+    const currentList: string[] = Array.isArray(application?.enrolledProgramIds)
+      ? application.enrolledProgramIds
+      : [];
+    const currentActive = application?.assignedProgramId || "";
+
+    if (action === "leave") {
+      const nextList = currentList.filter((id) => id !== programId);
+      const stillActive = currentActive === programId ? "" : currentActive;
+      const promotedId = stillActive || nextList[0] || "";
+      let promotedName = "";
+      if (promotedId && promotedId !== currentActive) {
+        const p = await PGPProgram.findById(promotedId).select("programName").lean();
+        promotedName = (p as { programName?: string })?.programName || "";
+      } else if (promotedId === currentActive) {
+        promotedName = application?.assignedProgramName || "";
+      }
+
+      await CandidateApplication.findOneAndUpdate(
+        { email },
+        {
+          $set: {
+            enrolledProgramIds: nextList,
+            assignedProgramId: promotedId,
+            assignedProgramName: promotedName,
+          },
+        },
+        { upsert: true }
+      );
+
+      return NextResponse.json({
+        message: `Left ${programName}.`,
+        activeProgramId: promotedId,
+        enrolledProgramIds: nextList,
+      });
+    }
+
+    if (action === "setActive") {
+      if (!currentList.includes(programId)) {
+        return NextResponse.json(
+          { message: "Join this program before making it active." },
+          { status: 400 }
+        );
+      }
+      await CandidateApplication.findOneAndUpdate(
+        { email },
+        { $set: { assignedProgramId: programId, assignedProgramName: programName } },
+        { upsert: true }
+      );
+      return NextResponse.json({
+        message: `${programName} is now your active program.`,
+        activeProgramId: programId,
+        enrolledProgramIds: currentList,
+      });
+    }
+
+    // action === "join"
     await CandidateApplication.findOneAndUpdate(
       { email },
       {
         $set: {
           email,
-          fullName: body.fullName || "",
+          fullName: body.fullName || application?.fullName || "",
           assignedProgramId: programId,
-          assignedProgramName: program.programName || "",
+          assignedProgramName: programName,
         },
+        $addToSet: { enrolledProgramIds: programId },
       },
       { upsert: true, new: true }
     );
 
     return NextResponse.json({
-      message: `Enrolled in ${program.programName}.`,
-      assignedProgramId: programId,
-      assignedProgramName: program.programName || "",
+      message: `Enrolled in ${programName}.`,
+      activeProgramId: programId,
+      enrolledProgramIds: Array.from(new Set([...currentList, programId])),
     });
   } catch (error) {
     console.error("Candidate Enroll Error:", error);
-    return NextResponse.json(
-      { message: "Failed to enroll." },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Failed to enroll." }, { status: 500 });
   }
 }

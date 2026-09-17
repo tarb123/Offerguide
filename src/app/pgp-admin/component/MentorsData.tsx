@@ -15,11 +15,14 @@ import {
   BadgeCheck,
   CalendarDays,
   Hash,
+  RefreshCw,
+  Trash2,
 } from "lucide-react";
+import { MentorAvatar } from "@/components/portal/CandidateAvatar";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-type ViewMode = "all" | "approved" | "pending";
+type ViewMode = "all" | "active" | "pending";
 
 type Mentor = {
   mentorId: string;
@@ -30,8 +33,24 @@ type Mentor = {
   phone: string;
   role: string;
   status: string;
+  /** Signup date. */
   createdAt: string;
+  /** When the admin first marked the account Active; null while Pending. */
+  activatedAt: string | null;
+  statusUpdatedAt: string | null;
 };
+
+/** dd/mm/yy, the format the admin asked to see signup and activation dates in. */
+export function formatShortDate(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  });
+}
 
 export default function MentorsData() {
   const [mentors, setMentors] = useState<Mentor[]>([]);
@@ -40,6 +59,7 @@ export default function MentorsData() {
   const [viewMode, setViewMode] = useState<ViewMode>("all");
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState("");
 
   const printRef = useRef<HTMLDivElement>(null);
@@ -56,15 +76,21 @@ export default function MentorsData() {
     }
   }
 
+  async function refresh() {
+    setRefreshing(true);
+    await loadMentors();
+    setRefreshing(false);
+  }
+
   useEffect(() => {
     loadMentors();
   }, []);
 
-  const approvedCount = mentors.filter((m) => m.status === "Approved").length;
+  const activeCount = mentors.filter((m) => m.status === "Active").length;
   const pendingCount = mentors.filter((m) => m.status === "Pending").length;
 
   const visibleMentors = mentors.filter((mentor) => {
-    if (viewMode === "approved") return mentor.status === "Approved";
+    if (viewMode === "active") return mentor.status === "Active";
     if (viewMode === "pending") return mentor.status === "Pending";
     return true;
   });
@@ -123,6 +149,66 @@ export default function MentorsData() {
     await loadMentors();
   }
 
+  /**
+   * The approval action itself: one click takes a Pending signup to Active,
+   * which is what lets the mentor sign in. Goes through the same PATCH as the
+   * edit form so the server stamps `activatedAt` and logs it either way.
+   */
+  async function setStatus(mentor: Mentor, status: string) {
+    setMessage("");
+
+    const response = await fetch("/api/pgp-management/mentors-pgp", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...mentor, status }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setMessage(data.message || "Update failed.");
+      return;
+    }
+
+    await loadMentors();
+
+    if (selected?.mentorId === mentor.mentorId) {
+      const updated = {
+        ...mentor,
+        status,
+        activatedAt: data.mentor?.activatedAt ?? mentor.activatedAt,
+        statusUpdatedAt: data.mentor?.statusUpdatedAt ?? mentor.statusUpdatedAt,
+      };
+      setSelected(updated);
+      setEditData(updated);
+      setMessage(data.message);
+    }
+  }
+
+  /** Removes the account. Irreversible, so it asks first. */
+  async function deleteMentor(mentor: Mentor) {
+    const label = mentor.fullName || mentor.email;
+    if (!window.confirm(`Delete mentor "${label}"? This cannot be undone.`)) return;
+
+    setMessage("");
+
+    const response = await fetch("/api/pgp-management/mentors-pgp", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mentorId: mentor.mentorId }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setMessage(data.message || "Delete failed.");
+      return;
+    }
+
+    if (selected?.mentorId === mentor.mentorId) closeDrawer();
+    await loadMentors();
+  }
+
   async function downloadPDF() {
     if (!printRef.current || !selected) return;
 
@@ -159,55 +245,71 @@ export default function MentorsData() {
   }
 
   return (
-    <div className="mt-24 text-sm">
+    <div className="text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-white/10 px-3 py-2">
         <span className="flex items-center gap-1.5 text-lg font-black text-slate-900 dark:text-white">
           <UserCog size={18} className="text-blue-900" />
           Mentors
         </span>
 
-        <div className="flex gap-1">
-          <FilterChip
-            label="All"
-            count={mentors.length}
-            active={viewMode === "all"}
-            onClick={() => setViewMode("all")}
-          />
-          <FilterChip
-            label="Approved"
-            count={approvedCount}
-            active={viewMode === "approved"}
-            onClick={() => setViewMode("approved")}
-          />
-          <FilterChip
-            label="Pending"
-            count={pendingCount}
-            active={viewMode === "pending"}
-            onClick={() => setViewMode("pending")}
-          />
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            <FilterChip
+              label="All"
+              count={mentors.length}
+              active={viewMode === "all"}
+              onClick={() => setViewMode("all")}
+            />
+            <FilterChip
+              label="Active"
+              count={activeCount}
+              active={viewMode === "active"}
+              onClick={() => setViewMode("active")}
+            />
+            <FilterChip
+              label="Pending"
+              count={pendingCount}
+              active={viewMode === "pending"}
+              onClick={() => setViewMode("pending")}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={refreshing}
+            title="Refresh"
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10"
+          >
+            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+          </button>
         </div>
       </div>
 
       {loading ? (
         <p className="p-4 text-slate-500 dark:text-slate-400">Loading mentors...</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-xs">
-            <thead className="border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-[10px] uppercase tracking-wider text-slate-400">
+        <div className="p-3">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left text-[11px]">
+            <thead className="bg-[#0b2f5b] text-[9px] uppercase tracking-wider text-white">
               <tr>
-                <th className="px-3 py-2 font-bold">#</th>
-                <th className="px-3 py-2 font-bold">Name</th>
-                <th className="px-3 py-2 font-bold">Email</th>
-                <th className="px-3 py-2 font-bold">Expertise</th>
-                <th className="px-3 py-2 font-bold">Phone</th>
-                <th className="px-3 py-2 font-bold">Status</th>
+                <th className="px-2.5 py-1.5 font-bold">#</th>
+                <th className="px-2.5 py-1.5 font-bold">Name</th>
+                <th className="px-2.5 py-1.5 font-bold">Email</th>
+                <th className="px-2.5 py-1.5 font-bold">Expertise</th>
+                <th className="px-2.5 py-1.5 font-bold">Phone</th>
+                <th className="px-2.5 py-1.5 font-bold">Signed up</th>
+                <th className="px-2.5 py-1.5 font-bold">Activated</th>
+                <th className="px-2.5 py-1.5 font-bold">Status</th>
+                <th className="px-2.5 py-1.5 font-bold"></th>
               </tr>
             </thead>
 
             <tbody>
               {visibleMentors.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-3 py-4 text-center text-slate-500">
+                  <td colSpan={9} className="px-3 py-4 text-center text-slate-500">
                     No mentors found.
                   </td>
                 </tr>
@@ -220,23 +322,67 @@ export default function MentorsData() {
                       selected?.mentorId === mentor.mentorId ? "bg-blue-50 dark:bg-white/10" : ""
                     }`}
                   >
-                    <td className="px-3 py-2 text-slate-400">{index + 1}</td>
-                    <td className="px-3 py-2 font-bold text-slate-900 dark:text-slate-100">
-                      {mentor.fullName || "-"}
+                    <td className="px-2.5 py-1.5 text-slate-400">{index + 1}</td>
+                    <td className="px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100">
+                      <span className="flex items-center gap-2">
+                        <MentorAvatar
+                          email={mentor.email}
+                          name={mentor.fullName}
+                          size={24}
+                        />
+                        {mentor.fullName || "-"}
+                      </span>
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{mentor.email || "-"}</td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                    <td className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300">{mentor.email || "-"}</td>
+                    <td className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300">
                       {mentor.expertise || "-"}
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{mentor.phone || "-"}</td>
-                    <td className="px-3 py-2">
+                    <td className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300">{mentor.phone || "-"}</td>
+                    <td className="whitespace-nowrap px-2.5 py-1.5 text-slate-600 dark:text-slate-300">
+                      {formatShortDate(mentor.createdAt)}
+                    </td>
+                    <td className="whitespace-nowrap px-2.5 py-1.5 text-slate-600 dark:text-slate-300">
+                      {formatShortDate(mentor.activatedAt)}
+                    </td>
+                    <td className="px-2.5 py-1.5">
                       <StatusPill status={mentor.status} />
+                    </td>
+                    <td className="px-2.5 py-1.5">
+                      <span className="flex items-center justify-end gap-1">
+                        {mentor.status === "Pending" && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void setStatus(mentor, "Active");
+                            }}
+                            className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white transition hover:bg-emerald-700"
+                          >
+                            <BadgeCheck size={12} />
+                            Mark Active
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          title="Delete mentor"
+                          aria-label={`Delete ${mentor.fullName || mentor.email}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void deleteMentor(mentor);
+                          }}
+                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </span>
                     </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
+          </div>
+          </div>
         </div>
       )}
 
@@ -377,10 +523,18 @@ function ReadView({ mentor }: { mentor: Mentor }) {
         <Field icon={<BadgeCheck size={13} />} label="Status" value={mentor.status} />
         <Field
           icon={<CalendarDays size={13} />}
-          label="Registered"
-          value={
-            mentor.createdAt ? new Date(mentor.createdAt).toLocaleString() : "-"
-          }
+          label="Signed up"
+          value={formatShortDate(mentor.createdAt)}
+        />
+        <Field
+          icon={<BadgeCheck size={13} />}
+          label="Marked Active"
+          value={formatShortDate(mentor.activatedAt)}
+        />
+        <Field
+          icon={<CalendarDays size={13} />}
+          label="Status last changed"
+          value={formatShortDate(mentor.statusUpdatedAt)}
         />
         <Field icon={<Hash size={13} />} label="Mentor ID" value={mentor.mentorId} wide />
       </Section>
@@ -471,7 +625,7 @@ function EditForm({
         <SelectField
           label="Status"
           value={data.status}
-          options={["Pending", "Approved", "Rejected", "Blocked"]}
+          options={["Pending", "Active", "Rejected", "Blocked"]}
           onChange={(v) => onChange("status", v)}
         />
       </Section>
@@ -607,7 +761,7 @@ function IconBtn({
 }
 
 const MENTOR_STATUS_STYLES: Record<string, string> = {
-  Approved: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  Active: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   Pending: "bg-amber-50 text-amber-700 ring-amber-200",
   Rejected: "bg-rose-50 text-rose-700 ring-rose-200",
   Blocked: "bg-rose-50 text-rose-700 ring-rose-200",

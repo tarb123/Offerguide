@@ -17,7 +17,8 @@
  * have needed a second JWT implementation on `jose`, defeating the point of a
  * story about centralizing verification.
  *
- * SCOPE IS DELIBERATELY NARROW: OfferGuide's pages and API only.
+ * SCOPE IS DELIBERATELY NARROW: OfferGuide's pages and API, plus the PGP
+ * admin area (which reuses the same portal role).
  *
  *   Read this before widening it. The other portal features — PP, CRR, Blogs,
  *   the pgp modules, the khudi endpoints — are excluded, and NOT because they
@@ -55,6 +56,12 @@ export const config = {
     // OfferGuide's API, which includes /api/offerguide/admin/config/* — the real
     // prefix for the routes the handoff calls "/admin/config/*".
     "/api/offerguide/:path*",
+    // The PGP admin area and the API behind it. Formerly the "management"
+    // portal with its own Mongo login; now gated on the portal role exactly
+    // like /offerguide/admin. The candidate and mentor portals are NOT here —
+    // they still authenticate against their own collections (see above).
+    "/pgp-admin/:path*",
+    "/api/pgp-management/:path*",
   ],
 };
 

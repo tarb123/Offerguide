@@ -49,11 +49,7 @@ export async function POST(request: Request) {
     const { action } = body;
 
     if (action === "signup") {
-      const {
-        fullName,
-        email,
-        password,
-      } = body;
+      const { fullName, email, password } = body;
 
       if (!fullName || !email || !password) {
         return NextResponse.json(

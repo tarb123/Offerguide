@@ -17,7 +17,11 @@ import {
   CalendarDays,
   ArrowRight,
   ChevronDown,
+  User,
 } from "lucide-react";
+import CandidateAvatar, { MentorAvatar } from "@/components/portal/CandidateAvatar";
+import { useTabParam } from "@/lib/portal/useTabParam";
+import MentorProfile from "@/app/mentor/component/MentorProfile";
 
 type MentorProgram = {
   programId: string;
@@ -35,12 +39,20 @@ const NAV: { label: string; icon: React.ReactNode }[] = [
   { label: "Dashboard", icon: <LayoutDashboard size={18} /> },
   { label: "Assigned Candidates", icon: <Users size={18} /> },
   { label: "Feedback", icon: <FileText size={18} /> },
+  { label: "Profile", icon: <User size={18} /> },
 ];
+const NAV_LABELS = NAV.map((n) => n.label);
 
 export default function MentorDashboardPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [active, setActive] = useState("Dashboard");
+  const [active, setActive] = useTabParam("mentorTab", NAV_LABELS, "Dashboard");
+  const [me, setMe] = useState<{ fullName?: string; email?: string }>({});
+
+  useEffect(() => {
+    const saved = localStorage.getItem("mentorUser");
+    if (saved) setMe(JSON.parse(saved));
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -52,14 +64,14 @@ export default function MentorDashboardPage() {
     } catch {}
 
     localStorage.removeItem("mentorUser");
-    window.location.href = "/mentor";
+    window.location.href = "/pgp-access?role=mentor";
   };
 
   return (
     <main className="min-h-screen bg-slate-100 dark:bg-darkBlue">
       <div className="flex min-h-screen">
         <aside
-          className={`hidden min-w-0 shrink-0 mt-20 overflow-hidden bg-zinc-300 dark:bg-[#0b1230] lg:block ${
+          className={`sticky top-20 hidden h-[calc(100vh-5rem)] shrink-0 self-start overflow-y-auto border-r border-[#0b163f]/10 bg-[#fbf7f1] shadow-[0_8px_35px_rgba(11,22,63,0.06)] dark:border-white/10 dark:bg-[#003f81] lg:block ${
             collapsed ? "w-16" : "w-52"
           }`}
         >
@@ -71,10 +83,10 @@ export default function MentorDashboardPage() {
           <div className="fixed inset-0 z-50 lg:hidden">
             <div className="absolute inset-0 bg-black/40" onClick={() => setMobileMenuOpen(false)} />
 
-            <aside className="relative h-full w-60 bg-[#0b2f5b] text-white shadow-2xl">
+            <aside className="relative h-full w-60 bg-[#fbf7f1] shadow-2xl dark:bg-[#003f81]">
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="absolute right-3 top-3 rounded-lg bg-white/10 p-1.5"
+                className="absolute right-3 top-3 rounded-lg bg-[#0b163f]/5 p-1.5 text-[#0b163f] dark:bg-white/10 dark:text-white"
               >
                 <X size={18} />
               </button>
@@ -93,22 +105,35 @@ export default function MentorDashboardPage() {
         )}
 
         <section className="min-w-0 flex-1 p-3 sm:p-4">
-          <div className="mb-3 flex items-center gap-2 lg:hidden">
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="rounded-lg bg-white dark:bg-white/10 p-2 text-blue-900 dark:text-white shadow-sm"
-            >
-              <Menu size={20} />
-            </button>
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="rounded-lg bg-white p-2 text-blue-900 shadow-sm dark:bg-white/10 dark:text-white lg:hidden"
+              >
+                <Menu size={20} />
+              </button>
+              <div>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                  {active === "Profile" ? "My Profile" : "Mentor Dashboard"}
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {active === "Profile"
+                    ? "Your photo and account details."
+                    : "Your assigned programs and enrolled students."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2 rounded-full bg-white px-2 py-1 shadow-sm dark:bg-white/10">
+              <MentorAvatar email={me.email} name={me.fullName} size={26} />
+              <span className="max-w-[140px] truncate text-xs font-bold text-slate-700 dark:text-slate-200">
+                {me.fullName || "Mentor"}
+              </span>
+            </div>
           </div>
 
-          <div className="mb-4">
-            <h2 className="text-xl font-black text-slate-900 dark:text-white">Mentor Dashboard</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Your assigned programs and enrolled students.</p>
-          </div>
-
-          <MentorPrograms />
-
+          {active === "Profile" ? <MentorProfile /> : <MentorPrograms />}
         </section>
       </div>
     </main>
@@ -168,29 +193,31 @@ function MentorPrograms() {
 
   return (
     <div className="space-y-4">
-      {/* Summary tiles */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 mt-14">
-        <StatTile
-          icon={<GraduationCap size={18} />}
-          label="Assigned Programs"
-          value={programs.length}
-          from="from-blue-500"
-          to="to-blue-700"
-        />
-        <StatTile
-          icon={<Users size={18} />}
-          label="Total Students"
-          value={totalStudents}
-          from="from-emerald-500"
-          to="to-emerald-700"
-        />
-        <StatTile
-          icon={<CalendarDays size={18} />}
-          label="Active Programs"
-          value={programs.filter((p) => p.status === "Active").length}
-          from="from-violet-500"
-          to="to-violet-700"
-        />
+      {/* Summary tiles — one compact card, three small stats inside */}
+      <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-white/10 dark:bg-white/5">
+        <div className="grid grid-cols-3 gap-1.5">
+          <StatTile
+            icon={<GraduationCap size={15} />}
+            label="Assigned Programs"
+            value={programs.length}
+            from="from-blue-500"
+            to="to-blue-700"
+          />
+          <StatTile
+            icon={<Users size={15} />}
+            label="Total Students"
+            value={totalStudents}
+            from="from-emerald-500"
+            to="to-emerald-700"
+          />
+          <StatTile
+            icon={<CalendarDays size={15} />}
+            label="Active Programs"
+            value={programs.filter((p) => p.status === "Active").length}
+            from="from-violet-500"
+            to="to-violet-700"
+          />
+        </div>
       </div>
 
       {/* Program cards */}
@@ -204,7 +231,7 @@ function MentorPrograms() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {programs.map((p) => {
             const pill =
               STATUS_PILL[p.status] || "bg-slate-100 text-slate-600 ring-slate-200";
@@ -212,7 +239,7 @@ function MentorPrograms() {
               <Link
                 key={p.programId}
                 href={`/mentor/program/${p.programId}`}
-                className="group block rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-4 shadow-sm transition hover:border-blue-300 hover:shadow-md"
+                className="group block rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-3 shadow-sm transition hover:border-blue-300 hover:shadow-md"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -267,9 +294,11 @@ function MentorPrograms() {
                         key={s.email || i}
                         className="flex items-center gap-2 px-3 py-1.5"
                       >
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-slate-100 text-[9px] font-black text-slate-500 dark:bg-white/10">
-                          {i + 1}
-                        </span>
+                        <CandidateAvatar
+                          email={s.email}
+                          name={s.fullName}
+                          size={20}
+                        />
                         <div className="min-w-0">
                           <p className="truncate text-[11px] font-bold text-slate-900 dark:text-white">
                             {s.fullName || "—"}
@@ -325,15 +354,15 @@ function StatTile({
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${from} ${to} p-3 text-white shadow-sm`}
+      className={`relative overflow-hidden rounded-lg bg-gradient-to-br ${from} ${to} p-1.5 text-white shadow-sm`}
     >
-      <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/10" />
+      <div className="absolute -right-2 -top-2 h-8 w-8 rounded-full bg-white/10" />
       <div className="relative">
-        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-white/80">
-          {icon}
+        <div className="text-white/80">{icon}</div>
+        <p className="mt-0.5 text-base font-black leading-none">{value}</p>
+        <p className="mt-0.5 text-[8px] font-bold uppercase leading-tight tracking-wide text-white/80">
           {label}
-        </div>
-        <p className="mt-1 text-2xl font-black leading-none">{value}</p>
+        </p>
       </div>
     </div>
   );
@@ -353,7 +382,7 @@ function SidebarContent({
   onLogout: () => void;
 }) {
   return (
-    <div className="flex h-full flex-col p-2">
+    <div className="flex h-full flex-col p-3">
       <div
         className={`mb-2 flex items-center ${
           collapsed ? "justify-center" : "justify-between"
@@ -364,7 +393,7 @@ function SidebarContent({
             type="button"
             onClick={onToggle}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="mt-3 rounded-lg p-2 text-zinc-500 transition hover:bg-white/10"
+            className="mt-1 rounded-lg p-2 text-[#0b163f] transition hover:bg-white dark:text-white dark:hover:bg-white/10"
           >
             {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
           </button>
@@ -387,7 +416,7 @@ function SidebarContent({
           type="button"
           onClick={onLogout}
           title="Logout"
-          className={`-mt-2 flex items-center gap-3 py-2 text-sm font-bold text-zinc-500 hover:text-white ${
+          className={`mt-1 flex items-center gap-3 rounded-2xl py-3 text-sm font-black text-[#0b163f] transition hover:bg-white dark:text-white dark:hover:bg-white/10 ${
             collapsed ? "justify-center px-0" : "px-3"
           }`}
         >
@@ -416,9 +445,9 @@ function MenuItem({
     <button
       onClick={onClick}
       title={collapsed ? label : undefined}
-      className={`flex items-center gap-3 rounded-lg py-2.5 text-sm font-bold transition ${
+      className={`flex items-center gap-3 rounded-2xl py-3 text-sm font-black transition ${
         collapsed ? "justify-center px-0" : "px-3"
-      } ${active ? "bg-zinc-400 dark:bg-blue-900 text-white" : "text-blue-900 dark:text-slate-200 hover:bg-white/10"}`}
+      } ${active ? "bg-white text-[#1746b5] shadow-sm dark:bg-white/10 dark:text-white" : "text-[#0b163f] hover:bg-white dark:text-white dark:hover:bg-white/10"}`}
     >
       {icon}
       {!collapsed && label}

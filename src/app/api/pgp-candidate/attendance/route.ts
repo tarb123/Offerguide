@@ -4,7 +4,7 @@ import dbConnect from "@/utils/dbConnect";
 import CandidateApplication from "@/models/CandidateApplication";
 
 const ProgramSchema = new mongoose.Schema(
-  { programName: String, weeklySchedule: Array },
+  { programName: String, assignedMentorName: String, weeklySchedule: Array },
   { timestamps: true }
 );
 
@@ -32,6 +32,8 @@ function weekNo(value: string) {
   return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
 }
 
+type AttRecord = { programId?: string; week?: string; status?: string };
+
 export async function GET(request: Request) {
   try {
     await dbConnect();
@@ -43,51 +45,115 @@ export async function GET(request: Request) {
     }
 
     const application = await CandidateApplication.findOne({ email }).lean();
-    const programId = application?.assignedProgramId || "";
+    const candidateName = application?.fullName || "";
+    const activeProgramId = application?.assignedProgramId || "";
 
-    if (!programId) {
+    // Every programme the candidate has joined (the list) plus the active one,
+    // de-duped and limited to valid ids.
+    const rawIds: string[] = [
+      ...(Array.isArray(application?.enrolledProgramIds)
+        ? application.enrolledProgramIds
+        : []),
+      ...(activeProgramId ? [activeProgramId] : []),
+    ];
+    const programIds = Array.from(new Set(rawIds)).filter((id) =>
+      mongoose.Types.ObjectId.isValid(id)
+    );
+
+    if (programIds.length === 0) {
       return NextResponse.json({
         enrolled: false,
-        programName: "",
-        weeks: [],
-        records: [],
-        summary: { present: 0, absent: 0, late: 0, excused: 0, total: 0, percent: 0 },
+        candidateName,
+        activeProgramId: "",
+        courses: [],
       });
     }
 
-    const program = await PGPProgram.findById(programId).lean();const programDoc = Array.isArray(program) ? program[0] : program;
-    const weeks = Array.from(
-      new Set(
-       (programDoc?.weeklySchedule || [])
-          .map((w: { week?: string }) => w.week)
-          .filter(Boolean)
-      )
-    ).sort((a, b) => weekNo(a as string) - weekNo(b as string)) as string[];
+    const [programs, records] = await Promise.all([
+      PGPProgram.find({ _id: { $in: programIds } }).lean(),
+      Attendance.find({
+        candidateEmail: email,
+        programId: { $in: programIds },
+      })
+        .select("programId week status")
+        .lean() as unknown as Promise<AttRecord[]>,
+    ]);
 
-    const records = await Attendance.find({ programId, candidateEmail: email })
-      .select("week status")
-      .lean();
+    const progById = new Map(programs.map((p) => [String(p._id), p]));
+    const recsByProgram = new Map<string, AttRecord[]>();
+    for (const r of records) {
+      const key = String(r.programId || "");
+      const list = recsByProgram.get(key) ?? [];
+      if (!recsByProgram.has(key)) recsByProgram.set(key, list);
+      list.push(r);
+    }
 
-    const byWeek = new Map(records.map((r) => [r.week, r.status]));
-    const rows = weeks.map((w) => ({ week: w, status: byWeek.get(w) || "" }));
+    const courses = programIds.map((id) => {
+      const prog = progById.get(id) as
+        | {
+            programName?: string;
+            assignedMentorName?: string;
+            weeklySchedule?: { week?: string }[];
+          }
+        | undefined;
 
-    const count = (s: string) =>
-      records.filter((r) => r.status === s).length;
-    const present = count("Present");
-    const late = count("Late");
-    const absent = count("Absent");
-    const excused = count("Excused");
-    const marked = present + late + absent + excused;
-    // Present and Late both count toward attendance credit.
-    const percent = marked
-      ? Math.round(((present + late) / marked) * 100)
-      : 0;
+      const weeks = Array.from(
+        new Set(
+          (prog?.weeklySchedule || [])
+            .map((w) => w.week)
+            .filter(Boolean) as string[]
+        )
+      ).sort((a, b) => weekNo(a) - weekNo(b));
+
+      const recs = recsByProgram.get(id) || [];
+      const byWeek = new Map(recs.map((r) => [r.week, r.status]));
+      const rows = weeks.map((w) => ({ week: w, status: byWeek.get(w) || "" }));
+
+      const count = (s: string) => recs.filter((r) => r.status === s).length;
+      const present = count("Present");
+      const late = count("Late");
+      const absent = count("Absent");
+      const excused = count("Excused");
+      const conducted = present + late + absent + excused;
+      const attended = present + late;
+      const percent = conducted ? Math.round((attended / conducted) * 100) : 0;
+
+      return {
+        programId: id,
+        programName:
+          prog?.programName ||
+          (id === activeProgramId ? application?.assignedProgramName : "") ||
+          "Programme",
+        instructorName: prog?.assignedMentorName || "",
+        isActive: id === activeProgramId,
+        weeks: rows,
+        summary: {
+          present,
+          absent,
+          late,
+          excused,
+          total: weeks.length,
+          conducted,
+          attended,
+          percent,
+        },
+      };
+    });
+
+    // Active programme first, then alphabetical.
+    courses.sort((a, b) =>
+      a.isActive === b.isActive
+        ? a.programName.localeCompare(b.programName)
+        : a.isActive
+        ? -1
+        : 1
+    );
 
     return NextResponse.json({
       enrolled: true,
-      programName: application?.assignedProgramName || programDoc?.programName || "",
-      weeks: rows,
-      summary: { present, absent, late, excused, total: weeks.length, percent },
+      candidateName,
+      activeProgramId,
+      courses,
     });
   } catch (error) {
     console.error("Candidate Attendance Error:", error);

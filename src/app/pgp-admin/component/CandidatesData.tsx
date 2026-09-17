@@ -20,10 +20,12 @@ import {
   Wifi,
   MessageSquare,
   CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import CandidateDocumentsView from "./CandidateDocumentsView";
+import CandidateAvatar from "@/components/portal/CandidateAvatar";
 
 type ViewMode = "candidates" | "submitted" | "pending";
 
@@ -60,6 +62,7 @@ export default function CandidatesData() {
   const [viewMode, setViewMode] = useState<ViewMode>("candidates");
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState("");
   const [programs, setPrograms] = useState<ProgramOption[]>([]);
 
@@ -75,6 +78,12 @@ export default function CandidatesData() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function refresh() {
+    setRefreshing(true);
+    await loadCandidates();
+    setRefreshing(false);
   }
 
   useEffect(() => {
@@ -210,50 +219,62 @@ export default function CandidatesData() {
 
   return (
     <div className="text-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-white/10 px-3 py-2 mt-24
-      ">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-white/10 px-2.5 py-1.5">
         <span className="flex items-center gap-1.5 text-lg
         font-black text-slate-900 dark:text-white">
           <Users size={18} className="text-blue-900" />
           Candidates
         </span>
 
-        <div className="flex gap-1">
-          <FilterChip
-            label="All"
-            count={candidates.length}
-            active={viewMode === "candidates"}
-            onClick={() => setViewMode("candidates")}
-          />
-          <FilterChip
-            label="Submitted"
-            count={submittedCount}
-            active={viewMode === "submitted"}
-            onClick={() => setViewMode("submitted")}
-          />
-          <FilterChip
-            label="Pending"
-            count={pendingCount}
-            active={viewMode === "pending"}
-            onClick={() => setViewMode("pending")}
-          />
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            <FilterChip
+              label="All"
+              count={candidates.length}
+              active={viewMode === "candidates"}
+              onClick={() => setViewMode("candidates")}
+            />
+            <FilterChip
+              label="Submitted"
+              count={submittedCount}
+              active={viewMode === "submitted"}
+              onClick={() => setViewMode("submitted")}
+            />
+            <FilterChip
+              label="Pending"
+              count={pendingCount}
+              active={viewMode === "pending"}
+              onClick={() => setViewMode("pending")}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={refreshing}
+            title="Refresh"
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 disabled:opacity-60 dark:hover:bg-white/10"
+          >
+            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+          </button>
         </div>
       </div>
 
       {loading ? (
         <p className="p-4 text-slate-500 dark:text-slate-400">Loading candidates...</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-xs">
-            <thead className="border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-[10px] uppercase tracking-wider text-slate-400">
+        <div className="p-3">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left text-[11px]">
+            <thead className="bg-[#0b2f5b] text-[9px] uppercase tracking-wider text-white">
               <tr>
-                <th className="px-3 py-2 font-bold">#</th>
-                <th className="px-3 py-2 font-bold">Name</th>
-                <th className="px-3 py-2 font-bold">Email</th>
-                <th className="px-3 py-2 font-bold">Gender</th>
-                <th className="px-3 py-2 font-bold">Qualification</th>
-                <th className="px-3 py-2 font-bold">Contact</th>
-                <th className="px-3 py-2 font-bold">Status</th>
+                <th className="px-2.5 py-1.5 font-bold">#</th>
+                <th className="px-2.5 py-1.5 font-bold">Name</th>
+                <th className="px-2.5 py-1.5 font-bold">Email</th>
+                <th className="px-2.5 py-1.5 font-bold">Gender</th>
+                <th className="px-2.5 py-1.5 font-bold">Qualification</th>
+                <th className="px-2.5 py-1.5 font-bold">Contact</th>
+                <th className="px-2.5 py-1.5 font-bold">Status</th>
               </tr>
             </thead>
 
@@ -275,23 +296,30 @@ export default function CandidatesData() {
                         : ""
                     }`}
                   >
-                    <td className="px-3 py-2 text-slate-400">{index + 1}</td>
-                    <td className="px-3 py-2 font-bold text-slate-900 dark:text-slate-100">
-                      {candidate.fullName || "-"}
+                    <td className="px-2.5 py-1.5 text-slate-400">{index + 1}</td>
+                    <td className="px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100">
+                      <span className="flex items-center gap-2">
+                        <CandidateAvatar
+                          email={candidate.email}
+                          name={candidate.fullName}
+                          size={26}
+                        />
+                        {candidate.fullName || "-"}
+                      </span>
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                    <td className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300">
                       {candidate.email || "-"}
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                    <td className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300">
                       {candidate.gender || "-"}
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                    <td className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300">
                       {candidate.qualification || "-"}
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                    <td className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300">
                       {candidate.contactNumber || "-"}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-2.5 py-1.5">
                       <StatusPill status={candidate.applicationStatus} />
                     </td>
                   </tr>
@@ -299,6 +327,8 @@ export default function CandidatesData() {
               )}
             </tbody>
           </table>
+        </div>
+        </div>
         </div>
       )}
 
@@ -360,14 +390,22 @@ function CandidateDrawer({
 
       <aside className="relative flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
         <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-[#535b65] px-4 py-3 text-white">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="truncate text-base font-black">
-                {selected.fullName || "Candidate"}
-              </h2>
-              <StatusPill status={selected.applicationStatus} dark />
+          <div className="flex min-w-0 items-center gap-3">
+            <CandidateAvatar
+              email={selected.email}
+              name={selected.fullName}
+              size={40}
+              className="ring-2 ring-white/30"
+            />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="truncate text-base font-black">
+                  {selected.fullName || "Candidate"}
+                </h2>
+                <StatusPill status={selected.applicationStatus} dark />
+              </div>
+              <p className="truncate text-[11px] text-zinc-100">{selected.email}</p>
             </div>
-            <p className="truncate text-[11px] text-zinc-100">{selected.email}</p>
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">

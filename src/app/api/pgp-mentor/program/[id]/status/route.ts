@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import dbConnect from "@/utils/dbConnect";
+import ActivityLog from "@/models/ActivityLog";
 
 const ProgramSchema = new mongoose.Schema(
   {
@@ -15,31 +16,8 @@ const ProgramSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/**
- * Immutable audit trail of every mentor status change. One row per change, so
- * management can see exactly what a mentor marked, when, and what it was before.
- */
-const ActivityLogSchema = new mongoose.Schema(
-  {
-    programId: String,
-    programName: String,
-    mentorId: String,
-    mentorName: String,
-    mentorEmail: { type: String, lowercase: true },
-    section: String,
-    itemLabel: String,
-    fromStatus: String,
-    toStatus: String,
-  },
-  { timestamps: true }
-);
-
 const PGPProgram =
   mongoose.models.PGPProgram || mongoose.model("PGPProgram", ProgramSchema);
-
-const ActivityLog =
-  mongoose.models.ActivityLog ||
-  mongoose.model("ActivityLog", ActivityLogSchema);
 
 const EDITABLE_SECTIONS = [
   "weeklySchedule",

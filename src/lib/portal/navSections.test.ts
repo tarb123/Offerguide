@@ -189,9 +189,9 @@ describe("the declaration itself", () => {
   // Sprint 10, Story 10.1.3: the admin tier gained a real destination. /api-docs
   // is deliberately kept alongside it, not replaced — it is still the reference
   // for what the API accepts.
-  it("points the admin tier at the admin area AND keeps /api-docs", () => {
+  it("points the admin tier at both admin areas AND keeps /api-docs", () => {
     const adminOnly = PORTAL_SECTIONS.filter((e) => e.permission === "portal.admin.access");
-    expect(adminOnly.map((e) => e.href)).toEqual(["/offerguide/admin", "/api-docs"]);
+    expect(adminOnly.map((e) => e.href)).toEqual(["/offerguide/admin", "/pgp-admin", "/api-docs"]);
   });
 
   it("lists the admin area before the raw contract", () => {
